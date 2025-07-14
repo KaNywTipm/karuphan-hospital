@@ -53,7 +53,7 @@ export const outCPUData = [
   }
 ];
 
-export type Role = "admin" | "internal" | "external";
+export type Role = "admin" | "internal" | "external" | "other";
 
 export interface User {
   id: number;
