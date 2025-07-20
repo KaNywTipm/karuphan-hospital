@@ -9,7 +9,7 @@ export default function PageLayout({
     return (
         <div className="h-screen flex">
             {/* Left Sidebar Menu */}
-            <div className="w-[14%] md:w-[8%] lg:w-[16%] xl:w-[14%] p-4 bg-slate-900">
+            <div className="w-[14%] md:w-[8%] lg:w-[16%] xl:w-[17%] p-4 bg-NavyBlue">
                 <Menu />
             </div>
 
