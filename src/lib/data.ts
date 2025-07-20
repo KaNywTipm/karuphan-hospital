@@ -11,8 +11,8 @@ export const inCPUData = [
     department: "ภายในแผนก",
     serialNo: "613",
     receivedDate: "1997-11-22",
-    price: 1200.00,
-    status: "ใช้งานอยู่"
+    price: 1200.0,
+    status: "ใช้งานอยู่",
   },
   {
     id: 11846,
@@ -22,9 +22,9 @@ export const inCPUData = [
     department: "ภายในแผนก",
     serialNo: "FL-700",
     receivedDate: "2006-10-22",
-    price: 750000.00,
-    status: "ชำรุด"
-  }
+    price: 750000.0,
+    status: "ชำรุด",
+  },
   // เพิ่มได้อีกตามข้อมูล
 ];
 
@@ -37,8 +37,8 @@ export const outCPUData = [
     department: "ภายนอกแผนก",
     serialNo: "-",
     receivedDate: "2001-11-01",
-    price: 400.00,
-    status: "ยืมโดย รพ.สต.ชุมชน"
+    price: 400.0,
+    status: "ยืมโดย รพ.สต.ชุมชน",
   },
   {
     id: 11851,
@@ -48,9 +48,9 @@ export const outCPUData = [
     department: "ภายนอกแผนก",
     serialNo: "-",
     receivedDate: "2003-10-24",
-    price: 3000.00,
-    status: "สูญหาย"
-  }
+    price: 3000.0,
+    status: "สูญหาย",
+  },
 ];
 
 export type Role = "admin" | "internal" | "external" | "other";
@@ -71,7 +71,7 @@ export const users: User[] = [
     username: "admin",
     phone: "0800000000",
     password: "adminSecurePassword", // ส่งให้โดยตรง ไม่ให้สมัคร
-    role: "admin"
+    role: "admin",
   },
   {
     id: 2,
@@ -79,7 +79,7 @@ export const users: User[] = [
     username: "nurse01",
     phone: "0811111111",
     password: "12345678",
-    role: "internal"
+    role: "internal",
   },
   {
     id: 3,
@@ -87,6 +87,95 @@ export const users: User[] = [
     username: "officer01",
     phone: "0822222222",
     password: "abcd1234",
-    role: "external"
-  }
+    role: "external",
+  },
+];
+
+// ข้อมูลรายการยืม-คืน
+export interface BorrowReturn {
+  id: number;
+  borrowerName: string;
+  department: string;
+  equipmentCode: string;
+  category: string;
+  returnDate: string;
+  reason: string;
+  status: "รออนุมัติ" | "อนุมัติ" | "ไม่อนุมัติ" | "คืนแล้ว";
+  borrowDate?: string;
+  userId: number;
+}
+
+export const borrowReturnData: BorrowReturn[] = [
+  {
+    id: 1,
+    borrowerName: "นางยืมแล้ว คืนเถ้อ",
+    department: "กายภาพบำบัด",
+    equipmentCode: "75878-5635",
+    category: "อิเล็กทรอนิกส์",
+    returnDate: "15/8/56",
+    reason: "อื่น",
+    status: "อนุมัติ",
+    borrowDate: "10/8/56",
+    userId: 2,
+  },
+  {
+    id: 2,
+    borrowerName: "นางเอ็งยืม คืนมา",
+    department: "กายภาพบำบัด",
+    equipmentCode: "75874-5435",
+    category: "อิเล็กทรอนิกส์",
+    returnDate: "16/8/56",
+    reason: "อื่น",
+    status: "ไม่อนุมัติ",
+    borrowDate: "11/8/56",
+    userId: 2,
+  },
+  {
+    id: 3,
+    borrowerName: "นางยืนยืม มาคืน",
+    department: "กายภาพบำบัด",
+    equipmentCode: "75874-5425",
+    category: "อิเล็กทรอนิกส์",
+    returnDate: "20/8/56",
+    reason: "อื่น",
+    status: "รออนุมัติ",
+    borrowDate: "15/8/56",
+    userId: 3,
+  },
+  {
+    id: 4,
+    borrowerName: "นางนั่งยืม รอคืน",
+    department: "กายภาพบำบัด",
+    equipmentCode: "75874-5415",
+    category: "อิเล็กทรอนิกส์",
+    returnDate: "11/8/56",
+    reason: "อื่น",
+    status: "อนุมัติ",
+    borrowDate: "06/8/56",
+    userId: 2,
+  },
+  {
+    id: 5,
+    borrowerName: "นางเอามา คืนนะ",
+    department: "กายภาพบำบัด",
+    equipmentCode: "75874-5405",
+    category: "อิเล็กทรอนิกส์",
+    returnDate: "12/8/56",
+    reason: "อื่น",
+    status: "อนุมัติ",
+    borrowDate: "07/8/56",
+    userId: 3,
+  },
+  {
+    id: 6,
+    borrowerName: "นายทดสอบ สมมติ",
+    department: "ห้องผ่าตัด",
+    equipmentCode: "75874-5500",
+    category: "อิเล็กทรอนิกส์",
+    returnDate: "25/8/56",
+    reason: "ใช้งาน",
+    status: "คืนแล้ว",
+    borrowDate: "20/8/56",
+    userId: 2,
+  },
 ];
