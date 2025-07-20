@@ -109,9 +109,6 @@ const Menu = () => {
     <div className="mt-4 text-sm">
       {menuItems.map((i) => (
         <div className="flex flex-col gap-2" key={i.title}>
-          <span className="hidden lg:block text-white font-normal my-4">
-            {i.title}
-          </span>
           {i.items.map((item) => {
             if (!item.visible.includes(role)) return null;
 
@@ -123,7 +120,7 @@ const Menu = () => {
                 <Link
                   href={item.href}
                   className={`flex items-center justify-center lg:justify-start gap-4 py-2 md:px-2 rounded-md
-                    ${isLogout ? "text-white hover:bg-red-500" : "text-white"}
+                    ${isLogout ? "text-White hover:bg-red-500" : "text-White"}
                     ${!hasSub && !isLogout ? "hover:bg-gray-800" : ""}
                   `}
                 >
