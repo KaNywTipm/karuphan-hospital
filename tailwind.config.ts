@@ -23,7 +23,7 @@ const config: Config = {
         RedLight : "#CB444A",
         BlueLight : "#8AC1CF",
         Pink : "#FAADAD",
-        FromGrey : "#BEBEBE",
+        Grey : "#BEBEBE",
         Red : "#FF0000",
         White : "#FFFFFF",
         Blue : "#3579F6",
