@@ -33,25 +33,25 @@ const menuItems = [
           {
             icon: "/plus.png",
             label: "รายงานการยืมคืน",
-            href: "/borrow-return-report",
+            href: "/report1-borrow-return",
             visible: ["admin", "internal"],
           },
           {
             icon: "/plus.png",
             label: "รายงานครุภัณฑ์ที่ถูกยกเลิก",
-            href: "/cancelled-asset-report",
+            href: "/report2-not_approve",
             visible: ["admin"],
           },
           {
             icon: "/plus.png",
             label: "รายงานครุภัณฑ์ชำรุด/สูญหาย",
-            href: "/damaged-lost-asset-report",
+            href: "/report3-status_karuphan",
             visible: ["admin"],
           },
           {
             icon: "/plus.png",
             label: "สรุปยอดครุภัณฑ์",
-            href: "/asset-summary",
+            href: "/report4-total_amount",
             visible: ["admin"],
           },
         ],
@@ -71,13 +71,13 @@ const menuItems = [
           {
             icon: "/list.png",
             label: "รายการครุภัณฑ์",
-            href: "/asset-list",
+            href: "/list-karuphan",
             visible: ["admin"],
           },
           {
             icon: "/edit.png",
             label: "เพิ่มหมวดหมู่ครุภัณฑ์",
-            href: "/add-asset-category",
+            href: "/category-karuphan",
             visible: ["admin"],
           },
         ],
@@ -85,13 +85,13 @@ const menuItems = [
       {
         icon: "/person.png",
         label: "จัดการบุคลากร",
-        href: "/manage-person",
+        href: "/manage-personnel",
         visible: ["admin"],
       },
       {
         icon: "/person.png",
         label: "แก้ไขโปรไฟล์",
-        href: "/manage-personnel",
+        href: "/edit-profile",
         visible: ["internal", "external"],
       },
       {
