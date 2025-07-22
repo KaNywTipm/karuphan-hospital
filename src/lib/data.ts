@@ -59,12 +59,12 @@ export const outCPUData = [
   },
 ];
 
-export type Role = "admin" | "internal" | "external" | "other";
+export type Role = "admin" | "internal" | "external";
 
 export interface User {
   id: number;
   fullName: string;
-  username: string;
+  email: string;
   phone: string;
   password: string;
   role: Role;
@@ -73,8 +73,8 @@ export interface User {
 export const users: User[] = [
   {
     id: 1,
-    fullName: "ผู้ระบบ",
-    username: "admin",
+    fullName: "ผู้ดูแลระบบครุภัณฑ์",
+    email: "admin@example.com",
     phone: "0800000000",
     password: "adminSecurePassword", // ส่งให้โดยตรง ไม่ให้สมัคร
     role: "admin",
@@ -82,15 +82,15 @@ export const users: User[] = [
   {
     id: 2,
     fullName: "พยาบาล สมใจ",
-    username: "nurse01",
+    email: "nurse01@example.com",
     phone: "0811111111",
     password: "12345678",
     role: "internal",
   },
   {
     id: 3,
-    fullName: "เจ้าหน้าที่ รพ.สต.บ้านเหนือ",
-    username: "officer01",
+    fullName: "เจ้าหน้าที่ รพ.สต.บ้านไหน",
+    email: "officer01@example.com",
     phone: "0822222222",
     password: "abcd1234",
     role: "external",
@@ -115,7 +115,7 @@ export const borrowReturnData: BorrowReturn[] = [
   {
     id: 1,
     borrowerName: "นางยืมแล้ว คืนเถ้อ",
-    department: "กายภาพบำบัด",
+    department: "ภายนอกแผนก",
     equipmentCode: "75878-5635",
     category: "อิเล็กทรอนิกส์",
     returnDate: "15/8/56",
@@ -127,7 +127,7 @@ export const borrowReturnData: BorrowReturn[] = [
   {
     id: 2,
     borrowerName: "นางเอ็งยืม คืนมา",
-    department: "กายภาพบำบัด",
+    department: "ภายในแผนก",
     equipmentCode: "75874-5435",
     category: "อิเล็กทรอนิกส์",
     returnDate: "16/8/56",
@@ -139,7 +139,7 @@ export const borrowReturnData: BorrowReturn[] = [
   {
     id: 3,
     borrowerName: "นางยืนยืม มาคืน",
-    department: "กายภาพบำบัด",
+    department: "ภายนอกแผนก",
     equipmentCode: "75874-5425",
     category: "อิเล็กทรอนิกส์",
     returnDate: "20/8/56",
@@ -151,7 +151,7 @@ export const borrowReturnData: BorrowReturn[] = [
   {
     id: 4,
     borrowerName: "นางนั่งยืม รอคืน",
-    department: "กายภาพบำบัด",
+    department: "ภายในแผนก",
     equipmentCode: "75874-5415",
     category: "อิเล็กทรอนิกส์",
     returnDate: "11/8/56",
@@ -163,7 +163,7 @@ export const borrowReturnData: BorrowReturn[] = [
   {
     id: 5,
     borrowerName: "นางเอามา คืนนะ",
-    department: "กายภาพบำบัด",
+    department: "ภายนอกแผนก",
     equipmentCode: "75874-5405",
     category: "อิเล็กทรอนิกส์",
     returnDate: "12/8/56",
@@ -175,7 +175,7 @@ export const borrowReturnData: BorrowReturn[] = [
   {
     id: 6,
     borrowerName: "นายทดสอบ สมมติ",
-    department: "ห้องผ่าตัด",
+    department: "ภายในแผนก",
     equipmentCode: "75874-5500",
     category: "อิเล็กทรอนิกส์",
     returnDate: "25/8/56",

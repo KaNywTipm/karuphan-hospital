@@ -9,8 +9,8 @@ const menuItems = [
       {
         icon: "/list.png",
         label: "รายการยืมคืนครุภัณฑ์",
-        href: "/borrow-return-list",
-        visible: ["admin", "internal", "external"],
+        href: "/role1-admin",
+        visible: ["admin"],
       },
       {
         icon: "/list.png",
@@ -33,8 +33,8 @@ const menuItems = [
           {
             icon: "/plus.png",
             label: "รายงานการยืมคืน",
-            href: "/report1-borrow-return",
-            visible: ["admin", "internal"],
+            href: "/report1-borrow_return",
+            visible: ["admin"],
           },
           {
             icon: "/plus.png",
