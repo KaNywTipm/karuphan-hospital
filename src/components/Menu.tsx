@@ -1,4 +1,4 @@
-import { role } from "@/lib/data";
+import { role, currentUser } from "@/lib/data";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -106,57 +106,82 @@ const menuItems = [
 
 const Menu = () => {
   return (
-    <div className="mt-4 text-sm">
-      {menuItems.map((i) => (
-        <div className="flex flex-col gap-2" key={i.title}>
-          {i.items.map((item) => {
-            if (!item.visible.includes(role)) return null;
-
-            const isLogout = item.label === "ออกจากระบบ";
-            const hasSub = !!item.subItems;
-
-            return (
-              <div key={item.label} className="flex flex-col">
-                <Link
-                  href={item.href}
-                  className={`flex items-center justify-center lg:justify-start gap-4 py-2 md:px-2 rounded-md
-                    ${isLogout ? "text-White hover:bg-red-500" : "text-White"}
-                    ${!hasSub && !isLogout ? "hover:bg-gray-800" : ""}
-                  `}
-                >
-                  <Image
-                    src={item.icon}
-                    alt=""
-                    width={20}
-                    height={20}
-                  />
-                  <span className="hidden lg:block">{item.label}</span>
-                </Link>
-
-                {hasSub &&
-                  item.subItems
-                    .filter((sub) => sub.visible.includes(role))
-                    .map((sub) => (
-                      <Link
-                        href={sub.href}
-                        key={sub.label}
-                        className="ml-8 flex items-center justify-start gap-3 text-white py-1 px-2 rounded hover:bg-gray-800 text-sm"
-                      >
-                        <Image
-                          src={sub.icon}
-                          alt=""
-                          width={16}
-                          height={16}
-                          className="filter invert-0"
-                        />
-                        <span>{sub.label}</span>
-                      </Link>
-                    ))}
-              </div>
-            );
-          })}
+    <div className="flex flex-col h-full">
+      {/* Profile Section */}
+      <div className="flex items-center gap-3 p-4 mb-4 bg-slate-600 rounded-lg">
+        <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center flex-shrink-0">
+          <Image
+            src="/profile.png"
+            alt="profile"
+            width={20}
+            height={20}
+            className="text-gray-600"
+          />
         </div>
-      ))}
+        <div className="flex-1 min-w-0 hidden lg:block">
+          <p className="text-white font-medium text-sm break-words">
+            {currentUser.name}
+          </p>
+          <p className="text-gray-300 text-xs break-words whitespace-normal">
+            {currentUser.department}
+          </p>
+        </div>
+      </div>
+
+
+      {/* Menu Items */}
+      <div className="flex-1 text-sm">
+        {menuItems.map((i) => (
+          <div className="flex flex-col gap-2" key={i.title}>
+            {i.items.map((item) => {
+              if (!item.visible.includes(role)) return null;
+
+              const isLogout = item.label === "ออกจากระบบ";
+              const hasSub = !!item.subItems;
+
+              return (
+                <div key={item.label} className="flex flex-col">
+                  <Link
+                    href={item.href}
+                    className={`flex items-center justify-center lg:justify-start gap-4 py-2 md:px-2 rounded-md
+                      ${isLogout ? "text-White hover:bg-red-500" : "text-White"}
+                      ${!hasSub && !isLogout ? "hover:bg-gray-700" : ""}
+                    `}
+                  >
+                    <Image
+                      src={item.icon}
+                      alt=""
+                      width={20}
+                      height={20}
+                    />
+                    <span className="hidden lg:block">{item.label}</span>
+                  </Link>
+
+                  {hasSub &&
+                    item.subItems
+                      .filter((sub) => sub.visible.includes(role))
+                      .map((sub) => (
+                        <Link
+                          href={sub.href}
+                          key={sub.label}
+                          className="ml-8 flex items-center justify-start gap-3 text-white py-1 px-2 rounded hover:bg-gray-700 text-sm"
+                        >
+                          <Image
+                            src={sub.icon}
+                            alt=""
+                            width={16}
+                            height={16}
+                            className="filter invert-0"
+                          />
+                          <span>{sub.label}</span>
+                        </Link>
+                      ))}
+                </div>
+              );
+            })}
+          </div>
+        ))}
+      </div>
     </div>
   );
 };

@@ -40,7 +40,7 @@ const AdminPage = () => {
             count: borrowReturnData.filter(item => item.status === "รออนุมัติ").length
         },
         {
-            name: "อนุมัติแล้ว/ยืมแล้ว",
+            name: "อนุมัติแล้ว/รอคืน",
             color: "bg-yellow-400 text-white",
             count: borrowReturnData.filter(item => item.status === "อนุมัติ").length
         },

@@ -1,6 +1,9 @@
-const Category = [
+const Unit = [
     {
         items: [
+            {
+                label: "บุคลากรภายในกลุ่มงานบริการด้านปฐมภูมิและองค์รวม",
+            },
             {
                 label: "กลุ่มงานบริหารทั่วไป",
             },
@@ -37,11 +40,8 @@ const Category = [
             {
                 label: "กลุ่มงานสุขภาพจิตและยาเสพติด",
             },
-            {
-                label: "ประชาชนทั่วไป",
-            },
         ],
     },
 ];
 
-export default Category;
+export default Unit;

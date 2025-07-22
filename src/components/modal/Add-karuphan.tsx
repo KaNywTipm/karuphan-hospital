@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import List from "@/components/dropdown/List-karuphan";
+import List from "@/components/dropdown/Category-karuphan";
 
 const Addkaruphan = () => {
     const [isOpen, setIsOpen] = useState(true);

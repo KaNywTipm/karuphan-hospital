@@ -2,6 +2,15 @@
 
 export let role = "admin";
 
+// ข้อมูลผู้ใช้ปัจจุบัน (สำหรับ mock ข้อมูล)
+export const currentUser = {
+  id: 1,
+  name: "ผู้ดูแลระบบครุภัณฑ์",
+  department: "บุคลากรภายในกลุ่มงานบริการด้านปฐมภูมิและองค์รวม",
+  role: "admin",
+  title: "ผู้ดูแลระบบครุภัณฑ์",
+};
+
 export const inCPUData = [
   {
     id: 12404,
@@ -20,7 +29,6 @@ export const inCPUData = [
     name: "เครื่องตรวจครรภ์",
     category: "เครื่องมือทางการแพทย์",
     department: "ภายในแผนก",
-    serialNo: "FL-700",
     receivedDate: "2006-10-22",
     price: 750000.0,
     status: "ชำรุด",
@@ -35,7 +43,6 @@ export const outCPUData = [
     name: "เก้าอี้เหล็กยาว",
     category: "ครุภัณฑ์สำนักงาน",
     department: "ภายนอกแผนก",
-    serialNo: "-",
     receivedDate: "2001-11-01",
     price: 400.0,
     status: "ยืมโดย รพ.สต.ชุมชน",
@@ -46,7 +53,6 @@ export const outCPUData = [
     name: "เก้าอี้ล้อเลื่อนไฟเบอร์",
     category: "ครุภัณฑ์สำนักงาน",
     department: "ภายนอกแผนก",
-    serialNo: "-",
     receivedDate: "2003-10-24",
     price: 3000.0,
     status: "สูญหาย",
