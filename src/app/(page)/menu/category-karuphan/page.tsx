@@ -7,11 +7,17 @@ import List from "@/components/dropdown/Category-karuphan";
 const itemsPerPage = 5;
 
 const CategoryKaruphan = () => {
+    const [items, setItems] = useState(List[0].items);
     const [searchTerm, setSearchTerm] = useState("");
     const [currentPage, setCurrentPage] = useState(1);
     const [isOpen, setIsOpen] = useState(true);
+    const [newLabel, setNewLabel] = useState("");
 
-    const filteredData = List[0].items.filter((item) =>
+    // เก็บ id รายการที่กำลังแก้ไข และค่าแก้ไขชั่วคราว
+    const [editId, setEditId] = useState<number | null>(null);
+    const [editLabel, setEditLabel] = useState("");
+
+    const filteredData = items.filter((item) =>
         item.label.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
@@ -19,9 +25,8 @@ const CategoryKaruphan = () => {
     const startIndex = (currentPage - 1) * itemsPerPage;
     const endIndex = startIndex + itemsPerPage;
     const currentItems = filteredData.slice(startIndex, endIndex);
-    const allItems = List[0].items;
-    const nextIndex = allItems.length + 1;
 
+    const nextIndex = items.length + 1;
 
     const goToPreviousPage = () => {
         if (currentPage > 1) setCurrentPage(currentPage - 1);
@@ -31,8 +36,52 @@ const CategoryKaruphan = () => {
         if (currentPage < totalPages) setCurrentPage(currentPage + 1);
     };
 
-    const handleClose = () => {
-        setIsOpen(false);
+    const handleAddItem = () => {
+        if (!newLabel.trim()) return;
+
+        const newItem = {
+            id: Date.now(),
+            label: newLabel.trim(),
+        };
+
+        setItems([...items, newItem]);
+        setNewLabel("");
+        setCurrentPage(totalPages);
+    };
+
+    const handleDeleteItem = (id: number) => {
+        const updatedItems = items.filter((item) => item.id !== id);
+        setItems(updatedItems);
+
+        const newTotalPages = Math.ceil(updatedItems.length / itemsPerPage);
+        if (currentPage > newTotalPages) {
+            setCurrentPage(newTotalPages > 0 ? newTotalPages : 1);
+        }
+    };
+
+    // เริ่มแก้ไขรายการ
+    const startEdit = (id: number, currentLabel: string) => {
+        setEditId(id);
+        setEditLabel(currentLabel);
+    };
+
+    // ยกเลิกแก้ไข
+    const cancelEdit = () => {
+        setEditId(null);
+        setEditLabel("");
+    };
+
+    // บันทึกการแก้ไข
+    const saveEdit = (id: number) => {
+        if (!editLabel.trim()) return; // ไม่อนุญาตให้ว่าง
+
+        const updatedItems = items.map((item) =>
+            item.id === id ? { ...item, label: editLabel.trim() } : item
+        );
+
+        setItems(updatedItems);
+        setEditId(null);
+        setEditLabel("");
     };
 
     if (!isOpen) return null;
@@ -70,37 +119,70 @@ const CategoryKaruphan = () => {
                 </div>
 
                 <div className="overflow-x-auto">
-                    <table className="w-full">
+                    <table className="w-full table-fixed">
                         <thead className="bg-red-400 text-white">
                             <tr>
-                                <th className="px-4 py-3 text-left text-sm font-medium">ลำดับ</th>
+                                <th className="px-4 py-3 text-left text-sm font-medium w-1/12">ลำดับ</th>
                                 <th className="px-4 py-3 text-left text-sm font-medium">ชื่อหมวดหมู่ครุภัณฑ์</th>
-                                <th className="px-4 py-3 text-left text-sm font-medium">แก้ไข</th>
-                                <th className="px-4 py-3 text-left text-sm font-medium">ลบ</th>
+                                <th className="px-2 py-3 text-center text-sm font-medium w-[80px]">แก้ไข</th>
+                                <th className="px-2 py-3 text-center text-sm font-medium w-[80px]">ลบ</th>
                             </tr>
                         </thead>
-
                         <tbody className="divide-y divide-gray-200">
                             {currentItems.map((item, index) => (
                                 <tr key={item.id} className="hover:bg-gray-50">
                                     <td className="px-4 py-3 text-sm text-gray-900">{startIndex + index + 1}</td>
-                                    <td className="px-4 py-3 text-sm text-gray-900">{item.label}</td>
-                                    <td className="px-4 py-3">
-                                        <button className="bg-Yellow text-White px-3 py-1 rounded text-sm">
-                                            <Image src="/edit.png" alt="edit" width={20} height={20} />
-                                        </button>
+                                    <td className="px-4 py-3 text-sm text-gray-900">
+                                        {editId === item.id ? (
+                                            <input
+                                                type="text"
+                                                value={editLabel}
+                                                onChange={(e) => setEditLabel(e.target.value)}
+                                                className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
+                                            />
+                                        ) : (
+                                            item.label
+                                        )}
                                     </td>
-                                    <td className="px-4 py-3">
-                                        <button className="bg-RedLight text-White px-3 py-1 rounded text-sm">
+                                    <td className="px-2 py-3 text-sm text-center">
+                                        {editId === item.id ? (
+                                            <>
+                                                <button
+                                                    onClick={() => saveEdit(item.id)}
+                                                    className="bg-Green text-white px-3 py-1 rounded text-sm mr-1 my-1"
+                                                >
+                                                    บันทึก
+                                                </button>
+                                                <button
+                                                    onClick={cancelEdit}
+                                                    className="bg-Grey text-white px-3 py-1 rounded text-sm"
+                                                >
+                                                    ยกเลิก
+                                                </button>
+                                            </>
+                                        ) : (
+                                            <button
+                                                onClick={() => startEdit(item.id, item.label)}
+                                                className="bg-Yellow text-White px-3 py-1 rounded text-sm"
+                                            >
+                                                <Image src="/edit.png" alt="edit" width={20} height={20} />
+                                            </button>
+                                        )}
+                                    </td>
+                                    <td className="px-2 py-3 text-sm text-center">
+                                        <button
+                                            onClick={() => handleDeleteItem(item.id)}
+                                            className="bg-RedLight text-White px-3 py-1 rounded text-sm"
+                                        >
                                             <Image src="/delete.png" alt="delete" width={20} height={20} />
                                         </button>
                                     </td>
-
                                 </tr>
                             ))}
+
                             {currentItems.length === 0 && (
                                 <tr>
-                                    <td colSpan={3} className="px-4 py-6 text-center text-sm text-gray-500">
+                                    <td colSpan={4} className="px-4 py-6 text-center text-sm text-gray-500">
                                         ไม่พบหมวดหมู่ที่ค้นหา
                                     </td>
                                 </tr>
@@ -136,9 +218,9 @@ const CategoryKaruphan = () => {
             </section>
 
             {/* Section: Add Form */}
-            <section className="bg-White rounded-lg shadow border p-6">
+            <section className="bg-white rounded-lg shadow border p-6">
                 <h2 className="text-lg font-semibold text-gray-800 mb-4">เพิ่มหมวดหมู่ครุภัณฑ์</h2>
-                <form className="flex flex-col gap-4">
+                <form className="flex flex-col gap-4" onSubmit={e => e.preventDefault()}>
                     <FormRow label="ลำดับ">
                         <input
                             readOnly
@@ -147,9 +229,10 @@ const CategoryKaruphan = () => {
                         />
                     </FormRow>
 
-
                     <FormRow label="ชื่อหมวดหมู่ครุภัณฑ์">
                         <input
+                            value={newLabel}
+                            onChange={(e) => setNewLabel(e.target.value)}
                             placeholder="ครุภัณฑ์ทางการแพทย์และวิทยาศาสตร์"
                             className="form-input border border-gray-300 rounded px-2 py-1 w-full"
                         />
@@ -157,7 +240,8 @@ const CategoryKaruphan = () => {
 
                     <div className="flex justify-center gap-4 mt-4">
                         <button
-                            type="submit"
+                            type="button"
+                            onClick={handleAddItem}
                             className="bg-Blue text-White px-4 py-2 rounded-md"
                         >
                             เพิ่มข้อมูล
