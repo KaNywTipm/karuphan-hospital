@@ -17,8 +17,7 @@ export const inCPUData = [
     code: "6530-008-0711/3",
     name: "เครื่องพ่นยา ฝ. ใส่แผน",
     category: "ครุภัณฑ์การแพทย์",
-    department: "ภายในแผนก",
-    serialNo: "613",
+    department: "ภายในกลุ่มงาน",
     receivedDate: "1997-11-22",
     price: 1200.0,
     status: "ใช้งานอยู่",
@@ -28,7 +27,7 @@ export const inCPUData = [
     code: "6515-022-1041/2",
     name: "เครื่องตรวจครรภ์",
     category: "เครื่องมือทางการแพทย์",
-    department: "ภายในแผนก",
+    department: "ภายในกลุ่มงาน",
     receivedDate: "2006-10-22",
     price: 750000.0,
     status: "ชำรุด",
@@ -42,7 +41,7 @@ export const outCPUData = [
     code: "7110-006-0007/137",
     name: "เก้าอี้เหล็กยาว",
     category: "ครุภัณฑ์สำนักงาน",
-    department: "ภายนอกแผนก",
+    department: "ภายนอกกลุ่มงาน",
     receivedDate: "2001-11-01",
     price: 400.0,
     status: "ยืมโดย รพ.สต.ชุมชน",
@@ -52,7 +51,7 @@ export const outCPUData = [
     code: "7110-006-0023/45",
     name: "เก้าอี้ล้อเลื่อนไฟเบอร์",
     category: "ครุภัณฑ์สำนักงาน",
-    department: "ภายนอกแผนก",
+    department: "ภายนอกกลุ่มงาน",
     receivedDate: "2003-10-24",
     price: 3000.0,
     status: "สูญหาย",
@@ -101,33 +100,41 @@ export const users: User[] = [
 export interface BorrowReturn {
   id: number;
   borrowerName: string;
+  borrowerType: "internal" | "external"; // เพิ่มประเภทผู้ยืม
   department: string;
   equipmentCode: string;
   category: string;
   returnDate: string;
   reason: string;
-  status: "รออนุมัติ" | "อนุมัติ" | "ไม่อนุมัติ" | "คืนแล้ว";
+  status: "รออนุมัติ" | "อนุมัติแล้ว/รอคืน" | "ไม่อนุมัติ" | "คืนแล้ว";
   borrowDate?: string;
   userId: number;
+  // ข้อมูลสำหรับการคืน
+  returnCondition?: "ปกติ" | "ชำรุด" | "สูญหาย" | "รอจำหน่าย" | "จำหน่ายแล้ว";
+  returnNotes?: string;
+  actualReturnDate?: string;
+  receivedBy?: string;
 }
 
 export const borrowReturnData: BorrowReturn[] = [
   {
     id: 1,
     borrowerName: "นางยืมแล้ว คืนเถ้อ",
-    department: "ภายนอกแผนก",
+    borrowerType: "external", // คนภายนอก
+    department: "ภายนอกกลุ่มงาน",
     equipmentCode: "75878-5635",
     category: "อิเล็กทรอนิกส์",
     returnDate: "15/8/56",
-    reason: "อื่น",
-    status: "อนุมัติ",
+    reason: "เอาไปใช้สาธิตในการประชุม",
+    status: "อนุมัติแล้ว/รอคืน",
     borrowDate: "10/8/56",
     userId: 2,
   },
   {
     id: 2,
     borrowerName: "นางเอ็งยืม คืนมา",
-    department: "ภายในแผนก",
+    borrowerType: "internal", // คนภายใน
+    department: "ภายในกลุ่มงาน",
     equipmentCode: "75874-5435",
     category: "อิเล็กทรอนิกส์",
     returnDate: "16/8/56",
@@ -139,7 +146,8 @@ export const borrowReturnData: BorrowReturn[] = [
   {
     id: 3,
     borrowerName: "นางยืนยืม มาคืน",
-    department: "ภายนอกแผนก",
+    borrowerType: "external", // คนภายนอก - ต้องรออนุมัติ
+    department: "ภายนอกกลุ่มงาน",
     equipmentCode: "75874-5425",
     category: "อิเล็กทรอนิกส์",
     returnDate: "20/8/56",
@@ -151,31 +159,34 @@ export const borrowReturnData: BorrowReturn[] = [
   {
     id: 4,
     borrowerName: "นางนั่งยืม รอคืน",
-    department: "ภายในแผนก",
+    borrowerType: "internal", // คนภายใน - ไปรอคืนเลย
+    department: "ภายในกลุ่มงาน",
     equipmentCode: "75874-5415",
     category: "อิเล็กทรอนิกส์",
     returnDate: "11/8/56",
     reason: "อื่น",
-    status: "อนุมัติ",
+    status: "อนุมัติแล้ว/รอคืน",
     borrowDate: "06/8/56",
     userId: 2,
   },
   {
     id: 5,
     borrowerName: "นางเอามา คืนนะ",
-    department: "ภายนอกแผนก",
+    borrowerType: "external", // คนภายนอก
+    department: "ภายนอกกลุ่มงาน",
     equipmentCode: "75874-5405",
     category: "อิเล็กทรอนิกส์",
     returnDate: "12/8/56",
     reason: "อื่น",
-    status: "อนุมัติ",
+    status: "อนุมัติแล้ว/รอคืน",
     borrowDate: "07/8/56",
     userId: 3,
   },
   {
     id: 6,
     borrowerName: "นายทดสอบ สมมติ",
-    department: "ภายในแผนก",
+    borrowerType: "internal", // คนภายใน
+    department: "ภายในกลุ่มงาน",
     equipmentCode: "75874-5500",
     category: "อิเล็กทรอนิกส์",
     returnDate: "25/8/56",
@@ -185,3 +196,61 @@ export const borrowReturnData: BorrowReturn[] = [
     userId: 2,
   },
 ];
+
+// ฟังก์ชันสำหรับสร้างการยืมใหม่(แก้ขัดก่อนขึ้นข้อมูลหลังบ้าน)
+export const createNewBorrowRequest = (
+  borrowData: Omit<BorrowReturn, "id" | "status">
+) => {
+  const newId = Math.max(...borrowReturnData.map((item) => item.id)) + 1;
+
+  // กำหนดสถานะตาม borrowerType(แก้ขัดก่อนขึ้นข้อมูลหลังบ้าน)
+  const status =
+    borrowData.borrowerType === "internal" ? "อนุมัติแล้ว/รอคืน" : "รออนุมัติ";
+
+  const newRequest: BorrowReturn = {
+    ...borrowData,
+    id: newId,
+    status,
+  };
+
+  borrowReturnData.push(newRequest);
+  return newRequest;
+};
+
+// ฟังก์ชันสำหรับอัปเดตสถานะ(แก้ขัดก่อนขึ้นข้อมูลหลังบ้าน)
+export const updateBorrowStatus = (
+  id: number,
+  newStatus: BorrowReturn["status"]
+) => {
+  const itemIndex = borrowReturnData.findIndex((item) => item.id === id);
+  if (itemIndex !== -1) {
+    borrowReturnData[itemIndex].status = newStatus;
+    return borrowReturnData[itemIndex];
+  }
+  return null;
+};
+
+// ฟังก์ชันสำหรับบันทึกข้อมูลการคืน(แก้ขัดก่อนขึ้นข้อมูลหลังบ้าน)
+export const updateReturnInfo = (
+  id: number,
+  returnData: {
+    returnCondition: BorrowReturn["returnCondition"];
+    returnNotes?: string;
+    actualReturnDate: string;
+    receivedBy?: string;
+  }
+) => {
+  const itemIndex = borrowReturnData.findIndex((item) => item.id === id);
+  if (itemIndex !== -1) {
+    borrowReturnData[itemIndex] = {
+      ...borrowReturnData[itemIndex],
+      status: "คืนแล้ว",
+      returnCondition: returnData.returnCondition,
+      returnNotes: returnData.returnNotes,
+      actualReturnDate: returnData.actualReturnDate,
+      receivedBy: returnData.receivedBy || "บางจิน รอดรวง",
+    };
+    return borrowReturnData[itemIndex];
+  }
+  return null;
+};

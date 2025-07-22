@@ -2,9 +2,11 @@
 
 import Image from "next/image";
 import { useState } from "react";
-import { borrowReturnData, type BorrowReturn } from "@/lib/data";
+import { useRouter } from "next/navigation";
+import { borrowReturnData, updateBorrowStatus, type BorrowReturn } from "@/lib/data";
 
 const AdminPage = () => {
+    const router = useRouter();
     const [activeTab, setActiveTab] = useState("รออนุมัติ");
     const [searchTerm, setSearchTerm] = useState("");
     const [currentPage, setCurrentPage] = useState(1);
@@ -19,8 +21,8 @@ const AdminPage = () => {
             switch (activeTab) {
                 case "รออนุมัติ":
                     return item.status === "รออนุมัติ";
-                case "อนุมัติแล้ว/ยืมแล้ว":
-                    return item.status === "อนุมัติ";
+                case "อนุมัติแล้ว/รอคืน":
+                    return item.status === "อนุมัติแล้ว/รอคืน";
                 case "คืนแล้ว":
                     return item.status === "คืนแล้ว";
                 case "ไม่อนุมัติ/ยกเลิก":
@@ -42,7 +44,7 @@ const AdminPage = () => {
         {
             name: "อนุมัติแล้ว/รอคืน",
             color: "bg-yellow-400 text-white",
-            count: borrowReturnData.filter(item => item.status === "อนุมัติ").length
+            count: borrowReturnData.filter(item => item.status === "อนุมัติแล้ว/รอคืน").length
         },
         {
             name: "คืนแล้ว",
@@ -58,22 +60,45 @@ const AdminPage = () => {
 
     const getActionButtonStyle = (status: string) => {
         switch (status) {
-            case "อนุมัติ":
-                return "bg-blue-500 text-white px-3 py-1 rounded text-sm";
-            case "ไม่อนุมัติ":
-                return "bg-red-500 text-white px-3 py-1 rounded text-sm";
             case "รออนุมัติ":
-                return "bg-yellow-500 text-white px-3 py-1 rounded text-sm";
+                return "bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-1 rounded text-sm cursor-pointer";
+            case "อนุมัติแล้ว/รอคืน":
+                return "bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded text-sm cursor-pointer";
+            case "ไม่อนุมัติ":
+                return "bg-red-500 text-white px-3 py-1 rounded text-sm cursor-not-allowed";
             case "คืนแล้ว":
-                return "bg-green-500 text-white px-3 py-1 rounded text-sm";
+                return "bg-gray-500 text-white px-3 py-1 rounded text-sm cursor-not-allowed";
             default:
-                return "bg-gray-500 text-white px-3 py-1 rounded text-sm";
+                return "bg-gray-500 text-white px-3 py-1 rounded text-sm cursor-not-allowed";
         }
     };
 
-    const handleStatusChange = (id: number, newStatus: BorrowReturn['status']) => {
-        // TODO: Implement API call to update status
-        console.log(`Updating item ${id} to status: ${newStatus}`);
+    const getActionButtonText = (status: string) => {
+        switch (status) {
+            case "รออนุมัติ":
+                return "อนุมัติ";
+            case "อนุมัติแล้ว/รอคืน":
+                return "คืน";
+            case "ไม่อนุมัติ":
+                return "ไม่อนุมัติ";
+            case "คืนแล้ว":
+                return "คืนแล้ว";
+            default:
+                return status;
+        }
+    };
+
+    const handleStatusChange = (id: number, currentStatus: string) => {
+        if (currentStatus === "อนุมัติแล้ว/รอคืน") {
+            // เมื่อคลิกปุ่ม "คืน" จะพาไปหน้าตรวจสอบสภาพครุภัณฑ์
+            router.push(`/role1-admin/return?id=${id}`);
+        } else if (currentStatus === "รออนุมัติ") {
+            // เมื่อคลิกปุ่ม "อนุมัติ" จะพาไปหน้าอนุมัติ
+            router.push(`/role1-admin/approve?id=${id}`);
+        } else {
+            // สถานะอื่นๆ ไม่สามารถเปลี่ยนได้
+            console.log(`Status ${currentStatus} cannot be changed by admin`);
+        }
     };
 
     return (
@@ -90,7 +115,7 @@ const AdminPage = () => {
                             onClick={() => setActiveTab(tab.name)}
                             className={`px-6 py-3 rounded-lg font-medium transition-colors ${activeTab === tab.name
                                 ? tab.color
-                                : "bg-gray-200 text-gray-600 hover:bg-gray-300"
+                                : "bg-gray-200 text--600 hover:bg-gray-300"
                                 }`}
                         >
                             {tab.name}
@@ -103,7 +128,7 @@ const AdminPage = () => {
             <div className="bg-white rounded-lg shadow-sm border">
                 <div className="p-4 border-b">
                     <div className="flex justify-between items-center">
-                        <h2 className="text-lg font-semibold text-gray-800">รายการยืมมาใหม่</h2>
+                        <h2 className="text-lg font-semibold text-gray-800">{activeTab}</h2>
                         <div className="flex items-center gap-4">
                             <div className="relative">
                                 <input
@@ -139,8 +164,33 @@ const AdminPage = () => {
                                 <th className="px-4 py-3 text-left text-sm font-medium">เลขครุภัณฑ์</th>
                                 <th className="px-4 py-3 text-left text-sm font-medium">ชื่อครุภัณฑ์</th>
                                 <th className="px-4 py-3 text-left text-sm font-medium">กำหนดคืน</th>
+                                {/* แสดงคอลัมน์พิเศษตาม tab ที่เลือก */}
+                                {activeTab === "อนุมัติแล้ว/รอคืน" && (
+                                    <th className="px-4 py-3 text-left text-sm font-medium">ผู้รับคืน</th>
+                                )}
+                                {activeTab === "คืนแล้ว" && (
+                                    <th className="px-4 py-3 text-left text-sm font-medium">ผู้รับคืน</th>
+                                )}
+                                {activeTab === "คืนแล้ว" && (
+                                    <th className="px-4 py-3 text-left text-sm font-medium">สภาพ</th>
+                                )}
+                                {activeTab === "ไม่อนุมัติ/ยกเลิก" && (
+                                    <th className="px-4 py-3 text-left text-sm font-medium">ผู้รับคืน</th>
+                                )}
                                 <th className="px-4 py-3 text-left text-sm font-medium">เหตุผลที่ยืม</th>
-                                <th className="px-4 py-3 text-left text-sm font-medium">การอนุมัติ</th>
+                                {/* คอลัมน์สุดท้าย */}
+                                {activeTab === "รออนุมัติ" && (
+                                    <th className="px-4 py-3 text-left text-sm font-medium">การอนุมัติ</th>
+                                )}
+                                {activeTab === "อนุมัติแล้ว/รอคืน" && (
+                                    <th className="px-4 py-3 text-left text-sm font-medium">การคืน</th>
+                                )}
+                                {activeTab === "คืนแล้ว" && (
+                                    <th className="px-4 py-3 text-left text-sm font-medium">วันที่คืน</th>
+                                )}
+                                {activeTab === "ไม่อนุมัติ/ยกเลิก" && (
+                                    <th className="px-4 py-3 text-left text-sm font-medium">เหตุผลไม่อนุมัติ</th>
+                                )}
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-200">
@@ -152,15 +202,57 @@ const AdminPage = () => {
                                     <td className="px-4 py-3 text-sm text-gray-900">{item.equipmentCode}</td>
                                     <td className="px-4 py-3 text-sm text-gray-900">{item.category}</td>
                                     <td className="px-4 py-3 text-sm text-gray-900">{item.returnDate}</td>
+                                    {/* แสดงคอลัมน์พิเศษตาม tab ที่เลือก */}
+                                    {activeTab === "อนุมัติแล้ว/รอคืน" && (
+                                        <td className="px-4 py-3 text-sm text-gray-900">บางจิน รอดรวจ</td>
+                                    )}
+                                    {activeTab === "คืนแล้ว" && (
+                                        <td className="px-4 py-3 text-sm text-gray-900">{item.receivedBy || 'บางจิน รอดรวง'}</td>
+                                    )}
+                                    {activeTab === "คืนแล้ว" && (
+                                        <td className="px-4 py-3 text-sm">
+                                            <span className={`px-2 py-1 rounded text-xs font-medium ${item.returnCondition === 'ปกติ' ? 'bg-green-100 text-green-800' :
+                                                    item.returnCondition === 'ชำรุด' ? 'bg-yellow-100 text-yellow-800' :
+                                                        item.returnCondition === 'สูญหาย' ? 'bg-red-100 text-red-800' :
+                                                            'bg-gray-100 text-gray-800'
+                                                }`}>
+                                                {item.returnCondition || 'ไม่ระบุ'}
+                                            </span>
+                                        </td>
+                                    )}
+                                    {activeTab === "ไม่อนุมัติ/ยกเลิก" && (
+                                        <td className="px-4 py-3 text-sm text-gray-900">บางจิน รอดรวจ</td>
+                                    )}
                                     <td className="px-4 py-3 text-sm text-gray-900">{item.reason}</td>
-                                    <td className="px-4 py-3 text-sm">
-                                        <button
-                                            className={getActionButtonStyle(item.status)}
-                                            onClick={() => handleStatusChange(item.id, item.status)}
-                                        >
-                                            {item.status}
-                                        </button>
-                                    </td>
+                                    {/* คอลัมน์สุดท้าย */}
+                                    {activeTab === "รออนุมัติ" && (
+                                        <td className="px-4 py-3 text-sm">
+                                            <button
+                                                className={getActionButtonStyle(item.status)}
+                                                onClick={() => handleStatusChange(item.id, item.status)}
+                                                disabled={item.status !== "รออนุมัติ"}
+                                            >
+                                                {getActionButtonText(item.status)}
+                                            </button>
+                                        </td>
+                                    )}
+                                    {activeTab === "อนุมัติแล้ว/รอคืน" && (
+                                        <td className="px-4 py-3 text-sm">
+                                            <button
+                                                className={getActionButtonStyle(item.status)}
+                                                onClick={() => handleStatusChange(item.id, item.status)}
+                                                disabled={item.status !== "อนุมัติแล้ว/รอคืน"}
+                                            >
+                                                {getActionButtonText(item.status)}
+                                            </button>
+                                        </td>
+                                    )}
+                                    {activeTab === "คืนแล้ว" && (
+                                        <td className="px-4 py-3 text-sm text-gray-900">{item.actualReturnDate || item.returnDate}</td>
+                                    )}
+                                    {activeTab === "ไม่อนุมัติ/ยกเลิก" && (
+                                        <td className="px-4 py-3 text-sm text-red-600">ไม่อนุมัติ</td>
+                                    )}
                                 </tr>
                             ))}
                         </tbody>
