@@ -21,7 +21,7 @@ const menuItems = [
       {
         icon: "/chart.png",
         label: "แดชบอร์ด",
-        href: "/dashboard",
+        href: "/menu/dashboard",
         visible: ["admin"],
       },
       {
@@ -33,25 +33,25 @@ const menuItems = [
           {
             icon: "/plus.png",
             label: "รายงานการยืมคืน",
-            href: "/report1-borrow_return",
+            href: "/menu/report1-borrow_return",
             visible: ["admin"],
           },
           {
             icon: "/plus.png",
             label: "รายงานครุภัณฑ์ที่ถูกยกเลิก",
-            href: "/report2-not_approve",
+            href: "/menu/report2-not_approve",
             visible: ["admin"],
           },
           {
             icon: "/plus.png",
             label: "รายงานครุภัณฑ์ชำรุด/สูญหาย",
-            href: "/report3-status_karuphan",
+            href: "/menu/report3-status_karuphan",
             visible: ["admin"],
           },
           {
             icon: "/plus.png",
             label: "สรุปยอดครุภัณฑ์",
-            href: "/report4-total_amount",
+            href: "/menu/report4-total_amount",
             visible: ["admin"],
           },
         ],
@@ -59,7 +59,13 @@ const menuItems = [
       {
         icon: "/report.png",
         label: "ประวัติการยืมครุภัณฑ์",
-        href: "/history",
+        href: "/menu/user_history",
+        visible: ["internal", "external"],
+      },
+      {
+        icon: "/status.png",
+        label: "สถานะการยืมครุภัณฑ์",
+        href: "/menu/user_status-borrow",
         visible: ["internal", "external"],
       },
       {
@@ -71,13 +77,13 @@ const menuItems = [
           {
             icon: "/list.png",
             label: "รายการครุภัณฑ์",
-            href: "/list-karuphan",
+            href: "/menu/list-karuphan",
             visible: ["admin"],
           },
           {
             icon: "/edit.png",
             label: "เพิ่มหมวดหมู่ครุภัณฑ์",
-            href: "/category-karuphan",
+            href: "/menu/category-karuphan",
             visible: ["admin"],
           },
         ],
@@ -85,19 +91,19 @@ const menuItems = [
       {
         icon: "/person.png",
         label: "จัดการบุคลากร",
-        href: "/manage-personnel",
+        href: "/menu/manage-personnel",
         visible: ["admin"],
       },
       {
         icon: "/person.png",
         label: "แก้ไขโปรไฟล์",
-        href: "/edit-profile",
+        href: "/menu/user_edit-profile",
         visible: ["internal", "external"],
       },
       {
         icon: "/out.png",
         label: "ออกจากระบบ",
-        href: "/logout",
+        href: "/sign-in",
         visible: ["admin", "internal", "external"],
       },
     ],
