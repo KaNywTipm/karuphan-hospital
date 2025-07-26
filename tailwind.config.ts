@@ -22,7 +22,7 @@ const config: Config = {
         Green : "#53A551",
         RedLight : "#CB444A",
         BlueLight : "#8AC1CF",
-        Pink : "#oklch(70.4% 0.191 22.216)",
+        Pink : "#f87171",
         Grey : "#BEBEBE",
         Red : "#FF0000",
         White : "#FFFFFF",
