@@ -120,7 +120,7 @@ const CategoryKaruphan = () => {
 
                 <div className="overflow-x-auto">
                     <table className="w-full table-fixed">
-                        <thead className="bg-red-400 text-white">
+                        <thead className="bg-Pink text-White">
                             <tr>
                                 <th className="px-4 py-3 text-left text-sm font-medium w-1/12">ลำดับ</th>
                                 <th className="px-4 py-3 text-left text-sm font-medium">ชื่อหมวดหมู่ครุภัณฑ์</th>
