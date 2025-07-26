@@ -54,13 +54,6 @@ const Addkaruphan = () => {
                         />
                     </FormRow>
 
-                    <FormRow label="ยี่ห้อ/รุ่น/แบบ">
-                        <input
-                            placeholder="เครื่องพ่นยา ฝ. ใส่แผน"
-                            className="form-input border border-gray-300 rounded px-2 py-1 w-full"
-                        />
-                    </FormRow>
-
                     <FormRow label="เลขครุภัณฑ์">
                         <input
                             placeholder="6530-008-0711/3"
@@ -68,7 +61,7 @@ const Addkaruphan = () => {
                         />
                     </FormRow>
 
-                    <FormRow label="ชื่อครุภัณฑ์">
+                    <FormRow label="รายละเอียด">
                         <input
                             placeholder="เครื่องพ่นยา ฝ. ใส่แผน"
                             className="form-input border border-gray-300 rounded px-2 py-1 w-full"
