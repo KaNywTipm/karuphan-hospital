@@ -96,6 +96,38 @@ export const users: User[] = [
   },
 ];
 
+// ข้อมูลหมวดหมู่ครุภัณฑ์
+export const equipmentCategories = [
+  {
+    id: 1,
+    label: "ครุภัณฑ์ทางการแพทย์และวิทยาศาสตร์",
+  },
+  {
+    id: 2,
+    label: "ครุภัณฑ์สำนักงาน",
+  },
+  {
+    id: 3,
+    label: "ครุภัณฑ์คอมพิวเตอร์",
+  },
+  {
+    id: 4,
+    label: "ครุภัณฑ์ไฟฟ้าและวิทยุ",
+  },
+  {
+    id: 5,
+    label: "ครุภัณฑ์โฆษณาและเผยแพร่",
+  },
+  {
+    id: 6,
+    label: "ครุภัณฑ์งานบ้านงานครัว",
+  },
+  {
+    id: 7,
+    label: "ครุภัณฑ์ยานพาหนะและขนส่ง",
+  },
+];
+
 // ข้อมูลรายการยืม-คืน
 export interface BorrowReturn {
   id: number;
@@ -103,6 +135,7 @@ export interface BorrowReturn {
   borrowerType: "internal" | "external"; // เพิ่มประเภทผู้ยืม
   department: string;
   equipmentCode: string;
+  equipmentName: string; // เพิ่มชื่อครุภัณฑ์
   category: string;
   returnDate: string;
   reason: string;
@@ -123,7 +156,8 @@ export const borrowReturnData: BorrowReturn[] = [
     borrowerType: "external", // คนภายนอก
     department: "ภายนอกกลุ่มงาน",
     equipmentCode: "75878-5635",
-    category: "อิเล็กทรอนิกส์",
+    equipmentName: "เครื่องพ่นยา ฝ. ใส่แผน",
+    category: "ครุภัณฑ์ทางการแพทย์และวิทยาศาสตร์",
     returnDate: "15/8/56",
     reason: "เอาไปใช้สาธิตในการประชุม",
     status: "อนุมัติแล้ว/รอคืน",
@@ -136,7 +170,8 @@ export const borrowReturnData: BorrowReturn[] = [
     borrowerType: "internal", // คนภายใน
     department: "ภายในกลุ่มงาน",
     equipmentCode: "75874-5435",
-    category: "อิเล็กทรอนิกส์",
+    equipmentName: "เครื่องตรวจครรภ์",
+    category: "ครุภัณฑ์ทางการแพทย์และวิทยาศาสตร์",
     returnDate: "16/8/56",
     reason: "อื่น",
     status: "ไม่อนุมัติ",
@@ -149,7 +184,8 @@ export const borrowReturnData: BorrowReturn[] = [
     borrowerType: "external", // คนภายนอก - ต้องรออนุมัติ
     department: "ภายนอกกลุ่มงาน",
     equipmentCode: "75874-5425",
-    category: "อิเล็กทรอนิกส์",
+    equipmentName: "คอมพิวเตอร์โน้ตบุ๊ก",
+    category: "ครุภัณฑ์คอมพิวเตอร์",
     returnDate: "20/8/56",
     reason: "อื่น",
     status: "รออนุมัติ",
@@ -162,7 +198,8 @@ export const borrowReturnData: BorrowReturn[] = [
     borrowerType: "internal", // คนภายใน - ไปรอคืนเลย
     department: "ภายในกลุ่มงาน",
     equipmentCode: "75874-5415",
-    category: "อิเล็กทรอนิกส์",
+    equipmentName: "เก้าอี้เหล็กยาว",
+    category: "ครุภัณฑ์สำนักงาน",
     returnDate: "11/8/56",
     reason: "อื่น",
     status: "อนุมัติแล้ว/รอคืน",
@@ -175,7 +212,8 @@ export const borrowReturnData: BorrowReturn[] = [
     borrowerType: "external", // คนภายนอก
     department: "ภายนอกกลุ่มงาน",
     equipmentCode: "75874-5405",
-    category: "อิเล็กทรอนิกส์",
+    equipmentName: "เครื่องเสียงไร้สาย",
+    category: "ครุภัณฑ์ไฟฟ้าและวิทยุ",
     returnDate: "12/8/56",
     reason: "อื่น",
     status: "อนุมัติแล้ว/รอคืน",
@@ -188,7 +226,8 @@ export const borrowReturnData: BorrowReturn[] = [
     borrowerType: "internal", // คนภายใน
     department: "ภายในกลุ่มงาน",
     equipmentCode: "75874-5500",
-    category: "อิเล็กทรอนิกส์",
+    equipmentName: "เครื่องโปรเจคเตอร์",
+    category: "ครุภัณฑ์โฆษณาและเผยแพร่",
     returnDate: "25/8/56",
     reason: "ใช้งาน",
     status: "คืนแล้ว",
