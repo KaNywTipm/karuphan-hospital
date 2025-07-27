@@ -44,7 +44,7 @@ const menuItems = [
           },
           {
             icon: "/plus.png",
-            label: "รายงานครุภัณฑ์ชำรุด/สูญหาย",
+            label: "รายงานสถานะของครุภัณฑ์",
             href: "/menu/report3-status_karuphan",
             visible: ["admin"],
           },
