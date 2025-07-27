@@ -5,8 +5,19 @@ import Image from "next/image";
 import List from "@/components/dropdown/Category-karuphan";
 import Status from "../dropdown/Status";
 
+// ฟังก์ชันแปลงวันที่จากปีคริสต์ศักราชเป็นปีไทย (พ.ศ.)
+const convertToThaiBuddhistDate = (date: Date): string => {
+    const year = date.getFullYear() + 543; // เพิ่ม 543 เพื่อแปลงเป็น พ.ศ.
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+};
+
 const Editkaruphan = () => {
     const [isOpen, setIsOpen] = useState(true);
+    const [receivedDate, setReceivedDate] = useState<string>(
+        convertToThaiBuddhistDate(new Date())
+    );
 
     const handleClose = () => {
         setIsOpen(false);
@@ -78,9 +89,11 @@ const Editkaruphan = () => {
                     <FormRow label="วันที่ได้รับ">
                         <div className="relative w-full flex items-center">
                             <input
-                                type="text"
-                                placeholder="1997-11-22"
-                                className="form-input border border-gray-300 rounded px-2 py-1 w-full"
+                                type="date"
+                                value={receivedDate}
+                                onChange={(e) => setReceivedDate(e.target.value)}
+                                placeholder="2568-01-01"
+                                className="form-input border border-gray-300 rounded px-2 py-1 w-full pr-10"
                             />
                             <button type="button" className="absolute right-2">
                                 <Image src="/datetime.png" alt="Datetime" width={20} height={20} />

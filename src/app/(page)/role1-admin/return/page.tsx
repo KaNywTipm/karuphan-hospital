@@ -5,6 +5,25 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { borrowReturnData, updateReturnInfo, type BorrowReturn } from '@/lib/data';
 import Status from '@/components/dropdown/Status';
 
+// ฟังก์ชันแปลงวันที่จากปีคริสต์ศักราชเป็นปีไทย (พ.ศ.)
+const convertToThaiBuddhistDate = (date: Date): string => {
+    const year = date.getFullYear() + 543; // เพิ่ม 543 เพื่อแปลงเป็น พ.ศ.
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+};
+
+// ฟังก์ชันแปลงวันที่จากปีไทย (พ.ศ.) เป็นปีคริสต์ศักราช
+const convertFromThaiBuddhistDate = (thaiBuddhistDate: string): string => {
+    if (!thaiBuddhistDate) return '';
+    const parts = thaiBuddhistDate.split('-');
+    if (parts.length === 3) {
+        const year = parseInt(parts[0]) - 543; // ลบ 543 เพื่อแปลงเป็น ค.ศ.
+        return `${year}-${parts[1]}-${parts[2]}`;
+    }
+    return thaiBuddhistDate;
+};
+
 const ReturnPage = () => {
     const router = useRouter();
     const searchParams = useSearchParams();
@@ -13,7 +32,7 @@ const ReturnPage = () => {
     const [returnNotes, setReturnNotes] = useState<string>('');
     const [selectedStatus, setSelectedStatus] = useState<any>(null);
     const [actualReturnDate, setActualReturnDate] = useState<string>(
-        new Date().toISOString().split('T')[0]
+        convertToThaiBuddhistDate(new Date())
     );
 
     useEffect(() => {
@@ -30,11 +49,14 @@ const ReturnPage = () => {
 
     const handleReturn = () => {
         if (borrowRequest && selectedStatus) {
+            // แปลงวันที่กลับเป็นปีคริสต์ศักราชก่อนบันทึก
+            const christianDate = convertFromThaiBuddhistDate(actualReturnDate);
+
             // บันทึกข้อมูลการคืนพร้อมสภาพครุภัณฑ์
             const updatedRequest = updateReturnInfo(borrowRequest.id, {
                 returnCondition: selectedStatus.label as BorrowReturn['returnCondition'],
                 returnNotes: returnNotes,
-                actualReturnDate: actualReturnDate,
+                actualReturnDate: christianDate,
                 receivedBy: 'บางจิน รอดรวง'
             });
 
@@ -171,13 +193,14 @@ const ReturnPage = () => {
                             <div className="space-y-4">
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        วันคืน
+                                        วันที่คืน
                                     </label>
                                     <input
                                         type="date"
                                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                                         value={actualReturnDate}
                                         onChange={(e) => setActualReturnDate(e.target.value)}
+                                        placeholder="2568-01-01"
                                     />
                                 </div>
                                 <div>
@@ -208,8 +231,8 @@ const ReturnPage = () => {
                                 onClick={handleReturn}
                                 disabled={!selectedStatus}
                                 className={`px-6 py-2 rounded-lg font-medium transition-colors ${selectedStatus
-                                        ? 'bg-blue-500 hover:bg-blue-600 text-white'
-                                        : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                    ? 'bg-blue-500 hover:bg-blue-600 text-white'
+                                    : 'bg-gray-300 text-gray-500 cursor-not-allowed'
                                     }`}
                             >
                                 บันทึก

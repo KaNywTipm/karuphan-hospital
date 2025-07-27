@@ -18,6 +18,43 @@ interface BorrowRequest {
     status: string;
 }
 
+// ฟังก์ชันแปลงวันที่เป็นปีไทย (พ.ศ.)
+const formatDateToBuddhistEra = (dateString: string): string => {
+    if (!dateString) return 'ไม่ระบุ';
+
+    // กรณี format dd/mm/yy (เช่น "15/8/56")
+    if (dateString.includes('/')) {
+        const parts = dateString.split('/');
+        if (parts.length === 3) {
+            const day = parts[0];
+            const month = parts[1];
+            const year = parts[2];
+
+            // แปลงปี 2 หลักเป็น 4 หลัก
+            let fullYear: number;
+            if (year.length === 2) {
+                const yearNum = parseInt(year);
+                // ถ้าปี 2 หลักเป็น 50-99 ให้เป็น 25xx, ถ้าเป็น 00-49 ให้เป็น 26xx
+                if (yearNum >= 50) {
+                    fullYear = 2500 + yearNum;
+                } else {
+                    fullYear = 2600 + yearNum;
+                }
+            } else {
+                fullYear = parseInt(year);
+                // ถ้าเป็นปีคริสต์ศักราช ให้แปลงเป็นพุทธศักราช
+                if (fullYear < 2000) {
+                    fullYear += 543;
+                }
+            }
+
+            return `${day}/${month}/${fullYear}`;
+        }
+    }
+
+    return dateString;
+};
+
 const ApprovePage = () => {
     const router = useRouter();
     const searchParams = useSearchParams();
@@ -118,7 +155,7 @@ const ApprovePage = () => {
                                             {borrowRequest.category}
                                         </td>
                                         <td className="border border-gray-300 px-4 py-3 text-sm text-gray-900">
-                                            {borrowRequest.borrowDate || 'ไม่ระบุ'}
+                                            {formatDateToBuddhistEra(borrowRequest.borrowDate || '')}
                                         </td>
                                         <td className="border border-gray-300 px-4 py-3 text-sm text-gray-900">
                                             1
@@ -156,7 +193,7 @@ const ApprovePage = () => {
                                         กำหนดคืน
                                     </label>
                                     <div className="bg-gray-200 rounded px-3 py-2 text-sm text-gray-700">
-                                        {borrowRequest.returnDate}
+                                        {formatDateToBuddhistEra(borrowRequest.returnDate)}
                                     </div>
                                 </div>
                                 <div>
