@@ -74,7 +74,7 @@ const menuItems = [
       {
         icon: "/status.png",
         label: "สถานะการยืมครุภัณฑ์",
-        href: "/menu/user_status-borrow",
+        href: "/menu/userExternal-status-borrow",
         visible: ["external"],
       },
       {
