@@ -49,16 +49,6 @@ export default function StatusKaruphanReport() {
         setFilteredData(filtered);
     }, [searchTerm, selectedCategory, selectedStatus]);
 
-    // Calculate statistics
-    const stats = {
-        total: filteredData.length,
-        normal: filteredData.filter(item => item.returnCondition === "ปกติ").length,
-        damaged: filteredData.filter(item => item.returnCondition === "ชำรุด").length,
-        lost: filteredData.filter(item => item.returnCondition === "สูญหาย").length,
-        pendingDisposal: filteredData.filter(item => item.returnCondition === "รอจำหน่าย").length,
-        disposed: filteredData.filter(item => item.returnCondition === "จำหน่ายแล้ว").length,
-    };
-
     // Function to get status color
     const getStatusColor = (status: string) => {
         switch (status) {
@@ -114,34 +104,6 @@ export default function StatusKaruphanReport() {
                 >
                     <span>ดาวน์โหลด Excel</span>
                 </button>
-            </div>
-
-            {/* Statistics Cards */}
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
-                <div className="bg-Green bg-opacity-10 border border-Green rounded-lg p-4 text-center">
-                    <div className="text-2xl font-bold text-Green">{stats.normal}</div>
-                    <div className="text-sm text-Green">ปกติ</div>
-                </div>
-                <div className="bg-Yellow bg-opacity-10 border border-Yellow rounded-lg p-4 text-center">
-                    <div className="text-2xl font-bold text-Yellow">{stats.damaged}</div>
-                    <div className="text-sm text-Yellow">ชำรุด</div>
-                </div>
-                <div className="bg-RedLight bg-opacity-10 border border-RedLight rounded-lg p-4 text-center">
-                    <div className="text-2xl font-bold text-RedLight">{stats.lost}</div>
-                    <div className="text-sm text-RedLight">สูญหาย</div>
-                </div>
-                <div className="bg-Grey bg-opacity-10 border border-Grey rounded-lg p-4 text-center">
-                    <div className="text-2xl font-bold text-Grey">{stats.pendingDisposal}</div>
-                    <div className="text-sm text-Grey">รอจำหน่าย</div>
-                </div>
-                <div className="bg-NavyBlue bg-opacity-10 border border-NavyBlue rounded-lg p-4 text-center">
-                    <div className="text-2xl font-bold text-NavyBlue">{stats.disposed}</div>
-                    <div className="text-sm text-NavyBlue">จำหน่ายแล้ว</div>
-                </div>
-                <div className="bg-Blue bg-opacity-10 border border-Blue rounded-lg p-4 text-center">
-                    <div className="text-2xl font-bold text-Blue">{stats.total}</div>
-                    <div className="text-sm text-Blue">รวม</div>
-                </div>
             </div>
 
             {/* Filters */}

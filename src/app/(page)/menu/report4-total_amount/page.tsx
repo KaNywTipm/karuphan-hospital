@@ -146,18 +146,6 @@ export default function TotalAmountReport() {
                 </div>
             </div>
 
-            {/* Summary Stats */}
-            <div className="mb-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="bg-Blue bg-opacity-10 border border-Blue rounded-lg p-4">
-                    <div className="text-lg font-semibold text-Blue">จำนวนครุภัณฑ์ทั้งหมด</div>
-                    <div className="text-3xl font-bold text-Blue">{totalItems.toLocaleString()} รายการ</div>
-                </div>
-                <div className="bg-Green bg-opacity-10 border border-Green rounded-lg p-4">
-                    <div className="text-lg font-semibold text-Green">มูลค่ารวมทั้งหมด</div>
-                    <div className="text-3xl font-bold text-Green">{formatCurrency(totalAmount)} บาท</div>
-                </div>
-            </div>
-
             {/* Table */}
             <div className="overflow-x-auto">
                 <table className="w-full border-collapse">

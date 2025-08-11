@@ -129,7 +129,7 @@ const ReturnPage = () => {
                                             1
                                         </td>
                                         <td className="border border-gray-300 px-4 py-3 text-sm text-gray-900">
-                                            {borrowRequest.category}
+                                            {borrowRequest.equipmentName}
                                         </td>
                                         <td className="border border-gray-300 px-4 py-3 text-sm text-gray-900">
                                             {borrowRequest.returnDate}

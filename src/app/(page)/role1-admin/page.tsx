@@ -1,20 +1,34 @@
 "use client";
 
 import Image from "next/image";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { borrowReturnData, updateBorrowStatus, type BorrowReturn } from "@/lib/data";
+import { borrowReturnData, updateBorrowStatus, updateEquipmentStatus, type BorrowReturn } from "@/lib/data";
 
 const AdminPage = () => {
     const router = useRouter();
     const [activeTab, setActiveTab] = useState("รออนุมัติ");
     const [searchTerm, setSearchTerm] = useState("");
     const [currentPage, setCurrentPage] = useState(1);
+    const [dataUpdated, setDataUpdated] = useState(0);
+
+    // อัปเดตข้อมูลเมื่อโหลดหน้าและรีเฟรชข้อมูลทุก 5 วินาที
+    useEffect(() => {
+        updateEquipmentStatus();
+
+        const interval = setInterval(() => {
+            updateEquipmentStatus();
+            setDataUpdated(prev => prev + 1); // Force re-render
+        }, 5000);
+
+        return () => clearInterval(interval);
+    }, []);
 
     // Filter data based on active tab
     const filteredData = borrowReturnData.filter(item => {
         const matchesSearch = item.borrowerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
             item.equipmentCode.includes(searchTerm) ||
+            item.equipmentName.toLowerCase().includes(searchTerm.toLowerCase()) ||
             item.department.toLowerCase().includes(searchTerm.toLowerCase());
 
         const matchesTab = (() => {
@@ -99,6 +113,18 @@ const AdminPage = () => {
             // สถานะอื่นๆ ไม่สามารถเปลี่ยนได้
             console.log(`Status ${currentStatus} cannot be changed by admin`);
         }
+
+        // อัปเดตสถานะครุภัณฑ์หลังการเปลี่ยนแปลง
+        setTimeout(() => {
+            updateEquipmentStatus();
+            setDataUpdated(prev => prev + 1);
+        }, 100);
+    };
+
+    // ฟังก์ชันรีเฟรชข้อมูล
+    const handleRefresh = () => {
+        updateEquipmentStatus();
+        setDataUpdated(prev => prev + 1);
     };
 
     return (
@@ -118,7 +144,7 @@ const AdminPage = () => {
                                 : "bg-gray-200 text--600 hover:bg-gray-300"
                                 }`}
                         >
-                            {tab.name}
+                            {tab.name} ({tab.count})
                         </button>
                     ))}
                 </div>
@@ -200,7 +226,7 @@ const AdminPage = () => {
                                     <td className="px-4 py-3 text-sm text-gray-900">{item.borrowerName}</td>
                                     <td className="px-4 py-3 text-sm text-gray-900">{item.department}</td>
                                     <td className="px-4 py-3 text-sm text-gray-900">{item.equipmentCode}</td>
-                                    <td className="px-4 py-3 text-sm text-gray-900">{item.category}</td>
+                                    <td className="px-4 py-3 text-sm text-gray-900">{item.equipmentName}</td>
                                     <td className="px-4 py-3 text-sm text-gray-900">{item.returnDate}</td>
                                     {/* แสดงคอลัมน์พิเศษตาม tab ที่เลือก */}
                                     {activeTab === "อนุมัติแล้ว/รอคืน" && (
@@ -212,9 +238,11 @@ const AdminPage = () => {
                                     {activeTab === "คืนแล้ว" && (
                                         <td className="px-4 py-3 text-sm">
                                             <span className={`px-2 py-1 rounded text-xs font-medium ${item.returnCondition === 'ปกติ' ? 'bg-green-100 text-green-800' :
-                                                    item.returnCondition === 'ชำรุด' ? 'bg-yellow-100 text-yellow-800' :
-                                                        item.returnCondition === 'สูญหาย' ? 'bg-red-100 text-red-800' :
-                                                            'bg-gray-100 text-gray-800'
+                                                item.returnCondition === 'ชำรุด' ? 'bg-red-100 text-red-800' :
+                                                    item.returnCondition === 'สูญหาย' ? 'bg-gray-100 text-gray-800' :
+                                                        item.returnCondition === 'รอจำหน่าย' ? 'bg-yellow-100 text-yellow-800' :
+                                                            item.returnCondition === 'จำหน่ายแล้ว' ? 'bg-purple-100 text-purple-800' :
+                                                                'bg-gray-100 text-gray-800'
                                                 }`}>
                                                 {item.returnCondition || 'ไม่ระบุ'}
                                             </span>
@@ -263,7 +291,7 @@ const AdminPage = () => {
                 <div className="flex items-center justify-between px-4 py-3 border-t">
                     <div className="flex items-center gap-2">
                         <span className="text-sm text-gray-700">
-                            แสดง {filteredData.length} รายการ จากทั้งหมด {borrowReturnData.length} รายการ
+                            แสดง {filteredData.length} รายการ ({activeTab}) จากทั้งหมด {borrowReturnData.length} รายการ
                         </span>
                     </div>
 

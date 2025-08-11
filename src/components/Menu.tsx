@@ -1,6 +1,9 @@
+"use client";
+
 import { role, currentUser } from "@/lib/data";
 import Image from "next/image";
 import Link from "next/link";
+import { useState } from "react";
 
 const menuItems = [
   {
@@ -27,7 +30,7 @@ const menuItems = [
       {
         icon: "/report.png",
         label: "รายงานสรุปผล",
-        href: "/summary-report",
+        href: "#",
         visible: ["admin"],
         subItems: [
           {
@@ -71,7 +74,7 @@ const menuItems = [
       {
         icon: "/chart.png",
         label: "จัดการครุภัณฑ์",
-        href: "/manage-assets",
+        href: "#",
         visible: ["admin"],
         subItems: [
           {
@@ -111,6 +114,16 @@ const menuItems = [
 ];
 
 const Menu = () => {
+  const [openSubMenus, setOpenSubMenus] = useState<string[]>([]);
+
+  const toggleSubMenu = (label: string) => {
+    setOpenSubMenus(prev =>
+      prev.includes(label)
+        ? prev.filter(item => item !== label)
+        : [...prev, label]
+    );
+  };
+
   return (
     <div className="flex flex-col h-full">
       {/* Profile Section */}
@@ -147,23 +160,40 @@ const Menu = () => {
 
               return (
                 <div key={item.label} className="flex flex-col">
-                  <Link
-                    href={item.href}
-                    className={`flex items-center justify-center lg:justify-start gap-4 py-2 md:px-2 rounded-md
-                      ${isLogout ? "text-White hover:bg-red-500" : "text-White"}
-                      ${!hasSub && !isLogout ? "hover:bg-gray-700" : ""}
-                    `}
-                  >
-                    <Image
-                      src={item.icon}
-                      alt=""
-                      width={20}
-                      height={20}
-                    />
-                    <span className="hidden lg:block">{item.label}</span>
-                  </Link>
+                  {hasSub ? (
+                    <button
+                      onClick={() => toggleSubMenu(item.label)}
+                      className={`flex items-center justify-center lg:justify-start gap-4 py-2 md:px-2 rounded-md text-White hover:bg-gray-700 w-full text-left`}
+                    >
+                      <Image
+                        src={item.icon}
+                        alt=""
+                        width={20}
+                        height={20}
+                      />
+                      <span className="hidden lg:block flex-1">{item.label}</span>
+                      <span className="hidden lg:block text-xs">
+                        {openSubMenus.includes(item.label) ? "▼" : "▶"}
+                      </span>
+                    </button>
+                  ) : (
+                    <Link
+                      href={item.href}
+                      className={`flex items-center justify-center lg:justify-start gap-4 py-2 md:px-2 rounded-md
+                        ${isLogout ? "text-White hover:bg-red-500" : "text-White hover:bg-gray-700"}
+                      `}
+                    >
+                      <Image
+                        src={item.icon}
+                        alt=""
+                        width={20}
+                        height={20}
+                      />
+                      <span className="hidden lg:block">{item.label}</span>
+                    </Link>
+                  )}
 
-                  {hasSub &&
+                  {hasSub && openSubMenus.includes(item.label) &&
                     item.subItems
                       .filter((sub) => sub.visible.includes(role))
                       .map((sub) => (

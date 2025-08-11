@@ -44,4 +44,18 @@ const Unit = [
     },
 ];
 
+// ฟังก์ชันสำหรับแสดงชื่อหน่วยงานตาม role
+export const displayUnitLabel = (role: string) => {
+    switch (role) {
+        case "admin":
+            return "ผู้ดูแลระบบ";
+        case "internal":
+            return "บุคลากรภายใน";
+        case "external":
+            return "บุคลากรภายนอก";
+        default:
+            return "ไม่ระบุ";
+    }
+};
+
 export default Unit;

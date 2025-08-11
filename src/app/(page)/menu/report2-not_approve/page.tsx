@@ -120,14 +120,6 @@ export default function NotApproveReport() {
                 </div>
             </div>
 
-            {/* Summary Stats */}
-            <div className="mb-6 bg-RedLight bg-opacity-10 border border-RedLight rounded-lg p-4">
-                <div className="flex items-center gap-2">
-                    <span className="text-RedLight font-semibold">
-                        รายการที่ถูกยกเลิก/ไม่อนุมัติ: {filteredData.length} รายการ
-                    </span>
-                </div>
-            </div>
 
             {/* Table */}
             <div className="overflow-x-auto">

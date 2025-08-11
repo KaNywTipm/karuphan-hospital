@@ -20,7 +20,7 @@ export const inCPUData = [
     department: "ภายในกลุ่มงาน",
     receivedDate: "2540-11-22",
     price: 1200.0,
-    status: "ใช้งานอยู่",
+    status: "ปกติ",
   },
   {
     id: 11846,
@@ -40,7 +40,7 @@ export const inCPUData = [
     department: "ภายในกลุ่มงาน",
     receivedDate: "2558-08-15",
     price: 1000.0,
-    status: "ใช้งานอยู่",
+    status: "ยืมโดย นางยืมแล้ว คืนเถ้อ",
   },
   {
     id: 12406,
@@ -50,7 +50,7 @@ export const inCPUData = [
     department: "ภายในกลุ่มงาน",
     receivedDate: "2559-08-16",
     price: 10000.0,
-    status: "ใช้งานอยู่",
+    status: "ปกติ",
   },
   {
     id: 12407,
@@ -60,7 +60,7 @@ export const inCPUData = [
     department: "ภายในกลุ่มงาน",
     receivedDate: "2563-08-20",
     price: 10000.0,
-    status: "ใช้งานอยู่",
+    status: "ยืมโดย นางยืนยืม มาคืน",
   },
   {
     id: 12408,
@@ -70,7 +70,7 @@ export const inCPUData = [
     department: "ภายในกลุ่มงาน",
     receivedDate: "2554-08-11",
     price: 50050.0,
-    status: "ใช้งานอยู่",
+    status: "ยืมโดย นางนั่งยืม รอคืน",
   },
   {
     id: 12409,
@@ -80,7 +80,7 @@ export const inCPUData = [
     department: "ภายในกลุ่มงาน",
     receivedDate: "2555-08-12",
     price: 59697.0,
-    status: "ใช้งานอยู่",
+    status: "ยืมโดย นางเอามา คืนนะ",
   },
 ];
 
@@ -361,6 +361,27 @@ export const borrowReturnData: BorrowReturn[] = [
   },
 ];
 
+// ฟังก์ชันสำหรับอัปเดตสถานะครุภัณฑ์ตามการยืม-คืน
+export const updateEquipmentStatus = () => {
+  // อัปเดตสถานะของครุภัณฑ์ภายในตามข้อมูลการยืม
+  inCPUData.forEach((equipment) => {
+    const activeBorrow = borrowReturnData.find(
+      (borrow) =>
+        borrow.equipmentCode === equipment.code &&
+        (borrow.status === "อนุมัติแล้ว/รอคืน" || borrow.status === "รออนุมัติ")
+    );
+
+    if (activeBorrow) {
+      equipment.status = `ยืมโดย ${activeBorrow.borrowerName}`;
+    } else {
+      // ถ้าไม่มีการยืมที่ active และสถานะปัจจุบันเป็น "ยืมโดย..." ให้เปลี่ยนเป็น "ปกติ"
+      if (equipment.status.startsWith("ยืมโดย")) {
+        equipment.status = "ปกติ";
+      }
+    }
+  });
+};
+
 // ฟังก์ชันสำหรับสร้างการยืมใหม่(แก้ขัดก่อนขึ้นข้อมูลหลังบ้าน)
 export const createNewBorrowRequest = (
   borrowData: Omit<BorrowReturn, "id" | "status">
@@ -378,6 +399,10 @@ export const createNewBorrowRequest = (
   };
 
   borrowReturnData.push(newRequest);
+  
+  // อัปเดตสถานะครุภัณฑ์
+  updateEquipmentStatus();
+  
   return newRequest;
 };
 

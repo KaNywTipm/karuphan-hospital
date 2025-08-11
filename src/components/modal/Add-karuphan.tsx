@@ -12,17 +12,56 @@ const convertToThaiBuddhistDate = (date: Date): string => {
     return `${year}-${month}-${day}`;
 };
 
-const Addkaruphan = () => {
-    const [isOpen, setIsOpen] = useState(true);
+interface AddkaruphanProps {
+    onClose?: () => void;
+    onAdd?: (newItemData: any) => void;
+}
+
+const Addkaruphan = ({ onClose, onAdd }: AddkaruphanProps) => {
     const [receivedDate, setReceivedDate] = useState<string>(
         convertToThaiBuddhistDate(new Date())
     );
+    const [formData, setFormData] = useState({
+        category: '',
+        id: '',
+        code: '',
+        description: '',
+        price: '',
+    });
 
     const handleClose = () => {
-        setIsOpen(false);
+        if (onClose) {
+            onClose();
+        }
     };
 
-    if (!isOpen) return null;
+    const handleInputChange = (field: string, value: string) => {
+        setFormData(prev => ({
+            ...prev,
+            [field]: value
+        }));
+    };
+
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        // ที่นี่จะเป็นการบันทึกข้อมูล
+        const newItemData = {
+            category: formData.category,
+            code: formData.code,
+            name: formData.description,
+            price: parseFloat(formData.price.replace(/,/g, '')) || 0,
+            receivedDate: receivedDate,
+            status: 'ปกติ',
+            department: 'ภายในกลุ่มงาน'
+        };
+
+        if (onAdd) {
+            onAdd(newItemData);
+        }
+
+        console.log('Form data:', newItemData);
+        handleClose();
+    };
 
 
     return (
@@ -37,7 +76,7 @@ const Addkaruphan = () => {
                     <h2 className="text-lg font-semibold">ฟอร์มเพิ่มข้อมูล</h2>
                 </div>
 
-                <form className="flex flex-col gap-4 text-sm">
+                <form onSubmit={handleSubmit} className="flex flex-col gap-4 text-sm">
                     <FormRow label="ลำดับ">
                         <input
                             readOnly
@@ -46,7 +85,12 @@ const Addkaruphan = () => {
                     </FormRow>
 
                     <FormRow label="หมวดหมู่">
-                        <select className="form-input border border-gray-300 rounded px-2 py-1 w-full" defaultValue="">
+                        <select
+                            className="form-input border border-gray-300 rounded px-2 py-1 w-full"
+                            value={formData.category}
+                            onChange={(e) => handleInputChange('category', e.target.value)}
+                            required
+                        >
                             <option disabled value="">
                                 หมวดหมู่ครุภัณฑ์
                             </option>
@@ -61,28 +105,40 @@ const Addkaruphan = () => {
                     <FormRow label="ID">
                         <input
                             placeholder="12401"
+                            value={formData.id}
+                            onChange={(e) => handleInputChange('id', e.target.value)}
                             className="form-input border border-gray-300 rounded px-2 py-1 w-full"
+                            required
                         />
                     </FormRow>
 
                     <FormRow label="เลขครุภัณฑ์">
                         <input
                             placeholder="6530-008-0711/3"
+                            value={formData.code}
+                            onChange={(e) => handleInputChange('code', e.target.value)}
                             className="form-input border border-gray-300 rounded px-2 py-1 w-full"
+                            required
                         />
                     </FormRow>
 
                     <FormRow label="รายละเอียด">
                         <input
                             placeholder="เครื่องพ่นยา ฝ. ใส่แผน"
+                            value={formData.description}
+                            onChange={(e) => handleInputChange('description', e.target.value)}
                             className="form-input border border-gray-300 rounded px-2 py-1 w-full"
+                            required
                         />
                     </FormRow>
 
                     <FormRow label="ราคาเมื่อได้รับ">
                         <input
                             placeholder="60,000"
+                            value={formData.price}
+                            onChange={(e) => handleInputChange('price', e.target.value)}
                             className="form-input border border-gray-300 rounded px-2 py-1 w-full"
+                            required
                         />
                     </FormRow>
 
