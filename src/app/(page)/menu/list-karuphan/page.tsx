@@ -126,7 +126,7 @@ const ListKaruphan = () => {
         } else if (status === 'จำหน่ายแล้ว') {
             return 'bg-purple-100 text-purple-800';
         } else if (status.startsWith('ยืมโดย')) {
-            return 'bg-orange-100 text-orange-800';  // เปลี่ยนเป็นสีส้มสำหรับ "กำลังใช้งาน"
+            return 'bg-orange-100 text-orange-800';
         } else {
             return 'bg-gray-100 text-gray-800';
         }

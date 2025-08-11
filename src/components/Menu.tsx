@@ -18,8 +18,14 @@ const menuItems = [
       {
         icon: "/list.png",
         label: "รายการยืมครุภัณฑ์",
-        href: "/borrow-list",
-        visible: ["internal", "external"],
+        href: "/role2-internal",
+        visible: ["internal"],
+      },
+      {
+        icon: "/list.png",
+        label: "รายการยืมครุภัณฑ์",
+        href: "/role3-external",
+        visible: ["external"],
       },
       {
         icon: "/chart.png",
@@ -28,7 +34,7 @@ const menuItems = [
         visible: ["admin"],
       },
       {
-        icon: "/report.png",
+        icon: "/status.png",
         label: "รายงานสรุปผล",
         href: "#",
         visible: ["admin"],
@@ -69,10 +75,10 @@ const menuItems = [
         icon: "/status.png",
         label: "สถานะการยืมครุภัณฑ์",
         href: "/menu/user_status-borrow",
-        visible: ["internal", "external"],
+        visible: ["external"],
       },
       {
-        icon: "/chart.png",
+        icon: "/data.png",
         label: "จัดการครุภัณฑ์",
         href: "#",
         visible: ["admin"],
@@ -205,8 +211,8 @@ const Menu = () => {
                           <Image
                             src={sub.icon}
                             alt=""
-                            width={16}
-                            height={16}
+                            width={20}
+                            height={20}
                             className="filter invert-0"
                           />
                           <span>{sub.label}</span>
