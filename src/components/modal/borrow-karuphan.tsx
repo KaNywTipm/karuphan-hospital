@@ -73,9 +73,8 @@ const BorrowKaruphan = ({ onClose, onBorrow, selectedEquipment }: BorrowKaruphan
             borrowDate: convertToThaiBuddhistDate(new Date(borrowDate)),
             returnDate: returnDate ? convertToThaiBuddhistDate(new Date(returnDate)) : '',
             reason: formData.reason,
-            status: 'รออนุมัติ',
-            borrowerType: 'internal', // จะถูกกำหนดใหม่ตามโรลของผู้ใช้
-            userId: 1, // จะถูกกำหนดจากผู้ใช้จริง
+            borrowerType: 'internal', // จะถูกกำหนดใหม่ในหน้าที่เรียกใช้
+            userId: 1, // จะถูกกำหนดใหม่ในหน้าที่เรียกใช้
         };
 
         if (onBorrow) {
@@ -83,7 +82,6 @@ const BorrowKaruphan = ({ onClose, onBorrow, selectedEquipment }: BorrowKaruphan
         }
 
         console.log('Borrow data:', borrowData);
-        handleClose();
     };
 
     return (
@@ -103,7 +101,7 @@ const BorrowKaruphan = ({ onClose, onBorrow, selectedEquipment }: BorrowKaruphan
                 <div className="mb-6">
                     <table className="w-full border-collapse">
                         <thead>
-                            <tr className="bg-pink-200">
+                            <tr className="bg-red-300">
                                 <th className="border border-gray-300 px-4 py-2 text-center font-medium">ลำดับ</th>
                                 <th className="border border-gray-300 px-4 py-2 text-center font-medium">ชื่อครุภัณฑ์</th>
                                 <th className="border border-gray-300 px-4 py-2 text-center font-medium">ยี่ห้อ/รุ่น/แบบ</th>
@@ -129,32 +127,26 @@ const BorrowKaruphan = ({ onClose, onBorrow, selectedEquipment }: BorrowKaruphan
 
                 <form onSubmit={handleSubmit} className="flex flex-col gap-4 text-sm">
                     <FormRow label="วันที่ยืม">
-                        <div className="relative w-full flex items-center">
+                        <div className="relative w-full">
                             <input
                                 type="date"
                                 value={borrowDate}
                                 onChange={(e) => setBorrowDate(e.target.value)}
-                                className="form-input border border-gray-300 rounded px-3 py-2 w-full pr-10"
+                                className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none transition-colors bg-white text-gray-700"
                                 required
                             />
-                            <button type="button" className="absolute right-2">
-                                <Image src="/datetime.png" alt="Calendar" width={20} height={20} />
-                            </button>
                         </div>
                     </FormRow>
 
                     <FormRow label="กำหนดคืน">
-                        <div className="relative w-full flex items-center">
+                        <div className="relative w-full">
                             <input
                                 type="date"
                                 value={returnDate}
                                 onChange={(e) => setReturnDate(e.target.value)}
-                                className="form-input border border-gray-300 rounded px-3 py-2 w-full pr-10"
+                                className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none transition-colors bg-white text-gray-700"
                                 required
                             />
-                            <button type="button" className="absolute right-2">
-                                <Image src="/datetime.png" alt="Calendar" width={20} height={20} />
-                            </button>
                         </div>
                     </FormRow>
 
@@ -209,13 +201,13 @@ const BorrowKaruphan = ({ onClose, onBorrow, selectedEquipment }: BorrowKaruphan
                     <div className="flex justify-center gap-4 mt-6">
                         <button
                             type="submit"
-                            className="bg-teal-400 hover:bg-teal-500 text-white px-6 py-2 rounded-md font-medium transition-colors"
+                            className="bg-BlueLight hover:bg-teal-500 text-white px-6 py-2 rounded-md font-medium transition-colors"
                         >
                             บันทึก
                         </button>
                         <button
                             type="button"
-                            className="bg-red-400 hover:bg-red-500 text-white px-6 py-2 rounded-md font-medium transition-colors"
+                            className="bg-RedLight hover:bg-red-500 text-white px-6 py-2 rounded-md font-medium transition-colors"
                             onClick={handleClose}
                         >
                             ยกเลิก

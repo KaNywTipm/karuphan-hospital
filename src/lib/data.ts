@@ -1,6 +1,6 @@
 // TEMPORARY DATA
 
-export let role = "internal"; // Change this to "admin" or "internal" as needed
+export let role = "external"; // Change this to "admin" or "internal" as needed
 
 // ข้อมูลผู้ใช้ปัจจุบัน (สำหรับ mock ข้อมูล)
 export const currentUser = {
