@@ -151,9 +151,6 @@ const Addkaruphan = ({ onClose, onAdd }: AddkaruphanProps) => {
                                 placeholder="2568-01-01"
                                 className="form-input border border-gray-300 rounded px-2 py-1 w-full pr-10"
                             />
-                            <button type="button" className="absolute right-2">
-                                <Image src="/datetime.png" alt="Datetime" width={20} height={20} />
-                            </button>
                         </div>
                     </FormRow>
 
