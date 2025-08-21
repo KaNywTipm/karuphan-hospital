@@ -19,6 +19,14 @@ const convertDateForInput = (date: Date): string => {
     return `${year}-${month}-${day}`;
 };
 
+interface CartItem {
+    id: number;
+    code: string;
+    name: string;
+    category: string;
+    quantity: number;
+}
+
 interface BorrowKaruphanProps {
     onClose?: () => void;
     onBorrow?: (borrowData: any) => void;
@@ -28,9 +36,10 @@ interface BorrowKaruphanProps {
         name: string;
         category: string;
     } | null;
+    cartItems?: CartItem[];
 }
 
-const BorrowKaruphan = ({ onClose, onBorrow, selectedEquipment }: BorrowKaruphanProps) => {
+const BorrowKaruphan = ({ onClose, onBorrow, selectedEquipment, cartItems }: BorrowKaruphanProps) => {
     const [borrowDate, setBorrowDate] = useState<string>(
         convertDateForInput(new Date())
     );
@@ -64,10 +73,7 @@ const BorrowKaruphan = ({ onClose, onBorrow, selectedEquipment }: BorrowKaruphan
 
         // สร้างข้อมูลการยืม
         const borrowData = {
-            equipmentCode: formData.equipmentCode,
-            equipmentName: formData.equipmentName,
-            category: formData.category,
-            quantity: parseInt(formData.quantity) || 1,
+            cartItems: cartItems || [],
             borrowerName: formData.borrowerName,
             department: formData.department,
             borrowDate: convertToThaiBuddhistDate(new Date(borrowDate)),
@@ -109,18 +115,35 @@ const BorrowKaruphan = ({ onClose, onBorrow, selectedEquipment }: BorrowKaruphan
                             </tr>
                         </thead>
                         <tbody>
-                            <tr>
-                                <td className="border border-gray-300 px-4 py-2 text-center">1</td>
-                                <td className="border border-gray-300 px-4 py-2 text-center">
-                                    {formData.equipmentName || 'ชื่อครุภัณฑ์'}
-                                </td>
-                                <td className="border border-gray-300 px-4 py-2 text-center">
-                                    {formData.category || 'ยี่ห้อ'}
-                                </td>
-                                <td className="border border-gray-300 px-4 py-2 text-center">
-                                    {formData.quantity}
-                                </td>
-                            </tr>
+                            {cartItems && cartItems.length > 0 ? (
+                                cartItems.map((item, index) => (
+                                    <tr key={item.id}>
+                                        <td className="border border-gray-300 px-4 py-2 text-center">{index + 1}</td>
+                                        <td className="border border-gray-300 px-4 py-2 text-center">
+                                            {item.name}
+                                        </td>
+                                        <td className="border border-gray-300 px-4 py-2 text-center">
+                                            {item.category}
+                                        </td>
+                                        <td className="border border-gray-300 px-4 py-2 text-center">
+                                            {item.quantity}
+                                        </td>
+                                    </tr>
+                                ))
+                            ) : (
+                                <tr>
+                                    <td className="border border-gray-300 px-4 py-2 text-center">1</td>
+                                    <td className="border border-gray-300 px-4 py-2 text-center">
+                                        {formData.equipmentName || 'ชื่อครุภัณฑ์'}
+                                    </td>
+                                    <td className="border border-gray-300 px-4 py-2 text-center">
+                                        {formData.category || 'ยี่ห้อ'}
+                                    </td>
+                                    <td className="border border-gray-300 px-4 py-2 text-center">
+                                        {formData.quantity}
+                                    </td>
+                                </tr>
+                            )}
                         </tbody>
                     </table>
                 </div>
@@ -150,7 +173,7 @@ const BorrowKaruphan = ({ onClose, onBorrow, selectedEquipment }: BorrowKaruphan
                         </div>
                     </FormRow>
 
-                    <FormRow label="เหตุผลยื่น">
+                    <FormRow label="เหตุผลที่ยืม">
                         <textarea
                             placeholder="ยืม"
                             value={formData.reason}
