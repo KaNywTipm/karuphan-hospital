@@ -149,7 +149,7 @@ const Addkaruphan = ({ onClose, onAdd }: AddkaruphanProps) => {
                                 value={receivedDate}
                                 onChange={(e) => setReceivedDate(e.target.value)}
                                 placeholder="2568-01-01"
-                                className="form-input border border-gray-300 rounded px-2 py-1 w-full pr-10"
+                                className="form-input border border-gray-300 rounded px-2 py-1 w-full"
                             />
                         </div>
                     </FormRow>
