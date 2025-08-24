@@ -27,8 +27,10 @@ const ExternalBorrowPage = () => {
     const [items, setItems] = useState(availableEquipment);
     const [searchTerm, setSearchTerm] = useState("");
     const [selectedCategory, setSelectedCategory] = useState(""); // เพิ่ม state สำหรับ dropdown
+    const [sortOrder, setSortOrder] = useState<"newest" | "oldest">("newest"); // เพิ่ม state สำหรับการเรียงข้อมูล
     const [currentPage, setCurrentPage] = useState(1);
     const [cartItems, setCartItems] = useState<CartItem[]>([]);
+    const [recentlyRemoved, setRecentlyRemoved] = useState<CartItem | null>(null);
 
     const filteredData = items.filter((item) => {
         const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -38,6 +40,16 @@ const ExternalBorrowPage = () => {
         const matchesCategory = selectedCategory === "" || item.category === selectedCategory;
 
         return matchesSearch && matchesCategory;
+    }).sort((a, b) => {
+        // เรียงตาม receivedDate
+        const dateA = new Date(a.receivedDate);
+        const dateB = new Date(b.receivedDate);
+
+        if (sortOrder === "newest") {
+            return dateB.getTime() - dateA.getTime(); // ใหม่ไปเก่า
+        } else {
+            return dateA.getTime() - dateB.getTime(); // เก่าไปใหม่
+        }
     });
 
     const totalPages = Math.ceil(filteredData.length / itemsPerPage);
@@ -53,19 +65,16 @@ const ExternalBorrowPage = () => {
         if (currentPage < totalPages) setCurrentPage(currentPage + 1);
     };
 
-    // ฟังก์ชันเพิ่มครุภัณฑ์ลงตะกร้า
+    // ฟังก์ชันเพิ่มครุภัณฑ์ลงตะกร้า (เพิ่มแต่ละชิ้นเป็นรายการแยก)
     const handleAddToCart = (equipment: any) => {
         setCartItems(prevItems => {
             // ตรวจสอบว่ามีครุภัณฑ์ชิ้นนี้อยู่ในตะกร้าแล้วหรือไม่
             const existingItem = prevItems.find(item => item.id === equipment.id);
 
             if (existingItem) {
-                // ถ้ามีแล้ว ให้เพิ่มจำนวน
-                return prevItems.map(item =>
-                    item.id === equipment.id
-                        ? { ...item, quantity: item.quantity + 1 }
-                        : item
-                );
+                // ถ้ามีแล้ว ไม่ให้เพิ่มซ้ำ แจ้งเตือนผู้ใช้
+                alert("ครุภัณฑ์ชิ้นนี้อยู่ในตะกร้าแล้ว");
+                return prevItems;
             } else {
                 // ถ้ายังไม่มี ให้เพิ่มใหม่
                 return [...prevItems, {
@@ -79,23 +88,32 @@ const ExternalBorrowPage = () => {
         });
     };
 
-    // ฟังก์ชันอัปเดตจำนวนในตะกร้า
+    // ฟังก์ชันอัปเดตจำนวนในตะกร้า (ไม่ใช้แล้ว เนื่องจากแต่ละชิ้นเป็นรายการแยก)
     const handleUpdateQuantity = (id: number, quantity: number) => {
-        if (quantity <= 0) {
-            handleRemoveFromCart(id);
-            return;
-        }
-
-        setCartItems(prevItems =>
-            prevItems.map(item =>
-                item.id === id ? { ...item, quantity } : item
-            )
-        );
+        // ไม่ต้องทำอะไร เพราะแต่ละชิ้นจะมีจำนวน 1 เสมอ
+        return;
     };
 
     // ฟังก์ชันลบครุภัณฑ์ออกจากตะกร้า
     const handleRemoveFromCart = (id: number) => {
-        setCartItems(prevItems => prevItems.filter(item => item.id !== id));
+        const itemToRemove = cartItems.find(item => item.id === id);
+        if (itemToRemove && confirm(`ต้องการลบ "${itemToRemove.name}" ออกจากรายการยืมหรือไม่?`)) {
+            setCartItems(prevItems => prevItems.filter(item => item.id !== id));
+            setRecentlyRemoved(itemToRemove);
+
+            // ซ่อนการแจ้งเตือน undo หลัง 5 วินาที
+            setTimeout(() => {
+                setRecentlyRemoved(null);
+            }, 5000);
+        }
+    };
+
+    // ฟังก์ชันเอาครุภัณฑ์ที่ลบไปกลับมา
+    const handleUndoRemove = () => {
+        if (recentlyRemoved) {
+            setCartItems(prevItems => [...prevItems, recentlyRemoved]);
+            setRecentlyRemoved(null);
+        }
     };
 
     // ฟังก์ชันล้างตะกร้า
@@ -175,8 +193,12 @@ const ExternalBorrowPage = () => {
                                     className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
                                 />
                             </div>
-                            <button className="p-2 border border-gray-300 rounded-lg hover:bg-gray-100">
-                                <Image src="/HamBmenu.png" alt="menu" width={20} height={20} />
+                            <button
+                                onClick={() => setSortOrder(prev => prev === "newest" ? "oldest" : "newest")}
+                                className="p-2 border border-gray-300 rounded-lg hover:bg-gray-100"
+                                title={sortOrder === "newest" ? "เรียงจากใหม่ไปเก่า" : "เรียงจากเก่าไปใหม่"}
+                            >
+                                <Image src="/HamBmenu.png" alt="sort" width={20} height={20} />
                             </button>
                         </div>
                     </div>
@@ -264,6 +286,21 @@ const ExternalBorrowPage = () => {
                     }}
                 />
             </div>
+
+            {/* Undo Notification */}
+            {recentlyRemoved && (
+                <div className="fixed bottom-4 right-4 bg-green-500 text-white px-4 py-3 rounded-lg shadow-lg z-50 flex items-center gap-3">
+                    <span className="text-sm">
+                        ลบ &ldquo;{recentlyRemoved.name}&rdquo; แล้ว
+                    </span>
+                    <button
+                        onClick={handleUndoRemove}
+                        className="bg-white text-green-500 px-3 py-1 rounded text-sm font-medium hover:bg-gray-100 transition-colors"
+                    >
+                        เลิกทำ
+                    </button>
+                </div>
+            )}
         </div>
     );
 };

@@ -18,6 +18,7 @@ interface Equipment {
 
 export default function TotalAmountReport() {
     const [searchTerm, setSearchTerm] = useState('');
+    const [sortOrder, setSortOrder] = useState<"newest" | "oldest">("newest");
     const [selectedCategory, setSelectedCategory] = useState('');
     const [filteredData, setFilteredData] = useState<Equipment[]>([]);
     const [allEquipmentData, setAllEquipmentData] = useState<Equipment[]>([]);
@@ -47,8 +48,20 @@ export default function TotalAmountReport() {
             filtered = filtered.filter(item => item.category.includes(selectedCategory));
         }
 
+        // Apply sorting
+        filtered = filtered.sort((a, b) => {
+            const dateA = new Date(a.receivedDate);
+            const dateB = new Date(b.receivedDate);
+
+            if (sortOrder === "newest") {
+                return dateB.getTime() - dateA.getTime(); // ใหม่ไปเก่า
+            } else {
+                return dateA.getTime() - dateB.getTime(); // เก่าไปใหม่
+            }
+        });
+
         setFilteredData(filtered);
-    }, [searchTerm, selectedCategory, allEquipmentData]);
+    }, [searchTerm, selectedCategory, sortOrder, allEquipmentData]);
 
     // Calculate total amount
     const totalAmount = filteredData.reduce((sum, item) => sum + item.price, 0);
@@ -125,24 +138,35 @@ export default function TotalAmountReport() {
                     </select>
                 </div>
 
-                {/* Search Bar */}
-                <div className="relative w-80">
-                    <input
-                        type="text"
-                        placeholder="Search"
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className="w-full px-4 py-2 border border-Grey rounded-lg focus:outline-none focus:ring-2 focus:ring-Blue"
-                    />
-                    <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                        <Image
-                            src="/search.png"
-                            alt="search"
-                            width={20}
-                            height={20}
-                            className="opacity-50"
+                <div className="flex items-center gap-4">
+                    {/* Search Bar */}
+                    <div className="relative w-80">
+                        <input
+                            type="text"
+                            placeholder="Search"
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="w-full px-4 py-2 border border-Grey rounded-lg focus:outline-none focus:ring-2 focus:ring-Blue"
                         />
+                        <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                            <Image
+                                src="/search.png"
+                                alt="search"
+                                width={20}
+                                height={20}
+                                className="opacity-50"
+                            />
+                        </div>
                     </div>
+
+                    {/* Sort Button */}
+                    <button
+                        onClick={() => setSortOrder(prev => prev === "newest" ? "oldest" : "newest")}
+                        className="p-2 border border-Grey rounded-lg hover:bg-gray-100"
+                        title={sortOrder === "newest" ? "เรียงจากใหม่ไปเก่า" : "เรียงจากเก่าไปใหม่"}
+                    >
+                        <Image src="/HamBmenu.png" alt="sort" width={20} height={20} />
+                    </button>
                 </div>
             </div>
 

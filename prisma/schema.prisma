@@ -1,0 +1,141 @@
+// ---------- Prisma Setup ----------
+generator client {
+    provider = "prisma-client-js"
+}
+
+datasource db {
+    provider = "postgresql"
+    url      = env("DATABASE_URL")
+}
+
+// ---------- Enums (ใช้ชื่ออังกฤษ เก็บใน DB ง่าย และ map เป็นคำไทยฝั่ง FE) ----------
+enum Role {
+    ADMIN
+    INTERNAL // บุคลากรภายในกลุ่มงาน
+    EXTERNAL // บุคลากรภายนอกกลุ่มงาน
+}
+
+enum BorrowerType {
+    INTERNAL
+    EXTERNAL
+}
+
+enum BorrowStatus {
+    PENDING // รออนุมัติ
+    APPROVED // อนุมัติแล้ว/รอคืน
+    RETURNED // คืนแล้ว
+    REJECTED // ไม่อนุมัติ / ยกเลิก
+}
+
+enum EquipmentStatus {
+    NORMAL // ปกติ
+    BROKEN // ชำรุด
+    LOST // สูญหาย
+    WAIT_DISPOSE // รอจำหน่าย
+    DISPOSED // จำหน่ายแล้ว
+}
+
+// ---------- Models ----------
+model User {
+    id         Int     @id @default(autoincrement())
+    username   String  @unique
+    password   String
+    fullName   String
+    phone      String?
+    role       Role    @default(EXTERNAL)
+    department String? // หน่วยงาน/สังกัดที่แสดงในเมนู
+    isActive   Boolean @default(true)
+
+    // ความสัมพันธ์
+    requests       BorrowRequest[] @relation("Requester")
+    returnReceipts BorrowRequest[] @relation("Receiver")
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    @@index([role])
+}
+
+model Category {
+    id          Int     @id @default(autoincrement())
+    name        String  @unique // ชื่อหมวดหมู่ เช่น "คอมพิวเตอร์", "เครื่องมือแพทย์"
+    description String?
+
+    equipments Equipment[]
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+}
+
+model Equipment {
+    id           Int             @id @default(autoincrement())
+    code         String          @unique // เลขครุภัณฑ์
+    name         String
+    department   String? // หน่วยงานเจ้าของ
+    receivedDate DateTime
+    price        Decimal?        @db.Decimal(12, 2)
+    status       EquipmentStatus @default(NORMAL)
+
+    // ความสัมพันธ์
+    categoryId Int
+    category   Category @relation(fields: [categoryId], references: [id])
+
+    borrowItems BorrowItem[]
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    @@index([status])
+    @@index([categoryId])
+}
+
+model BorrowRequest {
+    id Int @id @default(autoincrement())
+
+    // ผู้ยื่นคำขอ (ภายใน/ภายนอก)
+    borrowerType BorrowerType
+    requesterId  Int? // ถ้าเป็น INTERNAL จะมี user
+    requester    User?        @relation("Requester", fields: [requesterId], references: [id])
+
+    // สำหรับภายนอกที่ไม่มีบัญชี ให้เก็บชื่อ‑หน่วยงานไว้ตรงนี้
+    externalName String?
+    externalDept String?
+
+    status BorrowStatus @default(PENDING)
+
+    borrowDate       DateTime? // วันที่ยืม (ถ้าอนุมัติแล้วอาจเซ็ตเท่ากับวันอนุมัติ)
+    returnDue        DateTime // กำหนดวันคืน
+    actualReturnDate DateTime? // วันที่คืนจริง
+
+    // สภาพตอนคืน (ใช้ enum เดียวกับสถานะครุภัณฑ์เพื่อให้รายงานตรงกัน)
+    returnCondition EquipmentStatus?
+    returnNotes     String?
+
+    // ผู้รับคืน (เจ้าหน้าที่)
+    receivedById Int?
+    receivedBy   User? @relation("Receiver", fields: [receivedById], references: [id])
+
+    // ความสัมพันธ์กับรายการครุภัณฑ์ในคำขอ
+    items BorrowItem[]
+
+    reason    String? // เหตุผลที่ยืม
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    @@index([status])
+    @@index([borrowerType])
+    @@index([returnDue])
+}
+
+model BorrowItem {
+    id          Int @id @default(autoincrement())
+    requestId   Int
+    equipmentId Int
+    quantity    Int @default(1)
+
+    request   BorrowRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+    equipment Equipment     @relation(fields: [equipmentId], references: [id])
+
+    // เพื่อป้องกันการใส่ซ้ำอุปกรณ์เดียวกันในคำขอเดียว
+    @@unique([requestId, equipmentId])
+}

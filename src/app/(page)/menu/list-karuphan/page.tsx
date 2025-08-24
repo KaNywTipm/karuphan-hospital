@@ -28,6 +28,7 @@ const ListKaruphan = () => {
 
     const [items, setItems] = useState(allEquipmentData);
     const [searchTerm, setSearchTerm] = useState("");
+    const [sortOrder, setSortOrder] = useState<"newest" | "oldest">("newest");
     const [currentPage, setCurrentPage] = useState(1);
     const [showAddModal, setShowAddModal] = useState(false);
     const [showEditModal, setShowEditModal] = useState(false);
@@ -39,7 +40,17 @@ const ListKaruphan = () => {
         item.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
         item.status.toLowerCase().includes(searchTerm.toLowerCase()) ||
         getDisplayStatus(item.status).toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    ).sort((a, b) => {
+        // เรียงตาม receivedDate
+        const dateA = new Date(a.receivedDate);
+        const dateB = new Date(b.receivedDate);
+
+        if (sortOrder === "newest") {
+            return dateB.getTime() - dateA.getTime(); // ใหม่ไปเก่า
+        } else {
+            return dateA.getTime() - dateB.getTime(); // เก่าไปใหม่
+        }
+    });
 
     const totalPages = Math.ceil(filteredData.length / itemsPerPage);
     const startIndex = (currentPage - 1) * itemsPerPage;
@@ -181,8 +192,12 @@ const ListKaruphan = () => {
                                 className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
                             />
                         </div>
-                        <button className="p-2 border border-gray-300 rounded-lg hover:bg-gray-100">
-                            <Image src="/HamBmenu.png" alt="menu" width={20} height={20} />
+                        <button
+                            onClick={() => setSortOrder(prev => prev === "newest" ? "oldest" : "newest")}
+                            className="p-2 border border-gray-300 rounded-lg hover:bg-gray-100"
+                            title={sortOrder === "newest" ? "เรียงจากใหม่ไปเก่า" : "เรียงจากเก่าไปใหม่"}
+                        >
+                            <Image src="/HamBmenu.png" alt="sort" width={20} height={20} />
                         </button>
                     </div>
                 </div>

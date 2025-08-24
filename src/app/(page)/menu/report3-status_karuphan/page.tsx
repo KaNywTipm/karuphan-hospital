@@ -6,6 +6,7 @@ import { borrowReturnData, BorrowReturn, equipmentCategories } from '@/lib/data'
 
 export default function StatusKaruphanReport() {
     const [searchTerm, setSearchTerm] = useState('');
+    const [sortOrder, setSortOrder] = useState<"newest" | "oldest">("newest");
     const [selectedCategory, setSelectedCategory] = useState('');
     const [selectedStatus, setSelectedStatus] = useState('');
     const [filteredData, setFilteredData] = useState<BorrowReturn[]>([]);
@@ -46,8 +47,20 @@ export default function StatusKaruphanReport() {
             filtered = filtered.filter(item => item.returnCondition === selectedStatus);
         }
 
+        // Apply sorting
+        filtered = filtered.sort((a, b) => {
+            const dateA = new Date(a.borrowDate || a.returnDate);
+            const dateB = new Date(b.borrowDate || b.returnDate);
+
+            if (sortOrder === "newest") {
+                return dateB.getTime() - dateA.getTime(); // ใหม่ไปเก่า
+            } else {
+                return dateA.getTime() - dateB.getTime(); // เก่าไปใหม่
+            }
+        });
+
         setFilteredData(filtered);
-    }, [searchTerm, selectedCategory, selectedStatus]);
+    }, [searchTerm, selectedCategory, selectedStatus, sortOrder]);
 
     // Function to get status color
     const getStatusColor = (status: string) => {
@@ -160,6 +173,15 @@ export default function StatusKaruphanReport() {
                         />
                     </div>
                 </div>
+
+                {/* Sort Button */}
+                <button
+                    onClick={() => setSortOrder(prev => prev === "newest" ? "oldest" : "newest")}
+                    className="p-2 border border-Grey rounded-lg hover:bg-gray-100"
+                    title={sortOrder === "newest" ? "เรียงจากใหม่ไปเก่า" : "เรียงจากเก่าไปใหม่"}
+                >
+                    <Image src="/HamBmenu.png" alt="sort" width={20} height={20} />
+                </button>
             </div>
 
             {/* Table */}

@@ -9,6 +9,7 @@ const AdminPage = () => {
     const router = useRouter();
     const [activeTab, setActiveTab] = useState("รออนุมัติ");
     const [searchTerm, setSearchTerm] = useState("");
+    const [sortOrder, setSortOrder] = useState<"newest" | "oldest">("newest");
     const [currentPage, setCurrentPage] = useState(1);
     const [dataUpdated, setDataUpdated] = useState(0);
 
@@ -47,6 +48,16 @@ const AdminPage = () => {
         })();
 
         return matchesSearch && matchesTab;
+    }).sort((a, b) => {
+        // เรียงตาม borrowDate
+        const dateA = new Date(a.borrowDate || a.returnDate);
+        const dateB = new Date(b.borrowDate || b.returnDate);
+
+        if (sortOrder === "newest") {
+            return dateB.getTime() - dateA.getTime(); // ใหม่ไปเก่า
+        } else {
+            return dateA.getTime() - dateB.getTime(); // เก่าไปใหม่
+        }
     });
 
     const tabs = [
@@ -172,8 +183,12 @@ const AdminPage = () => {
                                     className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
                                 />
                             </div>
-                            <button className="p-2 border border-gray-300 rounded-lg hover:bg-gray-50">
-                                <Image src="/HamBmenu.png" alt="menu" width={20} height={20} />
+                            <button
+                                onClick={() => setSortOrder(prev => prev === "newest" ? "oldest" : "newest")}
+                                className="p-2 border border-gray-300 rounded-lg hover:bg-gray-100"
+                                title={sortOrder === "newest" ? "เรียงจากใหม่ไปเก่า" : "เรียงจากเก่าไปใหม่"}
+                            >
+                                <Image src="/HamBmenu.png" alt="sort" width={20} height={20} />
                             </button>
                         </div>
                     </div>

@@ -12,6 +12,7 @@ const ITEMS_PER_PAGE = 10;
 const Managepersonnel = () => {
   const router = useRouter();
   const [searchTerm, setSearchTerm] = useState("");
+  const [sortOrder, setSortOrder] = useState<"newest" | "oldest">("newest");
   const [currentPage, setCurrentPage] = useState(1);
   const [userList, setUserList] = useState(initialUsers);
   const [editId, setEditId] = useState<number | null>(null);
@@ -57,7 +58,14 @@ const Managepersonnel = () => {
       user.role !== "admin" &&
       (user.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
         user.phone.includes(searchTerm))
-  );
+  ).sort((a, b) => {
+    // เรียงตาม ID
+    if (sortOrder === "newest") {
+      return b.id - a.id; // ใหม่ไปเก่า (ID สูงไปต่ำ)
+    } else {
+      return a.id - b.id; // เก่าไปใหม่ (ID ต่ำไปสูง)
+    }
+  });
 
   const totalPages = Math.ceil(filteredData.length / ITEMS_PER_PAGE);
 
@@ -104,8 +112,12 @@ const Managepersonnel = () => {
                   className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
                 />
               </div>
-              <button className="p-2 border border-gray-300 rounded-lg hover:bg-gray-100">
-                <Image src="/HamBmenu.png" alt="menu" width={20} height={20} />
+              <button
+                onClick={() => setSortOrder(prev => prev === "newest" ? "oldest" : "newest")}
+                className="p-2 border border-gray-300 rounded-lg hover:bg-gray-100"
+                title={sortOrder === "newest" ? "เรียงจากใหม่ไปเก่า" : "เรียงจากเก่าไปใหม่"}
+              >
+                <Image src="/HamBmenu.png" alt="sort" width={20} height={20} />
               </button>
             </div>
           </div>

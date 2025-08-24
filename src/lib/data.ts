@@ -1,6 +1,14 @@
+import { PrismaClient } from "@prisma/client";
+const prisma = new PrismaClient();
+
+export async function getEquipments() {
+  return await prisma.equipment.findMany();
+}
+
+
 // TEMPORARY DATA
 
-export let role = "internal"; // Change this to "admin" or "internal" as needed
+export let role = "admin"; // Change this to "admin" or "internal" as needed
 
 // ข้อมูลผู้ใช้ปัจจุบัน (สำหรับ mock ข้อมูล)
 export const currentUser = {
