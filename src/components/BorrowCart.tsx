@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import BorrowKaruphan from "@/components/modal/Borrow-karuphan";
+import BorrowKaruphan from "@/components/modal/borrow-karuphan";
 
 interface CartItem {
     id: number;
