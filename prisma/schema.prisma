@@ -8,10 +8,9 @@ datasource db {
     url      = env("DATABASE_URL")
 }
 
-// ---------- Enums (ใช้ชื่ออังกฤษ เก็บใน DB ง่าย และ map เป็นคำไทยฝั่ง FE) ----------
 enum Role {
     ADMIN
-    INTERNAL // บุคลากรภายในกลุ่มงาน
+    INTERNAL // บุคลากรภายในกลุ่มงาน  
     EXTERNAL // บุคลากรภายนอกกลุ่มงาน
 }
 
@@ -25,14 +24,21 @@ enum BorrowStatus {
     APPROVED // อนุมัติแล้ว/รอคืน
     RETURNED // คืนแล้ว
     REJECTED // ไม่อนุมัติ / ยกเลิก
+    OVERDUE // เกินกำหนดคืน
 }
 
 enum EquipmentStatus {
     NORMAL // ปกติ
-    BROKEN // ชำรุด
+    BROKEN // ชำรุด  
     LOST // สูญหาย
     WAIT_DISPOSE // รอจำหน่าย
     DISPOSED // จำหน่ายแล้ว
+    IN_USE // กำลังใช้งาน (ยืมไปแล้ว)
+}
+
+enum LocationType {
+    INTERNAL // ภายในกลุ่มงาน
+    EXTERNAL // ภายนอกกลุ่มงาน
 }
 
 // ---------- Models ----------
@@ -42,6 +48,7 @@ model User {
     password   String
     fullName   String
     phone      String?
+    email      String? // เพิ่ม email field
     role       Role    @default(EXTERNAL)
     department String? // หน่วยงาน/สังกัดที่แสดงในเมนู
     isActive   Boolean @default(true)
@@ -49,32 +56,45 @@ model User {
     // ความสัมพันธ์
     requests       BorrowRequest[] @relation("Requester")
     returnReceipts BorrowRequest[] @relation("Receiver")
+    approvals      BorrowRequest[] @relation("Approver")
+    sessions       Session[]
+    auditLogs      AuditLog[]
+    notifications  Notification[]
 
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
 
     @@index([role])
+    @@index([isActive])
 }
 
 model Category {
     id          Int     @id @default(autoincrement())
     name        String  @unique // ชื่อหมวดหมู่ เช่น "คอมพิวเตอร์", "เครื่องมือแพทย์"
     description String?
+    isActive    Boolean @default(true) // เพิ่ม field สำหรับการใช้งาน
 
     equipments Equipment[]
 
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
+
+    @@index([isActive])
 }
 
 model Equipment {
-    id           Int             @id @default(autoincrement())
-    code         String          @unique // เลขครุภัณฑ์
-    name         String
-    department   String? // หน่วยงานเจ้าของ
-    receivedDate DateTime
-    price        Decimal?        @db.Decimal(12, 2)
-    status       EquipmentStatus @default(NORMAL)
+    number       Int             @id @default(autoincrement()) // ลำดับ
+    code         String          @unique // รหัสครุภัณฑ์ เช่น "6530-008-0711/3"
+    name         String // ชื่อครุภัณฑ์
+    department   String? // หน่วยงานเจ้าของ/สังกัด
+    location     LocationType    @default(INTERNAL) // ภายใน/ภายนอกกลุ่มงาน
+    receivedDate DateTime // วันที่รับ/จัดซื้อ
+    price        Decimal?        @db.Decimal(12, 2) // ราคา
+    status       EquipmentStatus @default(NORMAL) // สถานะครุภัณฑ์
+    description  String? // รายละเอียดเพิ่มเติม
+    serialNumber String? // เลขที่เครื่อง/Serial Number
+    brand        String? // ยี่ห้อ
+    model        String? // รุ่น
 
     // ความสัมพันธ์
     categoryId Int
@@ -87,6 +107,8 @@ model Equipment {
 
     @@index([status])
     @@index([categoryId])
+    @@index([location])
+    @@index([code])
 }
 
 model BorrowRequest {
@@ -98,8 +120,9 @@ model BorrowRequest {
     requester    User?        @relation("Requester", fields: [requesterId], references: [id])
 
     // สำหรับภายนอกที่ไม่มีบัญชี ให้เก็บชื่อ‑หน่วยงานไว้ตรงนี้
-    externalName String?
-    externalDept String?
+    externalName  String?
+    externalDept  String?
+    externalPhone String? // เบอร์โทรติดต่อ
 
     status BorrowStatus @default(PENDING)
 
@@ -115,27 +138,95 @@ model BorrowRequest {
     receivedById Int?
     receivedBy   User? @relation("Receiver", fields: [receivedById], references: [id])
 
+    // ผู้อนุมัติ (Admin)
+    approvedById Int?
+    approvedBy   User?     @relation("Approver", fields: [approvedById], references: [id])
+    approvedAt   DateTime? // วันที่อนุมัติ
+
     // ความสัมพันธ์กับรายการครุภัณฑ์ในคำขอ
     items BorrowItem[]
 
     reason    String? // เหตุผลที่ยืม
+    notes     String? // หมายเหตุเพิ่มเติม
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
 
     @@index([status])
     @@index([borrowerType])
     @@index([returnDue])
+    @@index([requesterId])
 }
 
 model BorrowItem {
     id          Int @id @default(autoincrement())
     requestId   Int
-    equipmentId Int
+    equipmentId Int // เปลี่ยนเป็น Int เพื่อ reference กับ Equipment.number
     quantity    Int @default(1)
 
     request   BorrowRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
-    equipment Equipment     @relation(fields: [equipmentId], references: [id])
+    equipment Equipment     @relation(fields: [equipmentId], references: [number])
 
     // เพื่อป้องกันการใส่ซ้ำอุปกรณ์เดียวกันในคำขอเดียว
     @@unique([requestId, equipmentId])
+}
+
+// Model สำหรับ Session/Authentication
+model Session {
+    id        String   @id @default(cuid())
+    sessionId String   @unique
+    userId    Int
+    user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+    expiresAt DateTime
+    createdAt DateTime @default(now())
+
+    @@index([sessionId])
+    @@index([userId])
+}
+
+// Model สำหรับ Audit Log (ติดตามการเปลี่ยนแปลง)
+model AuditLog {
+    id        Int      @id @default(autoincrement())
+    userId    Int?
+    user      User?    @relation(fields: [userId], references: [id])
+    action    String // เช่น "CREATE", "UPDATE", "DELETE", "APPROVE", "REJECT"
+    tableName String // ชื่อ table ที่ถูกเปลี่ยนแปลง
+    recordId  Int // ID ของ record ที่ถูกเปลี่ยนแปลง
+    oldValue  Json? // ค่าเก่า (JSON)
+    newValue  Json? // ค่าใหม่ (JSON)
+    createdAt DateTime @default(now())
+
+    @@index([userId])
+    @@index([tableName])
+    @@index([createdAt])
+}
+
+// Model สำหรับการแจ้งเตือน
+model Notification {
+    id          Int      @id @default(autoincrement())
+    userId      Int
+    user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+    title       String
+    message     String
+    type        String // เช่น "BORROW_REQUEST", "RETURN_REMINDER", "OVERDUE"
+    isRead      Boolean  @default(false)
+    relatedId   Int? // ID ของ record ที่เกี่ยวข้อง เช่น BorrowRequest ID
+    relatedType String? // ประเภทของ record ที่เกี่ยวข้อง
+    createdAt   DateTime @default(now())
+
+    @@index([userId])
+    @@index([isRead])
+    @@index([type])
+}
+
+// Model สำหรับการตั้งค่าระบบ
+model SystemSetting {
+    id          Int     @id @default(autoincrement())
+    key         String  @unique
+    value       String
+    description String?
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    @@index([key])
 }
