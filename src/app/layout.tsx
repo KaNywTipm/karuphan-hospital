@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter, Noto_Sans_Thai } from "next/font/google";
 import "./globals.css";
+import { ClerkProvider } from "@clerk/nextjs";
 
 const inter = Inter({ subsets: ["latin"] });
 const notoSansThai = Noto_Sans_Thai({ subsets: ["thai"] });
@@ -16,10 +17,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body className={`${inter.className} ${notoSansThai.className}`}>
-        {children}
-      </body>
-    </html>
+    <ClerkProvider>
+      <html lang="en">
+        <body className={`${inter.className} ${notoSansThai.className}`}>
+          {children}
+        </body>
+      </html>
+    </ClerkProvider>
   );
 }
