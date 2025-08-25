@@ -57,7 +57,7 @@ model User {
     requests       BorrowRequest[] @relation("Requester")
     returnReceipts BorrowRequest[] @relation("Receiver")
     approvals      BorrowRequest[] @relation("Approver")
-    sessions       Session[]
+    sessions       AppSession[]
     auditLogs      AuditLog[]
     notifications  Notification[]
 
@@ -171,7 +171,7 @@ model BorrowItem {
 }
 
 // Model สำหรับ Session/Authentication
-model Session {
+model AppSession {
     id        String   @id @default(cuid())
     sessionId String   @unique
     userId    Int
@@ -230,3 +230,5 @@ model SystemSetting {
 
     @@index([key])
 }
+
+
