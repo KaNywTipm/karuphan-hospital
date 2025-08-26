@@ -206,24 +206,24 @@ const ExternalBorrowPage = () => {
                     </div>
 
                     <div className="overflow-x-auto">
-                        <table className="w-full table-fixed">
+                        <table className="w-full table-fixed border-collapse">
                             <thead className="bg-Pink text-White">
                                 <tr>
-                                    <th className="px-4 py-3 text-left text-sm font-medium w-[80px]">ลำดับ</th>
-                                    <th className="px-4 py-3 text-left text-sm font-medium w-[150px]">เลขครุภัณฑ์</th>
-                                    <th className="px-4 py-3 text-left text-sm font-medium">ชื่อครุภัณฑ์</th>
-                                    <th className="px-4 py-3 text-left text-sm font-medium w-[200px]">รายละเอียดครุภัณฑ์</th>
-                                    <th className="px-4 py-3 text-left text-sm font-medium w-[120px]">สถานะ</th>
+                                    <th className="border border-gray-300 px-4 py-3 text-center text-sm font-medium w-[80px]">ลำดับ</th>
+                                    <th className="border border-gray-300 px-4 py-3 text-center text-sm font-medium w-[150px]">เลขครุภัณฑ์</th>
+                                    <th className="border border-gray-300 px-4 py-3 text-center text-sm font-medium">ชื่อครุภัณฑ์</th>
+                                    <th className="border border-gray-300 px-4 py-3 text-center text-sm font-medium w-[200px]">รายละเอียดครุภัณฑ์</th>
+                                    <th className="border border-gray-300 px-4 py-3 text-center text-sm font-medium w-[120px]">สถานะ</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-200">
                                 {currentItems.map((item, index) => (
                                     <tr key={item.id} className="hover:bg-gray-50">
-                                        <td className="px-4 py-3 text-sm text-gray-900">{startIndex + index + 1}</td>
-                                        <td className="px-4 py-3 text-sm text-gray-900">{item.code}</td>
-                                        <td className="px-4 py-3 text-sm text-gray-900">{item.name}</td>
-                                        <td className="px-4 py-3 text-sm text-gray-900">{item.details || item.category}</td>
-                                        <td className="px-4 py-3 text-sm">
+                                        <td className="border border-gray-300 px-4 py-3 text-center">{startIndex + index + 1}</td>
+                                        <td className="border border-gray-300 px-4 py-3 text-center">{item.code}</td>
+                                        <td className="border border-gray-300 px-4 py-3 text-center">{item.name}</td>
+                                        <td className="border border-gray-300 px-4 py-3 text-center">{item.details || item.category}</td>
+                                        <td className="border border-gray-300 px-4 py-3 text-center">
                                             <button
                                                 onClick={() => handleAddToCart(item)}
                                                 className="px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap bg-green-100 text-green-800 hover:bg-green-200 cursor-pointer"
@@ -236,7 +236,7 @@ const ExternalBorrowPage = () => {
 
                                 {currentItems.length === 0 && (
                                     <tr>
-                                        <td colSpan={5} className="px-4 py-6 text-center text-sm text-gray-500">
+                                        <td colSpan={5} className="border border-gray-300 px-4 py-6 text-center text-sm text-gray-500">
                                             ไม่พบครุภัณฑ์ที่ว่าง
                                         </td>
                                     </tr>

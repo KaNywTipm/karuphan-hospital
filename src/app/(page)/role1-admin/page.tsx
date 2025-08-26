@@ -196,62 +196,62 @@ const AdminPage = () => {
 
                 {/* Table */}
                 <div className="overflow-x-auto">
-                    <table className="w-full">
+                    <table className="w-full border-collapse">
                         <thead className="bg-red-400 text-white">
                             <tr>
-                                <th className="px-4 py-3 text-left text-sm font-medium">ลำดับ</th>
-                                <th className="px-4 py-3 text-left text-sm font-medium">ผู้ยืม</th>
-                                <th className="px-4 py-3 text-left text-sm font-medium">บุคลากร</th>
-                                <th className="px-4 py-3 text-left text-sm font-medium">เลขครุภัณฑ์</th>
-                                <th className="px-4 py-3 text-left text-sm font-medium">ชื่อครุภัณฑ์</th>
-                                <th className="px-4 py-3 text-left text-sm font-medium">กำหนดคืน</th>
+                                <th className="border border-gray-300 px-4 py-3 text-center text-sm font-medium">ลำดับ</th>
+                                <th className="border border-gray-300 px-4 py-3 text-center text-sm font-medium">ผู้ยืม</th>
+                                <th className="border border-gray-300 px-4 py-3 text-center text-sm font-medium">บุคลากร</th>
+                                <th className="border border-gray-300 px-4 py-3 text-center text-sm font-medium">เลขครุภัณฑ์</th>
+                                <th className="border border-gray-300 px-4 py-3 text-center text-sm font-medium">ชื่อครุภัณฑ์</th>
+                                <th className="border border-gray-300 px-4 py-3 text-center text-sm font-medium">กำหนดคืน</th>
                                 {/* แสดงคอลัมน์พิเศษตาม tab ที่เลือก */}
                                 {activeTab === "อนุมัติแล้ว/รอคืน" && (
-                                    <th className="px-4 py-3 text-left text-sm font-medium">ผู้รับคืน</th>
+                                    <th className="border border-gray-300 px-4 py-3 text-center text-sm font-medium">ผู้รับคืน</th>
                                 )}
                                 {activeTab === "คืนแล้ว" && (
-                                    <th className="px-4 py-3 text-left text-sm font-medium">ผู้รับคืน</th>
+                                    <th className="border border-gray-300 px-4 py-3 text-center text-sm font-medium">ผู้รับคืน</th>
                                 )}
                                 {activeTab === "คืนแล้ว" && (
-                                    <th className="px-4 py-3 text-left text-sm font-medium">สภาพ</th>
+                                    <th className="border border-gray-300 px-4 py-3 text-center text-sm font-medium">สภาพ</th>
                                 )}
                                 {activeTab === "ไม่อนุมัติ/ยกเลิก" && (
-                                    <th className="px-4 py-3 text-left text-sm font-medium">ผู้รับคืน</th>
+                                    <th className="border border-gray-300 px-4 py-3 text-center text-sm font-medium">ผู้รับคืน</th>
                                 )}
-                                <th className="px-4 py-3 text-left text-sm font-medium">เหตุผลที่ยืม</th>
+                                <th className="border border-gray-300 px-4 py-3 text-center text-sm font-medium">เหตุผลที่ยืม</th>
                                 {/* คอลัมน์สุดท้าย */}
                                 {activeTab === "รออนุมัติ" && (
-                                    <th className="px-4 py-3 text-left text-sm font-medium">การอนุมัติ</th>
+                                    <th className="border border-gray-300 px-4 py-3 text-center text-sm font-medium">การอนุมัติ</th>
                                 )}
                                 {activeTab === "อนุมัติแล้ว/รอคืน" && (
-                                    <th className="px-4 py-3 text-left text-sm font-medium">การคืน</th>
+                                    <th className="border border-gray-300 px-4 py-3 text-center text-sm font-medium">การคืน</th>
                                 )}
                                 {activeTab === "คืนแล้ว" && (
-                                    <th className="px-4 py-3 text-left text-sm font-medium">วันที่คืน</th>
+                                    <th className="border border-gray-300 px-4 py-3 text-center text-sm font-medium">วันที่คืน</th>
                                 )}
                                 {activeTab === "ไม่อนุมัติ/ยกเลิก" && (
-                                    <th className="px-4 py-3 text-left text-sm font-medium">เหตุผลไม่อนุมัติ</th>
+                                    <th className="border border-gray-300 px-4 py-3 text-center text-sm font-medium">เหตุผลไม่อนุมัติ</th>
                                 )}
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-200">
                             {filteredData.map((item, index) => (
                                 <tr key={item.id} className="hover:bg-gray-50">
-                                    <td className="px-4 py-3 text-sm text-gray-900">{index + 1}</td>
-                                    <td className="px-4 py-3 text-sm text-gray-900">{item.borrowerName}</td>
-                                    <td className="px-4 py-3 text-sm text-gray-900">{item.department}</td>
-                                    <td className="px-4 py-3 text-sm text-gray-900">{item.equipmentCode}</td>
-                                    <td className="px-4 py-3 text-sm text-gray-900">{item.equipmentName}</td>
-                                    <td className="px-4 py-3 text-sm text-gray-900">{item.returnDate}</td>
+                                    <td className="border border-gray-300 px-4 py-3 text-center">{index + 1}</td>
+                                    <td className="border border-gray-300 px-4 py-3 text-center">{item.borrowerName}</td>
+                                    <td className="border border-gray-300 px-4 py-3 text-center">{item.department}</td>
+                                    <td className="border border-gray-300 px-4 py-3 text-center">{item.equipmentCode}</td>
+                                    <td className="border border-gray-300 px-4 py-3 text-center">{item.equipmentName}</td>
+                                    <td className="border border-gray-300 px-4 py-3 text-center">{item.returnDate}</td>
                                     {/* แสดงคอลัมน์พิเศษตาม tab ที่เลือก */}
                                     {activeTab === "อนุมัติแล้ว/รอคืน" && (
-                                        <td className="px-4 py-3 text-sm text-gray-900">บางจิน รอดรวจ</td>
+                                        <td className="border border-gray-300 px-4 py-3 text-center">บางจิน รอดรวจ</td>
                                     )}
                                     {activeTab === "คืนแล้ว" && (
-                                        <td className="px-4 py-3 text-sm text-gray-900">{item.receivedBy || 'บางจิน รอดรวง'}</td>
+                                        <td className="border border-gray-300 px-4 py-3 text-center">{item.receivedBy || 'บางจิน รอดรวง'}</td>
                                     )}
                                     {activeTab === "คืนแล้ว" && (
-                                        <td className="px-4 py-3 text-sm">
+                                        <td className="border border-gray-300 px-4 py-3 text-center">
                                             <span className={`px-2 py-1 rounded text-xs font-medium ${item.returnCondition === 'ปกติ' ? 'bg-green-100 text-green-800' :
                                                 item.returnCondition === 'ชำรุด' ? 'bg-red-100 text-red-800' :
                                                     item.returnCondition === 'สูญหาย' ? 'bg-gray-100 text-gray-800' :
@@ -264,12 +264,12 @@ const AdminPage = () => {
                                         </td>
                                     )}
                                     {activeTab === "ไม่อนุมัติ/ยกเลิก" && (
-                                        <td className="px-4 py-3 text-sm text-gray-900">บางจิน รอดรวจ</td>
+                                        <td className="border border-gray-300 px-4 py-3 text-center">บางจิน รอดรวจ</td>
                                     )}
-                                    <td className="px-4 py-3 text-sm text-gray-900">{item.reason}</td>
+                                    <td className="border border-gray-300 px-4 py-3 text-center">{item.reason}</td>
                                     {/* คอลัมน์สุดท้าย */}
                                     {activeTab === "รออนุมัติ" && (
-                                        <td className="px-4 py-3 text-sm">
+                                        <td className="border border-gray-300 px-4 py-3 text-center">
                                             <button
                                                 className={getActionButtonStyle(item.status)}
                                                 onClick={() => handleStatusChange(item.id, item.status)}
@@ -280,7 +280,7 @@ const AdminPage = () => {
                                         </td>
                                     )}
                                     {activeTab === "อนุมัติแล้ว/รอคืน" && (
-                                        <td className="px-4 py-3 text-sm">
+                                        <td className="border border-gray-300 px-4 py-3 text-center">
                                             <button
                                                 className={getActionButtonStyle(item.status)}
                                                 onClick={() => handleStatusChange(item.id, item.status)}
@@ -291,10 +291,10 @@ const AdminPage = () => {
                                         </td>
                                     )}
                                     {activeTab === "คืนแล้ว" && (
-                                        <td className="px-4 py-3 text-sm text-gray-900">{item.actualReturnDate || item.returnDate}</td>
+                                        <td className="border border-gray-300 px-4 py-3 text-center">{item.actualReturnDate || item.returnDate}</td>
                                     )}
                                     {activeTab === "ไม่อนุมัติ/ยกเลิก" && (
-                                        <td className="px-4 py-3 text-sm text-red-600">ไม่อนุมัติ</td>
+                                        <td className="border border-gray-300 px-4 py-3 text-center text-red-600">ไม่อนุมัติ</td>
                                     )}
                                 </tr>
                             ))}
