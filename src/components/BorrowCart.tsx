@@ -9,6 +9,7 @@ interface CartItem {
     code: string;
     name: string;
     category: string;
+    details?: string;
     quantity: number;
 }
 
@@ -73,7 +74,7 @@ const BorrowCart = ({
                                                 {item.code}
                                             </p>
                                             <p className="text-xs text-blue-600">
-                                                {item.category}
+                                                {item.details || item.category}
                                             </p>
                                         </div>
                                         <button

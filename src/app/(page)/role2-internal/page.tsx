@@ -10,6 +10,7 @@ interface CartItem {
     code: string;
     name: string;
     category: string;
+    details?: string;
     quantity: number;
 }
 
@@ -84,6 +85,7 @@ const InternalBorrowPage = () => {
                     code: equipment.code,
                     name: equipment.name,
                     category: equipment.category,
+                    details: equipment.details,
                     quantity: 1
                 }];
             }
@@ -201,10 +203,9 @@ const InternalBorrowPage = () => {
                             <thead className="bg-Pink text-White">
                                 <tr>
                                     <th className="px-4 py-3 text-left text-sm font-medium w-[80px]">ลำดับ</th>
-                                    <th className="px-4 py-3 text-left text-sm font-medium w-[100px]">ID</th>
                                     <th className="px-4 py-3 text-left text-sm font-medium w-[150px]">เลขครุภัณฑ์</th>
                                     <th className="px-4 py-3 text-left text-sm font-medium">ชื่อครุภัณฑ์</th>
-                                    <th className="px-4 py-3 text-left text-sm font-medium w-[200px]">หมวดหมู่</th>
+                                    <th className="px-4 py-3 text-left text-sm font-medium w-[200px]">รายละเอียดครุภัณฑ์</th>
                                     <th className="px-4 py-3 text-left text-sm font-medium w-[120px]">สถานะ</th>
                                 </tr>
                             </thead>
@@ -212,10 +213,9 @@ const InternalBorrowPage = () => {
                                 {currentItems.map((item, index) => (
                                     <tr key={item.id} className="hover:bg-gray-50">
                                         <td className="px-4 py-3 text-sm text-gray-900">{startIndex + index + 1}</td>
-                                        <td className="px-4 py-3 text-sm text-gray-900">{item.id}</td>
                                         <td className="px-4 py-3 text-sm text-gray-900">{item.code}</td>
                                         <td className="px-4 py-3 text-sm text-gray-900">{item.name}</td>
-                                        <td className="px-4 py-3 text-sm text-gray-900">{item.category}</td>
+                                        <td className="px-4 py-3 text-sm text-gray-900">{item.details || item.category}</td>
                                         <td className="px-4 py-3 text-sm">
                                             <button
                                                 onClick={() => handleAddToCart(item)}
@@ -229,7 +229,7 @@ const InternalBorrowPage = () => {
 
                                 {currentItems.length === 0 && (
                                     <tr>
-                                        <td colSpan={6} className="px-4 py-6 text-center text-sm text-gray-500">
+                                        <td colSpan={5} className="px-4 py-6 text-center text-sm text-gray-500">
                                             ไม่พบครุภัณฑ์ที่ว่าง
                                         </td>
                                     </tr>

@@ -5,7 +5,6 @@ export async function getEquipments() {
   return await prisma.equipment.findMany();
 }
 
-
 // TEMPORARY DATA
 
 export let role = "admin"; // Change this to "admin" or "internal" as needed
@@ -24,6 +23,8 @@ export const inCPUData = [
     id: 12404,
     code: "6530-008-0711/3",
     name: "เครื่องพ่นยา ฝ. ใส่แผน",
+    details:
+      "เครื่องพ่นยาแบบฝาใส่แผน สำหรับพ่นยาฆ่าเชื้อ",
     category: "ครุภัณฑ์การแพทย์",
     department: "ภายในกลุ่มงาน",
     receivedDate: "2540-11-22",
@@ -33,17 +34,21 @@ export const inCPUData = [
   {
     id: 11846,
     code: "6515-022-1041/2",
-    name: "เครื่องตรวจครรภ์",
+    name: "เตียงตรวจครรภ์",
+    details:
+      "ขาเหล็ก พื้นไม้อัด",
     category: "เครื่องมือทางการแพทย์",
     department: "ภายในกลุ่มงาน",
     receivedDate: "2549-10-22",
-    price: 750000.0,
+    price: 9200.0,
     status: "ชำรุด",
   },
   {
     id: 12405,
     code: "75878-5635",
-    name: "เครื่องพ่นยา ฝ. ใส่แผน",
+    name: "ชุดแอลกอฮอลเท้าเหยียบ",
+    details:
+      "เป็นสแตนเลส แบบเท้าเหยียบ",
     category: "ครุภัณฑ์ทางการแพทย์และวิทยาศาสตร์",
     department: "ภายในกลุ่มงาน",
     receivedDate: "2558-08-15",
@@ -53,7 +58,9 @@ export const inCPUData = [
   {
     id: 12406,
     code: "75874-5435",
-    name: "เครื่องตรวจครรภ์",
+    name: "เครื่องวัดความดันโลหิต",
+    details:
+      "เครื่องวัดความดันโลหิตดิจิตอล รุ่น DP 300",
     category: "ครุภัณฑ์ทางการแพทย์และวิทยาศาสตร์",
     department: "ภายในกลุ่มงาน",
     receivedDate: "2559-08-16",
@@ -64,6 +71,8 @@ export const inCPUData = [
     id: 12407,
     code: "75874-5425",
     name: "คอมพิวเตอร์โน้ตบุ๊ก",
+    details:
+      "Acer Aspire A315-23-R1X0/T002",
     category: "ครุภัณฑ์คอมพิวเตอร์",
     department: "ภายในกลุ่มงาน",
     receivedDate: "2563-08-20",
@@ -73,7 +82,9 @@ export const inCPUData = [
   {
     id: 12408,
     code: "75874-5415",
-    name: "เก้าอี้เหล็กยาว",
+    name: "โทรศัพท์",
+    details:
+      "โทรศัพท์ตั้งโต๊ะ",
     category: "ครุภัณฑ์สำนักงาน",
     department: "ภายในกลุ่มงาน",
     receivedDate: "2554-08-11",
@@ -83,12 +94,38 @@ export const inCPUData = [
   {
     id: 12409,
     code: "75874-5405",
-    name: "เครื่องเสียงไร้สาย",
+    name: "เครื่องขยายเสียงพร้อมไมโครโฟน",
+    details:
+      "เครื่องขยายเสียงพร้อมไมโครโฟน",
     category: "ครุภัณฑ์ไฟฟ้าและวิทยุ",
     department: "ภายในกลุ่มงาน",
     receivedDate: "2555-08-12",
     price: 59697.0,
     status: "ยืมโดย นางเอามา คืนนะ",
+  },
+  {
+    id: 12410,
+    code: "75874-5500",
+    name: "จอโปรเจคเตอร์",
+    details:
+      "จอโปรเจคเตอร์ มือดึงพร้อมขาตั้ง 100 นิ้ว/VERTEX,เครื่องฉายภาพ รุ่น ER-X06/EPSON",
+    category: "ครุภัณฑ์โฆษณาและเผยแพร่",
+    department: "ภายในกลุ่มงาน",
+    receivedDate: "2560-03-15",
+    price: 25000.0,
+    status: "ปกติ",
+  },
+  {
+    id: 12411,
+    code: "75874-5501",
+    name: "เครื่องวัดความดันลูกตา",
+    details:
+      "แบบไม่สัมผัส ชนิดใช้ลมเป่า",
+    category: "ครุภัณฑ์ทางการแพทย์และวิทยาศาสตร์",
+    department: "ภายในกลุ่มงาน",
+    receivedDate: "2563-04-20",
+    price: 2500.0,
+    status: "ปกติ",
   },
 ];
 
@@ -96,7 +133,9 @@ export const outCPUData = [
   {
     id: 10539,
     code: "7110-006-0007/137",
-    name: "เก้าอี้เหล็กยาว",
+    name: "เก้าอี้สแตนเลส",
+    details:
+      "ปรับสูง-ต่ำได้",
     category: "ครุภัณฑ์สำนักงาน",
     department: "ภายนอกกลุ่มงาน",
     receivedDate: "2544-11-01",
@@ -106,12 +145,26 @@ export const outCPUData = [
   {
     id: 11851,
     code: "7110-006-0023/45",
-    name: "เก้าอี้ล้อเลื่อนไฟเบอร์",
+    name: "เก้าอี้สำนักงาน",
+    details:
+      "มีพนักพิงและมีล้อเลื่อน (สีดำ)",
     category: "ครุภัณฑ์สำนักงาน",
     department: "ภายนอกกลุ่มงาน",
     receivedDate: "2546-10-24",
     price: 3000.0,
     status: "สูญหาย",
+  },
+  {
+    id: 11852,
+    code: "7110-006-0024/46",
+    name: "ตู้เหล็ก",
+    details:
+      "ตู้เก็บเอกสารเหล็ก 4 ชั้น ล้อเลื่อน",
+    category: "ครุภัณฑ์สำนักงาน",
+    department: "ภายนอกกลุ่มงาน",
+    receivedDate: "2547-12-10",
+    price: 8500.0,
+    status: "ปกติ",
   },
 ];
 
@@ -407,10 +460,10 @@ export const createNewBorrowRequest = (
   };
 
   borrowReturnData.push(newRequest);
-  
+
   // อัปเดตสถานะครุภัณฑ์
   updateEquipmentStatus();
-  
+
   return newRequest;
 };
 

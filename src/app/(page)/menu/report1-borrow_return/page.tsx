@@ -119,7 +119,7 @@ export default function BorrowReturnReport() {
             <div className="overflow-x-auto">
                 <table className="w-full border-collapse">
                     <thead>
-                        <tr className="bg-Pink text-NavyBlue">
+                        <tr className="bg-Pink text-White">
                             <th className="border border-gray-300 px-4 py-3 text-center font-medium">ลำดับ</th>
                             <th className="border border-gray-300 px-4 py-3 text-center font-medium">ผู้ยืม</th>
                             <th className="border border-gray-300 px-4 py-3 text-center font-medium">หน่วยงาน</th>
@@ -145,7 +145,7 @@ export default function BorrowReturnReport() {
                                     <span className={`px-2 py-1 rounded-full text-xs ${item.status === 'คืนแล้ว'
                                             ? 'bg-Green text-White'
                                             : item.status === 'อนุมัติแล้ว/รอคืน'
-                                                ? 'bg-Yellow text-NavyBlue'
+                                                ? 'bg-Yellow text-White'
                                                 : item.status === 'รออนุมัติ'
                                                     ? 'bg-Grey text-White'
                                                     : 'bg-RedLight text-White'

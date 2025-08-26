@@ -188,7 +188,7 @@ export default function StatusKaruphanReport() {
             <div className="overflow-x-auto">
                 <table className="w-full border-collapse">
                     <thead>
-                        <tr className="bg-Pink text-NavyBlue">
+                        <tr className="bg-Pink text-white">
                             <th className="border border-gray-300 px-4 py-3 text-center font-medium">ลำดับ</th>
                             <th className="border border-gray-300 px-4 py-3 text-center font-medium">เลขครุภัณฑ์</th>
                             <th className="border border-gray-300 px-4 py-3 text-center font-medium">ชื่อครุภัณฑ์</th>

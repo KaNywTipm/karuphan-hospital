@@ -210,6 +210,7 @@ const ListKaruphan = () => {
                                 <th className="px-4 py-3 text-left text-sm font-medium w-[120px]">ID</th>
                                 <th className="px-4 py-3 text-left text-sm font-medium w-[150px]">เลขครุภัณฑ์</th>
                                 <th className="px-4 py-3 text-left text-sm font-medium">ชื่อครุภัณฑ์</th>
+                                <th className="px-4 py-3 text-left text-sm font-medium w-[200px]">รายละเอียดครุภัณฑ์</th>
                                 <th className="px-4 py-3 text-left text-sm font-medium w-[120px]">ราคาเมื่อได้รับ</th>
                                 <th className="px-4 py-3 text-left text-sm font-medium w-[100px]">วันที่ได้รับ</th>
                                 <th className="px-4 py-3 text-left text-sm font-medium w-[120px]">สถานะ</th>
@@ -223,6 +224,7 @@ const ListKaruphan = () => {
                                     <td className="px-4 py-3 text-sm text-gray-900">{item.id}</td>
                                     <td className="px-4 py-3 text-sm text-gray-900">{item.code}</td>
                                     <td className="px-4 py-3 text-sm text-gray-900">{item.name}</td>
+                                    <td className="px-4 py-3 text-sm text-gray-900">{item.details || item.category}</td>
                                     <td className="px-4 py-3 text-sm text-gray-900">{formatPrice(item.price)}</td>
                                     <td className="px-4 py-3 text-sm text-gray-900">{formatDate(item.receivedDate)}</td>
                                     <td className="px-4 py-3 text-sm">

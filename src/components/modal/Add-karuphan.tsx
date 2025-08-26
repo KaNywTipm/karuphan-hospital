@@ -23,9 +23,9 @@ const Addkaruphan = ({ onClose, onAdd }: AddkaruphanProps) => {
     );
     const [formData, setFormData] = useState({
         category: '',
-        id: '',
         code: '',
         description: '',
+        details: '',
         price: '',
     });
 
@@ -49,6 +49,7 @@ const Addkaruphan = ({ onClose, onAdd }: AddkaruphanProps) => {
             category: formData.category,
             code: formData.code,
             name: formData.description,
+            details: formData.details,
             price: parseFloat(formData.price.replace(/,/g, '')) || 0,
             receivedDate: receivedDate,
             status: 'ปกติ',
@@ -73,7 +74,7 @@ const Addkaruphan = ({ onClose, onAdd }: AddkaruphanProps) => {
                     </button>
                 </div>
                 <div className="flex justify-between items-center mb-6">
-                    <h2 className="text-lg font-semibold">ฟอร์มเพิ่มข้อมูล</h2>
+                    <h2 className="text-lg font-semibold">ฟอร์มเพิ่มข้อมูลครุภัณฑ์</h2>
                 </div>
 
                 <form onSubmit={handleSubmit} className="flex flex-col gap-4 text-sm">
@@ -102,19 +103,9 @@ const Addkaruphan = ({ onClose, onAdd }: AddkaruphanProps) => {
                         </select>
                     </FormRow>
 
-                    <FormRow label="ID">
-                        <input
-                            placeholder="12401"
-                            value={formData.id}
-                            onChange={(e) => handleInputChange('id', e.target.value)}
-                            className="form-input border border-gray-300 rounded px-2 py-1 w-full"
-                            required
-                        />
-                    </FormRow>
-
                     <FormRow label="เลขครุภัณฑ์">
                         <input
-                            placeholder="6530-008-0711/3"
+                            placeholder="0000-000-0000/0"
                             value={formData.code}
                             onChange={(e) => handleInputChange('code', e.target.value)}
                             className="form-input border border-gray-300 rounded px-2 py-1 w-full"
@@ -122,15 +113,26 @@ const Addkaruphan = ({ onClose, onAdd }: AddkaruphanProps) => {
                         />
                     </FormRow>
 
-                    <FormRow label="รายละเอียด">
+                    <FormRow label="ชื่อครุภัณฑ์">
                         <input
-                            placeholder="เครื่องพ่นยา ฝ. ใส่แผน"
+                            placeholder="ชุดแอลกอฮอลเท้าเหยียบ"
                             value={formData.description}
                             onChange={(e) => handleInputChange('description', e.target.value)}
                             className="form-input border border-gray-300 rounded px-2 py-1 w-full"
                             required
                         />
                     </FormRow>
+
+                    <FormRow label="รายละเอียดครุภัณฑ์">
+                        <textarea
+                            placeholder="เป็นสแตนเลส แบบเท้าเหยียบ"
+                            value={formData.details}
+                            onChange={(e) => handleInputChange('details', e.target.value)}
+                            className="form-input border border-gray-300 rounded px-2 py-1 w-full h-20 resize-none"
+                            required
+                        />
+                    </FormRow>
+
 
                     <FormRow label="ราคาเมื่อได้รับ">
                         <input
@@ -153,7 +155,6 @@ const Addkaruphan = ({ onClose, onAdd }: AddkaruphanProps) => {
                             />
                         </div>
                     </FormRow>
-
 
                     <FormRow label="สถานะ">
                         <input value="ปกติ"

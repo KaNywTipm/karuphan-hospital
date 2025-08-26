@@ -1,11 +1,12 @@
-// ---------- Prisma Setup ----------
-generator client {
-    provider = "prisma-client-js"
-}
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
 
-datasource db {
-    provider = "postgresql"
-    url      = env("DATABASE_URL")
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
 }
 
 enum Role {
@@ -33,7 +34,7 @@ enum EquipmentStatus {
     LOST // สูญหาย
     WAIT_DISPOSE // รอจำหน่าย
     DISPOSED // จำหน่ายแล้ว
-    IN_USE // กำลังใช้งาน (ยืมไปแล้ว)
+    IN_USE // กำลังใช้งาน (ยืมไปแล้ว/ไม่ว่าง)
 }
 
 enum LocationType {
@@ -44,25 +45,23 @@ enum LocationType {
 // ---------- Models ----------
 model User {
     id         Int     @id @default(autoincrement())
-    username   String  @unique
     password   String
     fullName   String
     phone      String?
-    email      String? // เพิ่ม email field
+    email      String? @unique
     role       Role    @default(EXTERNAL)
-    department String? // หน่วยงาน/สังกัดที่แสดงในเมนู
+    department String? // กลุ่มงาน
     isActive   Boolean @default(true)
 
     // ความสัมพันธ์
     requests       BorrowRequest[] @relation("Requester")
     returnReceipts BorrowRequest[] @relation("Receiver")
     approvals      BorrowRequest[] @relation("Approver")
-    sessions       AppSession[]
-    auditLogs      AuditLog[]
-    notifications  Notification[]
 
-    createdAt DateTime @default(now())
-    updatedAt DateTime @updatedAt
+    auditLogs      AuditLog[]
+
+    createdAt DateTime  @default(now())
+    updatedAt DateTime  @updatedAt
 
     @@index([role])
     @@index([isActive])
@@ -84,17 +83,13 @@ model Category {
 
 model Equipment {
     number       Int             @id @default(autoincrement()) // ลำดับ
-    code         String          @unique // รหัสครุภัณฑ์ เช่น "6530-008-0711/3"
+    idnum        String          @unique // หมายเลขครุภัณฑ์
+    code        String          @unique // รหัสครุภัณฑ์ เช่น "6530-008-0711/3"
     name         String // ชื่อครุภัณฑ์
-    department   String? // หน่วยงานเจ้าของ/สังกัด
-    location     LocationType    @default(INTERNAL) // ภายใน/ภายนอกกลุ่มงาน
     receivedDate DateTime // วันที่รับ/จัดซื้อ
-    price        Decimal?        @db.Decimal(12, 2) // ราคา
+    price        Float? // ราคา
     status       EquipmentStatus @default(NORMAL) // สถานะครุภัณฑ์
-    description  String? // รายละเอียดเพิ่มเติม
-    serialNumber String? // เลขที่เครื่อง/Serial Number
-    brand        String? // ยี่ห้อ
-    model        String? // รุ่น
+    description  String? // รายละเอียดครุภัณฑ์
 
     // ความสัมพันธ์
     categoryId Int
@@ -107,7 +102,6 @@ model Equipment {
 
     @@index([status])
     @@index([categoryId])
-    @@index([location])
     @@index([code])
 }
 
@@ -170,19 +164,6 @@ model BorrowItem {
     @@unique([requestId, equipmentId])
 }
 
-// Model สำหรับ Session/Authentication
-model AppSession {
-    id        String   @id @default(cuid())
-    sessionId String   @unique
-    userId    Int
-    user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-    expiresAt DateTime
-    createdAt DateTime @default(now())
-
-    @@index([sessionId])
-    @@index([userId])
-}
-
 // Model สำหรับ Audit Log (ติดตามการเปลี่ยนแปลง)
 model AuditLog {
     id        Int      @id @default(autoincrement())
@@ -199,36 +180,3 @@ model AuditLog {
     @@index([tableName])
     @@index([createdAt])
 }
-
-// Model สำหรับการแจ้งเตือน
-model Notification {
-    id          Int      @id @default(autoincrement())
-    userId      Int
-    user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-    title       String
-    message     String
-    type        String // เช่น "BORROW_REQUEST", "RETURN_REMINDER", "OVERDUE"
-    isRead      Boolean  @default(false)
-    relatedId   Int? // ID ของ record ที่เกี่ยวข้อง เช่น BorrowRequest ID
-    relatedType String? // ประเภทของ record ที่เกี่ยวข้อง
-    createdAt   DateTime @default(now())
-
-    @@index([userId])
-    @@index([isRead])
-    @@index([type])
-}
-
-// Model สำหรับการตั้งค่าระบบ
-model SystemSetting {
-    id          Int     @id @default(autoincrement())
-    key         String  @unique
-    value       String
-    description String?
-
-    createdAt DateTime @default(now())
-    updatedAt DateTime @updatedAt
-
-    @@index([key])
-}
-
-
