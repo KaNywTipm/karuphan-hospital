@@ -239,7 +239,11 @@ const AdminPage = () => {
                                 <tr key={item.id} className="hover:bg-gray-50">
                                     <td className="border border-gray-300 px-4 py-3 text-center">{index + 1}</td>
                                     <td className="border border-gray-300 px-4 py-3 text-center">{item.borrowerName}</td>
-                                    <td className="border border-gray-300 px-4 py-3 text-center">{item.department}</td>
+                                    <td className="border border-gray-300 px-4 py-3 text-center">
+                                        {item.borrowerType === "internal"
+                                            ? "กลุ่มงานบริการด้านปฐมภูมิและองค์รวม"
+                                            : "ภายนอกกลุ่มงาน"}
+                                    </td>
                                     <td className="border border-gray-300 px-4 py-3 text-center">{item.equipmentCode}</td>
                                     <td className="border border-gray-300 px-4 py-3 text-center">{item.equipmentName}</td>
                                     <td className="border border-gray-300 px-4 py-3 text-center">{item.returnDate}</td>

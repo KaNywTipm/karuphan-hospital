@@ -13,7 +13,7 @@ export let role = "admin"; // Change this to "admin" or "internal" as needed
 export const currentUser = {
   id: 1,
   name: "ผู้ดูแลระบบครุภัณฑ์",
-  department: "บุคลากรภายในกลุ่มงานบริการด้านปฐมภูมิและองค์รวม",
+  department: "กลุ่มงานบริการด้านปฐมภูมิและองค์รวม",
   role: "admin",
   title: "ผู้ดูแลระบบครุภัณฑ์",
 };
@@ -23,8 +23,7 @@ export const inCPUData = [
     id: 12404,
     code: "6530-008-0711/3",
     name: "เครื่องพ่นยา ฝ. ใส่แผน",
-    details:
-      "เครื่องพ่นยาแบบฝาใส่แผน สำหรับพ่นยาฆ่าเชื้อ",
+    details: "เครื่องพ่นยาแบบฝาใส่แผน สำหรับพ่นยาฆ่าเชื้อ",
     category: "ครุภัณฑ์การแพทย์",
     department: "ภายในกลุ่มงาน",
     receivedDate: "2540-11-22",
@@ -35,8 +34,7 @@ export const inCPUData = [
     id: 11846,
     code: "6515-022-1041/2",
     name: "เตียงตรวจครรภ์",
-    details:
-      "ขาเหล็ก พื้นไม้อัด",
+    details: "ขาเหล็ก พื้นไม้อัด",
     category: "เครื่องมือทางการแพทย์",
     department: "ภายในกลุ่มงาน",
     receivedDate: "2549-10-22",
@@ -47,8 +45,7 @@ export const inCPUData = [
     id: 12405,
     code: "75878-5635",
     name: "ชุดแอลกอฮอลเท้าเหยียบ",
-    details:
-      "เป็นสแตนเลส แบบเท้าเหยียบ",
+    details: "เป็นสแตนเลส แบบเท้าเหยียบ",
     category: "ครุภัณฑ์ทางการแพทย์และวิทยาศาสตร์",
     department: "ภายในกลุ่มงาน",
     receivedDate: "2558-08-15",
@@ -59,8 +56,7 @@ export const inCPUData = [
     id: 12406,
     code: "75874-5435",
     name: "เครื่องวัดความดันโลหิต",
-    details:
-      "เครื่องวัดความดันโลหิตดิจิตอล รุ่น DP 300",
+    details: "เครื่องวัดความดันโลหิตดิจิตอล รุ่น DP 300",
     category: "ครุภัณฑ์ทางการแพทย์และวิทยาศาสตร์",
     department: "ภายในกลุ่มงาน",
     receivedDate: "2559-08-16",
@@ -71,8 +67,7 @@ export const inCPUData = [
     id: 12407,
     code: "75874-5425",
     name: "คอมพิวเตอร์โน้ตบุ๊ก",
-    details:
-      "Acer Aspire A315-23-R1X0/T002",
+    details: "Acer Aspire A315-23-R1X0/T002",
     category: "ครุภัณฑ์คอมพิวเตอร์",
     department: "ภายในกลุ่มงาน",
     receivedDate: "2563-08-20",
@@ -83,8 +78,7 @@ export const inCPUData = [
     id: 12408,
     code: "75874-5415",
     name: "โทรศัพท์",
-    details:
-      "โทรศัพท์ตั้งโต๊ะ",
+    details: "โทรศัพท์ตั้งโต๊ะ",
     category: "ครุภัณฑ์สำนักงาน",
     department: "ภายในกลุ่มงาน",
     receivedDate: "2554-08-11",
@@ -95,8 +89,7 @@ export const inCPUData = [
     id: 12409,
     code: "75874-5405",
     name: "เครื่องขยายเสียงพร้อมไมโครโฟน",
-    details:
-      "เครื่องขยายเสียงพร้อมไมโครโฟน",
+    details: "เครื่องขยายเสียงพร้อมไมโครโฟน",
     category: "ครุภัณฑ์ไฟฟ้าและวิทยุ",
     department: "ภายในกลุ่มงาน",
     receivedDate: "2555-08-12",
@@ -119,8 +112,7 @@ export const inCPUData = [
     id: 12411,
     code: "75874-5501",
     name: "เครื่องวัดความดันลูกตา",
-    details:
-      "แบบไม่สัมผัส ชนิดใช้ลมเป่า",
+    details: "แบบไม่สัมผัส ชนิดใช้ลมเป่า",
     category: "ครุภัณฑ์ทางการแพทย์และวิทยาศาสตร์",
     department: "ภายในกลุ่มงาน",
     receivedDate: "2563-04-20",
@@ -134,22 +126,22 @@ export const outCPUData = [
     id: 10539,
     code: "7110-006-0007/137",
     name: "เก้าอี้สแตนเลส",
-    details:
-      "ปรับสูง-ต่ำได้",
+    details: "ปรับสูง-ต่ำได้",
     category: "ครุภัณฑ์สำนักงาน",
-    department: "ภายนอกกลุ่มงาน",
+    role: "external",
+    groupName: "กลุ่มงานบริหารทั่วไป",
     receivedDate: "2544-11-01",
     price: 400.0,
-    status: "ยืมโดย รพ.สต.ชุมชน",
+    status: "ยืมโดย กลุ่มงานบริหารทั่วไป",
   },
   {
     id: 11851,
     code: "7110-006-0023/45",
     name: "เก้าอี้สำนักงาน",
-    details:
-      "มีพนักพิงและมีล้อเลื่อน (สีดำ)",
+    details: "มีพนักพิงและมีล้อเลื่อน (สีดำ)",
     category: "ครุภัณฑ์สำนักงาน",
-    department: "ภายนอกกลุ่มงาน",
+    role: "external",
+    groupName: "กลุ่มงานเทคนิคการแพทย์",
     receivedDate: "2546-10-24",
     price: 3000.0,
     status: "สูญหาย",
@@ -158,10 +150,10 @@ export const outCPUData = [
     id: 11852,
     code: "7110-006-0024/46",
     name: "ตู้เหล็ก",
-    details:
-      "ตู้เก็บเอกสารเหล็ก 4 ชั้น ล้อเลื่อน",
+    details: "ตู้เก็บเอกสารเหล็ก 4 ชั้น ล้อเลื่อน",
     category: "ครุภัณฑ์สำนักงาน",
-    department: "ภายนอกกลุ่มงาน",
+    role: "external",
+    groupName: "กลุ่มงานทันตกรรม",
     receivedDate: "2547-12-10",
     price: 8500.0,
     status: "ปกติ",
@@ -176,7 +168,7 @@ export interface User {
   email: string;
   phone: string;
   password: string;
-  role: Role;
+  groupName: string; // สังกัดกลุ่มงาน
 }
 
 export const users: User[] = [
@@ -185,8 +177,8 @@ export const users: User[] = [
     fullName: "ผู้ดูแลระบบครุภัณฑ์",
     email: "admin@example.com",
     phone: "0800000000",
-    password: "adminSecurePassword", // ส่งให้โดยตรง ไม่ให้สมัคร
-    role: "admin",
+    password: "adminSecurePassword",
+    groupName: "กลุ่มงานบริการด้านปฐมภูมิและองค์รวม",
   },
   {
     id: 2,
@@ -194,7 +186,7 @@ export const users: User[] = [
     email: "nurse01@example.com",
     phone: "0811111111",
     password: "12345678",
-    role: "internal",
+    groupName: "กลุ่มงานบริการด้านปฐมภูมิและองค์รวม",
   },
   {
     id: 3,
@@ -202,7 +194,7 @@ export const users: User[] = [
     email: "officer01@example.com",
     phone: "0822222222",
     password: "abcd1234",
-    role: "external",
+    groupName: "กลุ่มงานบริหารทั่วไป",
   },
 ];
 
@@ -242,10 +234,9 @@ export const equipmentCategories = [
 export interface BorrowReturn {
   id: number;
   borrowerName: string;
-  borrowerType: "internal" | "external"; // เพิ่มประเภทผู้ยืม
-  department: string;
+  groupName: string; // สังกัดกลุ่มงาน
   equipmentCode: string;
-  equipmentName: string; // เพิ่มชื่อครุภัณฑ์
+  equipmentName: string;
   category: string;
   returnDate: string;
   reason: string;
@@ -263,8 +254,7 @@ export const borrowReturnData: BorrowReturn[] = [
   {
     id: 1,
     borrowerName: "นางยืมแล้ว คืนเถ้อ",
-    borrowerType: "external", // คนภายนอก
-    department: "ภายนอกกลุ่มงาน",
+    groupName: "กลุ่มงานบริหารทั่วไป",
     equipmentCode: "75878-5635",
     equipmentName: "เครื่องพ่นยา ฝ. ใส่แผน",
     category: "ครุภัณฑ์ทางการแพทย์และวิทยาศาสตร์",
@@ -277,8 +267,7 @@ export const borrowReturnData: BorrowReturn[] = [
   {
     id: 2,
     borrowerName: "นางเอ็งยืม คืนมา",
-    borrowerType: "internal", // คนภายใน
-    department: "ภายในกลุ่มงาน",
+    groupName: "กลุ่มงานบริการด้านปฐมภูมิและองค์รวม",
     equipmentCode: "75874-5435",
     equipmentName: "เครื่องตรวจครรภ์",
     category: "ครุภัณฑ์ทางการแพทย์และวิทยาศาสตร์",
@@ -291,8 +280,7 @@ export const borrowReturnData: BorrowReturn[] = [
   {
     id: 3,
     borrowerName: "นางยืนยืม มาคืน",
-    borrowerType: "external", // คนภายนอก - ต้องรออนุมัติ
-    department: "ภายนอกกลุ่มงาน",
+    groupName: "กลุ่มงานเทคนิคการแพทย์",
     equipmentCode: "75874-5425",
     equipmentName: "คอมพิวเตอร์โน้ตบุ๊ก",
     category: "ครุภัณฑ์คอมพิวเตอร์",
@@ -305,8 +293,7 @@ export const borrowReturnData: BorrowReturn[] = [
   {
     id: 4,
     borrowerName: "นางนั่งยืม รอคืน",
-    borrowerType: "internal", // คนภายใน - ไปรอคืนเลย
-    department: "ภายในกลุ่มงาน",
+    groupName: "กลุ่มงานบริการด้านปฐมภูมิและองค์รวม",
     equipmentCode: "75874-5415",
     equipmentName: "เก้าอี้เหล็กยาว",
     category: "ครุภัณฑ์สำนักงาน",
@@ -319,8 +306,7 @@ export const borrowReturnData: BorrowReturn[] = [
   {
     id: 5,
     borrowerName: "นางเอามา คืนนะ",
-    borrowerType: "external", // คนภายนอก
-    department: "ภายนอกกลุ่มงาน",
+    groupName: "กลุ่มงานทันตกรรม",
     equipmentCode: "75874-5405",
     equipmentName: "เครื่องเสียงไร้สาย",
     category: "ครุภัณฑ์ไฟฟ้าและวิทยุ",
@@ -333,8 +319,7 @@ export const borrowReturnData: BorrowReturn[] = [
   {
     id: 6,
     borrowerName: "นายทดสอบ สมมติ",
-    borrowerType: "internal", // คนภายใน
-    department: "ภายในกลุ่มงาน",
+    groupName: "กลุ่มงานบริการด้านปฐมภูมิและองค์รวม",
     equipmentCode: "75874-5500",
     equipmentName: "เครื่องโปรเจคเตอร์",
     category: "ครุภัณฑ์โฆษณาและเผยแพร่",
@@ -351,8 +336,7 @@ export const borrowReturnData: BorrowReturn[] = [
   {
     id: 7,
     borrowerName: "นายชำรุด มาแล้ว",
-    borrowerType: "external",
-    department: "ภายนอกกลุ่มงาน",
+    groupName: "กลุ่มงานเภสัชกรรมและคุ้มครองผู้บริโภค",
     equipmentCode: "75878-6001",
     equipmentName: "เครื่องวัดความดัน",
     category: "ครุภัณฑ์ทางการแพทย์และวิทยาศาสตร์",
@@ -369,8 +353,7 @@ export const borrowReturnData: BorrowReturn[] = [
   {
     id: 8,
     borrowerName: "นางสูญ หายไป",
-    borrowerType: "internal",
-    department: "ภายในกลุ่มงาน",
+    groupName: "กลุ่มงานบริการด้านปฐมภูมิและองค์รวม",
     equipmentCode: "75874-6002",
     equipmentName: "แท็บเล็ต iPad",
     category: "ครุภัณฑ์คอมพิวเตอร์",
@@ -387,8 +370,7 @@ export const borrowReturnData: BorrowReturn[] = [
   {
     id: 9,
     borrowerName: "นายรอจำหน่าย ชิ้นเก่า",
-    borrowerType: "external",
-    department: "ภายนอกกลุ่มงาน",
+    groupName: "กลุ่มงานการแพทย์",
     equipmentCode: "75874-6003",
     equipmentName: "เครื่องพิมพ์เลเซอร์",
     category: "ครุภัณฑ์สำนักงาน",
@@ -405,8 +387,7 @@ export const borrowReturnData: BorrowReturn[] = [
   {
     id: 10,
     borrowerName: "นายจำหน่าย เรียบร้อย",
-    borrowerType: "internal",
-    department: "ภายในกลุ่มงาน",
+    groupName: "กลุ่มงานบริการด้านปฐมภูมิและองค์รวม",
     equipmentCode: "75874-6004",
     equipmentName: "เครื่องถ่ายเอกสาร",
     category: "ครุภัณฑ์สำนักงาน",
@@ -449,9 +430,11 @@ export const createNewBorrowRequest = (
 ) => {
   const newId = Math.max(...borrowReturnData.map((item) => item.id)) + 1;
 
-  // กำหนดสถานะตาม borrowerType(แก้ขัดก่อนขึ้นข้อมูลหลังบ้าน)
+  // กำหนดสถานะตาม groupName
   const status =
-    borrowData.borrowerType === "internal" ? "อนุมัติแล้ว/รอคืน" : "รออนุมัติ";
+    borrowData.groupName === "กลุ่มงานบริการด้านปฐมภูมิและองค์รวม"
+      ? "อนุมัติแล้ว/รอคืน"
+      : "รออนุมัติ";
 
   const newRequest: BorrowReturn = {
     ...borrowData,
@@ -498,7 +481,7 @@ export const updateReturnInfo = (
       returnCondition: returnData.returnCondition,
       returnNotes: returnData.returnNotes,
       actualReturnDate: returnData.actualReturnDate,
-      receivedBy: returnData.receivedBy || "บางจิน รอดรวง",
+      receivedBy: returnData.receivedBy || "นางสาวดูแล ครุภัณฑ์",
     };
     return borrowReturnData[itemIndex];
   }
