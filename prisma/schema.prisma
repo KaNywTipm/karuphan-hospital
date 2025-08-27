@@ -9,6 +9,11 @@ generator client {
     output   = "../src/generated/prisma"
 }
 
+datasource db {
+    provider = "postgresql"
+    url      = env("DATABASE_URL")
+}
+
 // ---------- Enum ----------
 enum Role {
     ADMIN
@@ -64,13 +69,13 @@ model Department {
 }
 
 model User {
-    id       Int     @id @default(autoincrement())
-    password String
-    fullName String
-    phone    String?
-    email    String? @unique
-    role     Role    @default(EXTERNAL)
-    isActive Boolean @default(true)
+    id           Int     @id @default(autoincrement())
+    fullName     String
+    phone        String?
+    email        String  @unique
+    passwordHash String
+    role         Role    @default(EXTERNAL)
+    isActive     Boolean @default(true)
 
     // สังกัด (เลือกได้ หรือเป็น null สำหรับผู้ใช้นอกกลุ่มงาน)
     departmentId Int?
@@ -80,8 +85,7 @@ model User {
     requests       BorrowRequest[] @relation("Requester")
     returnReceipts BorrowRequest[] @relation("Receiver")
     approvals      BorrowRequest[] @relation("Approver")
-
-    auditLogs AuditLog[]
+    auditLogs      AuditLog[]
 
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
