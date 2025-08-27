@@ -31,6 +31,8 @@ const InternalBorrowPage = () => {
     const [sortOrder, setSortOrder] = useState<"newest" | "oldest">("newest"); // เพิ่ม state สำหรับการเรียงข้อมูล
     const [currentPage, setCurrentPage] = useState(1);
     const [cartItems, setCartItems] = useState<CartItem[]>([]);
+    // เพิ่ม state สำหรับเช็คบ็อกซ์
+    const [selectedIds, setSelectedIds] = useState<number[]>([]);
 
     const filteredData = items.filter((item) => {
         const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -104,6 +106,24 @@ const InternalBorrowPage = () => {
                 item.id === id ? { ...item, quantity } : item
             )
         );
+    };
+
+    const handleSelectItem = (id: number) => {
+        setSelectedIds(prev =>
+            prev.includes(id) ? prev.filter(itemId => itemId !== id) : [...prev, id]
+        );
+    };
+    const handleSelectAll = () => {
+        if (selectedIds.length === currentItems.length) {
+            setSelectedIds([]);
+        } else {
+            setSelectedIds(currentItems.map(item => item.id));
+        }
+    };
+    const handleAddSelectedToCart = () => {
+        const selectedItems = currentItems.filter(item => selectedIds.includes(item.id));
+        selectedItems.forEach(item => handleAddToCart(item));
+        setSelectedIds([]);
     };
 
     // ฟังก์ชันลบครุภัณฑ์ออกจากตะกร้า
@@ -202,6 +222,13 @@ const InternalBorrowPage = () => {
                         <table className="w-full table-fixed border-collapse">
                             <thead className="bg-Pink text-White">
                                 <tr>
+                                    <th className="border border-gray-300 px-4 py-3 text-center text-sm font-medium w-[40px]">
+                                        <input
+                                            type="checkbox"
+                                            checked={selectedIds.length === currentItems.length && currentItems.length > 0}
+                                            onChange={handleSelectAll}
+                                        />
+                                    </th>
                                     <th className="border border-gray-300 px-4 py-3 text-center text-sm font-medium w-[80px]">ลำดับ</th>
                                     <th className="border border-gray-300 px-4 py-3 text-center text-sm font-medium w-[150px]">เลขครุภัณฑ์</th>
                                     <th className="border border-gray-300 px-4 py-3 text-center text-sm font-medium">ชื่อครุภัณฑ์</th>
@@ -212,6 +239,13 @@ const InternalBorrowPage = () => {
                             <tbody className="divide-y divide-gray-200">
                                 {currentItems.map((item, index) => (
                                     <tr key={item.id} className="hover:bg-gray-50">
+                                        <td className="border border-gray-300 px-4 py-3 text-center">
+                                            <input
+                                                type="checkbox"
+                                                checked={selectedIds.includes(item.id)}
+                                                onChange={() => handleSelectItem(item.id)}
+                                            />
+                                        </td>
                                         <td className="border border-gray-300 px-4 py-3 text-center">{startIndex + index + 1}</td>
                                         <td className="border border-gray-300 px-4 py-3 text-center">{item.code}</td>
                                         <td className="border border-gray-300 px-4 py-3 text-center">{item.name}</td>
@@ -229,13 +263,23 @@ const InternalBorrowPage = () => {
 
                                 {currentItems.length === 0 && (
                                     <tr>
-                                        <td colSpan={5} className="border border-gray-300 px-4 py-6 text-center text-sm text-gray-500">
+                                        <td colSpan={6} className="border border-gray-300 px-4 py-6 text-center text-sm text-gray-500">
                                             ไม่พบครุภัณฑ์ที่ว่าง
                                         </td>
                                     </tr>
                                 )}
                             </tbody>
                         </table>
+                    </div>
+                    {/* ปุ่มเพิ่มรายการที่เลือกลงตะกร้า */}
+                    <div className="p-4">
+                        <button
+                            onClick={handleAddSelectedToCart}
+                            disabled={selectedIds.length === 0}
+                            className="bg-blue-500 text-white px-4 py-2 rounded disabled:opacity-50"
+                        >
+                            เพิ่มรายการที่เลือกลงตะกร้า
+                        </button>
                     </div>
 
                     <div className="flex items-center justify-between px-4 py-3 border-t">

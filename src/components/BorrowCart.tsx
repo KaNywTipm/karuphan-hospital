@@ -79,7 +79,7 @@ const BorrowCart = ({
                                         </div>
                                         <button
                                             onClick={() => onRemoveItem(item.id)}
-                                            className="text-red-500 hover:text-red-700 ml-2"
+                                            className="text-red-500 hover:text-red-700 ml-2 bg-gray-300 hover:bg-red-400 w-6 h-6 rounded-full flex items-center justify-center"
                                         >
                                             <Image
                                                 src="/delete.png"
@@ -93,22 +93,9 @@ const BorrowCart = ({
                                     <div className="flex items-center justify-between">
                                         <span className="text-sm text-gray-600">จำนวน:</span>
                                         <div className="flex items-center gap-2">
-                                            <button
-                                                onClick={() => onUpdateQuantity(item.id, Math.max(1, item.quantity - 1))}
-                                                className="w-6 h-6 rounded-full bg-gray-200 hover:bg-gray-300 flex items-center justify-center text-sm"
-                                                disabled={item.quantity <= 1}
-                                            >
-                                                -
-                                            </button>
                                             <span className="w-8 text-center text-sm font-medium">
                                                 {item.quantity}
                                             </span>
-                                            <button
-                                                onClick={() => onUpdateQuantity(item.id, item.quantity + 1)}
-                                                className="w-6 h-6 rounded-full bg-gray-200 hover:bg-gray-300 flex items-center justify-center text-sm"
-                                            >
-                                                +
-                                            </button>
                                         </div>
                                     </div>
                                 </div>
