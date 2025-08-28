@@ -6,7 +6,6 @@
 
 generator client {
     provider = "prisma-client-js"
-    output   = "../src/generated/prisma"
 }
 
 datasource db {
@@ -228,4 +227,16 @@ model AuditLog {
     @@index([userId])
     @@index([tableName])
     @@index([createdAt])
+}
+
+model PasswordResetRequest {
+    id        Int       @id @default(autoincrement())
+    email     String
+    code      String // OTP 6 หลัก
+    expiresAt DateTime
+    usedAt    DateTime?
+    createdAt DateTime  @default(now())
+
+    @@index([email])
+    @@index([expiresAt])
 }
