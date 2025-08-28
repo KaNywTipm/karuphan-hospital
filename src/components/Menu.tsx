@@ -1,5 +1,6 @@
 "use client";
 
+import { signOut } from "next-auth/react";
 import { role, currentUser } from "@/lib/data";
 import Image from "next/image";
 import Link from "next/link";
@@ -128,7 +129,7 @@ const Menu = () => {
         ? prev.filter(item => item !== label)
         : [...prev, label]
     );
-  };
+  }
 
   return (
     <div className="flex flex-col h-full">
@@ -182,19 +183,26 @@ const Menu = () => {
                         {openSubMenus.includes(item.label) ? "▼" : "▶"}
                       </span>
                     </button>
+                  ) : isLogout ? (
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        if (confirm("ยืนยันออกจากระบบ?")) {
+                          await signOut({ redirect: true, callbackUrl: "/sign-in" });
+                        }
+                      }}
+                      className="flex items-center justify-center lg:justify-start gap-4 py-2 md:px-2 rounded-md text-White hover:bg-red-500 w-full"
+                      aria-label="ออกจากระบบ"
+                    >
+                      <Image src={item.icon} alt="" width={20} height={20} />
+                      <span className="hidden lg:block">{item.label}</span>
+                    </button>
                   ) : (
                     <Link
                       href={item.href}
-                      className={`flex items-center justify-center lg:justify-start gap-4 py-2 md:px-2 rounded-md
-                        ${isLogout ? "text-White hover:bg-red-500" : "text-White hover:bg-gray-700"}
-                      `}
+                      className="flex items-center justify-center lg:justify-start gap-4 py-2 md:px-2 rounded-md text-White hover:bg-gray-700"
                     >
-                      <Image
-                        src={item.icon}
-                        alt=""
-                        width={20}
-                        height={20}
-                      />
+                      <Image src={item.icon} alt="" width={20} height={20} />
                       <span className="hidden lg:block">{item.label}</span>
                     </Link>
                   )}
@@ -220,7 +228,8 @@ const Menu = () => {
                       ))}
                 </div>
               );
-            })}
+            }
+            )};
           </div>
         ))}
       </div>

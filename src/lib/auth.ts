@@ -23,13 +23,23 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                 const { prisma } = await import("@/lib/prisma");
                 const { compare } = await import("bcryptjs");
 
-                const user = await prisma.user.findUnique({ where: { email: String(creds.email) } });
+                const user = await prisma.user.findUnique({
+                    where: { email: String(creds.email) },
+                });
                 if (!user || !user.isActive) return null;
 
-                const ok = await compare(String(creds.password), String(user.passwordHash));
+                const ok = await compare(
+                    String(creds.password),
+                    String(user.passwordHash)
+                );
                 if (!ok) return null;
 
-                return { id: String(user.id), name: user.fullName, email: user.email, role: user.role };
+                return {
+                    id: String(user.id),
+                    name: user.fullName,
+                    email: user.email,
+                    role: user.role,
+                };
             },
         }),
     ],
@@ -43,7 +53,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             return session;
         },
     },
-    // ชั่วคราวเอา pages ออกเพื่อตัดสาเหตุที่เป็นไปได้
-    // pages: { signIn: "/sign-in" },
+    pages: {
+        signIn: "/sign-in",
+        error: "/sign-in", // เวลาพลาด (CredentialsSignin) ให้กลับมาที่ /sign-in ด้วย
+    },
     secret: SECRET,
 });

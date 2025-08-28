@@ -9,7 +9,6 @@ export async function getEquipments() {
 
 export let role = "admin"; // Change this to "admin" or "internal" as needed
 
-// ข้อมูลผู้ใช้ปัจจุบัน (สำหรับ mock ข้อมูล)
 export const currentUser = {
   id: 1,
   name: "ผู้ดูแลระบบครุภัณฑ์",

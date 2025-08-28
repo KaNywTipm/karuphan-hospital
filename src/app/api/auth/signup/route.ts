@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import bcrypt from "bcrypt";
+import bcrypt from "bcryptjs";
+
+const PCU_LABEL = "กลุ่มงานบริการด้านปฐมภูมิและองค์รวม";
 
 export async function POST(req: Request) {
     try {
@@ -10,21 +12,27 @@ export async function POST(req: Request) {
             email,
             password,
             confirmPassword,
-            role = "EXTERNAL",
-            departmentId,
+            departmentName,
         } = await req.json();
 
-        if (!fullName || !email || !password || !confirmPassword)
+        if (
+            !fullName ||
+            !email ||
+            !password ||
+            !confirmPassword ||
+            !departmentName
+        ) {
             return NextResponse.json(
                 { ok: false, error: "กรอกข้อมูลให้ครบ" },
                 { status: 400 }
             );
-
-        if (password !== confirmPassword)
+        }
+        if (password !== confirmPassword) {
             return NextResponse.json(
                 { ok: false, error: "รหัสผ่านไม่ตรงกัน" },
                 { status: 400 }
             );
+        }
 
         const existed = await prisma.user.findUnique({ where: { email } });
         if (existed)
@@ -32,6 +40,15 @@ export async function POST(req: Request) {
                 { ok: false, error: "อีเมลนี้ถูกใช้แล้ว" },
                 { status: 409 }
             );
+
+        const role = departmentName === PCU_LABEL ? "INTERNAL" : "EXTERNAL";
+
+        const dept = await prisma.department.upsert({
+            where: { name: departmentName },
+            update: {},
+            create: { name: departmentName, isActive: true },
+            select: { id: true },
+        });
 
         const passwordHash = await bcrypt.hash(password, 12);
 
@@ -41,8 +58,8 @@ export async function POST(req: Request) {
                 phone,
                 email,
                 passwordHash,
-                role, // "ADMIN" | "INTERNAL" | "EXTERNAL"
-                departmentId: departmentId ?? null,
+                role,
+                departmentId: dept.id,
                 isActive: true,
             },
             select: { id: true, fullName: true, email: true, role: true },

@@ -1,4 +1,5 @@
 "use client";
+import Image from "next/image";
 import { useState } from "react";
 import Link from "next/link";
 import bcrypt from "bcryptjs";
@@ -34,7 +35,10 @@ export default function ForgotPasswordPage() {
 
                 {step === 1 && (
                     <form onSubmit={requestCode}>
-                        <label className="text-sm">อีเมล</label>
+                        <label className="text-sm flex items-center gap-2 mb-1">
+                            <Image src="/icons/mail.png" alt="อีเมล" width={18} height={18} />
+                            อีเมล
+                        </label>
                         <input className="w-full border rounded px-3 py-2 mb-4" placeholder="example@mail.com"
                             value={email} onChange={e => setEmail(e.target.value)} />
                         <button className="w-full bg-gray-200 hover:bg-gray-300 rounded py-2">รีเซ็ตรหัสผ่าน</button>
@@ -64,10 +68,16 @@ export default function ForgotPasswordPage() {
 
                 {step === 3 && (
                     <form onSubmit={resetPassword}>
-                        <label className="text-sm">รหัสผ่าน</label>
+                        <label className="text-sm flex items-center gap-2 mb-1">
+                            <Image src="/icons/key.png" alt="รหัสผ่าน" width={18} height={18} />
+                            รหัสผ่าน
+                        </label>
                         <input className="w-full border rounded px-3 py-2 mb-3" type="password"
                             value={password} onChange={e => setPassword(e.target.value)} />
-                        <label className="text-sm">ยืนยันรหัสผ่าน</label>
+                        <label className="text-sm flex items-center gap-2 mb-1">
+                            <Image src="/icons/key.png" alt="ยืนยันรหัสผ่าน" width={18} height={18} />
+                            ยืนยันรหัสผ่าน
+                        </label>
                         <input className="w-full border rounded px-3 py-2 mb-5" type="password"
                             value={confirm} onChange={e => setConfirm(e.target.value)} />
                         <button className="w-full bg-gray-200 hover:bg-gray-300 rounded py-2">รีเซ็ตรหัสผ่าน</button>
