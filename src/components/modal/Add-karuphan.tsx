@@ -1,75 +1,82 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
-import List from "@/components/dropdown/Category-karuphan";
 
-// ฟังก์ชันแปลงวันที่จากปีคริสต์ศักราชเป็นปีไทย (พ.ศ.)
-const convertToThaiBuddhistDate = (date: Date): string => {
-    const year = date.getFullYear() + 543; // เพิ่ม 543 เพื่อแปลงเป็น พ.ศ.
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
+
+// พ.ศ. → ค.ศ.
+const thaiToCE = (ymdBE: string) => {
+    if (!ymdBE) return ymdBE;
+    const [y, m, d] = ymdBE.split("-");
+    return `${String(Number(y) - 543)}-${m}-${d}`;
+};
+// ค่าดีฟอลต์วันนี้ (พ.ศ.)
+const todayBE = () => {
+    const d = new Date();
+    const y = d.getFullYear() + 543;
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const dd = String(d.getDate()).padStart(2, "0");
+    return `${y}-${m}-${dd}`;
 };
 
-interface AddkaruphanProps {
+type Category = { id: number; name: string };
+
+interface Props {
     onClose?: () => void;
-    onAdd?: (newItemData: any) => void;
+    onAdd?: () => void;   // จะเรียกหลังบันทึกสำเร็จ เพื่อให้หน้า list reload
 }
 
-const Addkaruphan = ({ onClose, onAdd }: AddkaruphanProps) => {
-    const [receivedDate, setReceivedDate] = useState<string>(
-        convertToThaiBuddhistDate(new Date())
-    );
-    const [formData, setFormData] = useState({
-        category: '',
-        code: '',
-        description: '',
-        details: '',
-        price: '',
+export default function Addkaruphan({ onClose, onAdd }: Props) {
+    const [categories, setCategories] = useState<Category[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    const [form, setForm] = useState({
+        categoryId: 0,
+        code: "",
+        idnum: "",
+        name: "",
+        description: "",
+        price: "",
+        receivedDateBE: todayBE(), // แสดง/กรอกเป็น พ.ศ.
     });
 
-    const handleClose = () => {
-        if (onClose) {
-            onClose();
-        }
-    };
+    useEffect(() => {
+        (async () => {
+            const res = await fetch("/api/categories", { cache: "no-store" });
+            const list = await res.json();
+            setCategories(list || []);
+            setLoading(false);
+        })();
+    }, []);
 
-    const handleInputChange = (field: string, value: string) => {
-        setFormData(prev => ({
-            ...prev,
-            [field]: value
-        }));
-    };
-
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        // ที่นี่จะเป็นการบันทึกข้อมูล
-        const newItemData = {
-            category: formData.category,
-            code: formData.code,
-            name: formData.description,
-            details: formData.details,
-            price: parseFloat(formData.price.replace(/,/g, '')) || 0,
-            receivedDate: receivedDate,
-            status: 'ปกติ',
-            department: 'ภายในกลุ่มงาน'
+        const payload = {
+            code: form.code.trim(),
+            idnum: form.idnum?.trim() || null,
+            name: form.name.trim(),
+            description: form.description || null,
+            price: form.price ? Number(String(form.price).replace(/,/g, "")) : null,
+            receivedDate: thaiToCE(form.receivedDateBE), // ส่งเป็น ค.ศ.
+            categoryId: Number(form.categoryId),
+            status: "NORMAL" as const,
         };
-
-        if (onAdd) {
-            onAdd(newItemData);
-        }
-
-        console.log('Form data:', newItemData);
-        handleClose();
+        const res = await fetch("/api/equipment", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+        });
+        const json = await res.json();
+        if (!res.ok) return alert(json?.error || "บันทึกไม่สำเร็จ");
+        onClose?.();
+        onAdd?.();
     };
-
 
     return (
         <div className="min-h-screen flex items-center justify-center">
-            <div className="bg-White p-8 rounded-2xl shadow-md w-[90%] md:w-[480px]">
+            <div className="bg-White p-8 rounded-2xl shadow-md w-[90%] md:w-[520px]">
                 <div className="w-full flex justify-end">
-                    <button onClick={handleClose} aria-label="Close form">
+                    <button onClick={onClose} aria-label="Close form">
                         <Image src="/Close.png" alt="Close" width={30} height={30} />
                     </button>
                 </div>
@@ -77,112 +84,104 @@ const Addkaruphan = ({ onClose, onAdd }: AddkaruphanProps) => {
                     <h2 className="text-lg font-semibold">ฟอร์มเพิ่มข้อมูลครุภัณฑ์</h2>
                 </div>
 
-                <form onSubmit={handleSubmit} className="flex flex-col gap-4 text-sm">
-                    <FormRow label="ลำดับ">
-                        <input
-                            readOnly
-                            className="form-input bg-gray-100 border border-gray-300 rounded px-2 py-1 w-full"
-                        />
-                    </FormRow>
+                {loading ? <div>กำลังโหลดหมวดหมู่...</div> : (
+                    <form onSubmit={handleSubmit} className="flex flex-col gap-4 text-sm">
+                        <FormRow label="ลำดับ">
+                            <input readOnly value="(อัตโนมัติ)" className="form-input bg-gray-100 border rounded px-2 py-1 w-full" />
+                        </FormRow>
 
-                    <FormRow label="หมวดหมู่">
-                        <select
-                            className="form-input border border-gray-300 rounded px-2 py-1 w-full"
-                            value={formData.category}
-                            onChange={(e) => handleInputChange('category', e.target.value)}
-                            required
-                        >
-                            <option disabled value="">
-                                หมวดหมู่ครุภัณฑ์
-                            </option>
-                            {List[0].items.map((item, index) => (
-                                <option key={index} value={item.label}>
-                                    {item.label}
-                                </option>
-                            ))}
-                        </select>
-                    </FormRow>
+                        <FormRow label="หมวดหมู่">
+                            <select
+                                className="form-input border border-gray-300 rounded px-2 py-1 w-full"
+                                value={form.categoryId}
+                                onChange={(e) => setForm(s => ({ ...s, categoryId: Number(e.target.value) }))}
+                                required
+                            >
+                                <option value={0} disabled>เลือกหมวดหมู่</option>
+                                {categories.map((c) => (
+                                    <option key={c.id} value={c.id}>{c.name}</option>
+                                ))}
+                            </select>
+                        </FormRow>
 
-                    <FormRow label="เลขครุภัณฑ์">
-                        <input
-                            placeholder="0000-000-0000/0"
-                            value={formData.code}
-                            onChange={(e) => handleInputChange('code', e.target.value)}
-                            className="form-input border border-gray-300 rounded px-2 py-1 w-full"
-                            required
-                        />
-                    </FormRow>
-
-                    <FormRow label="ชื่อครุภัณฑ์">
-                        <input
-                            placeholder="ชุดแอลกอฮอลเท้าเหยียบ"
-                            value={formData.description}
-                            onChange={(e) => handleInputChange('description', e.target.value)}
-                            className="form-input border border-gray-300 rounded px-2 py-1 w-full"
-                            required
-                        />
-                    </FormRow>
-
-                    <FormRow label="รายละเอียดครุภัณฑ์">
-                        <textarea
-                            placeholder="เป็นสแตนเลส แบบเท้าเหยียบ"
-                            value={formData.details}
-                            onChange={(e) => handleInputChange('details', e.target.value)}
-                            className="form-input border border-gray-300 rounded px-2 py-1 w-full h-20 resize-none"
-                            required
-                        />
-                    </FormRow>
-
-
-                    <FormRow label="ราคาเมื่อได้รับ">
-                        <input
-                            placeholder="60,000"
-                            value={formData.price}
-                            onChange={(e) => handleInputChange('price', e.target.value)}
-                            className="form-input border border-gray-300 rounded px-2 py-1 w-full"
-                            required
-                        />
-                    </FormRow>
-
-                    <FormRow label="วันที่ได้รับ">
-                        <div className="relative w-full flex items-center">
+                        <FormRow label="เลขครุภัณฑ์">
                             <input
-                                type="date"
-                                value={receivedDate}
-                                onChange={(e) => setReceivedDate(e.target.value)}
-                                placeholder="2568-01-01"
-                                className="form-input border border-gray-300 rounded px-2 py-1 w-full pr-10"
+                                placeholder="0000-000-0000/0"
+                                value={form.code}
+                                onChange={(e) => setForm(s => ({ ...s, code: e.target.value }))}
+                                className="form-input border border-gray-300 rounded px-2 py-1 w-full"
+                                required
                             />
+                        </FormRow>
+
+                        <FormRow label="เลขที่ ID">
+                            <input
+                                value={form.idnum}
+                                onChange={(e) => setForm(s => ({ ...s, idnum: e.target.value }))}
+                                className="form-input border rounded px-2 py-1 w-full"
+                                placeholder="กรอกเลข ID"
+                            />
+                        </FormRow>
+
+                        <FormRow label="ชื่อครุภัณฑ์">
+                            <input
+                                placeholder="ชุดแอลกอฮอลเท้าเหยียบ"
+                                value={form.name}
+                                onChange={(e) => setForm(s => ({ ...s, name: e.target.value }))}
+                                className="form-input border border-gray-300 rounded px-2 py-1 w-full"
+                                required
+                            />
+                        </FormRow>
+
+                        <FormRow label="รายละเอียดครุภัณฑ์">
+                            <textarea
+                                placeholder="เป็นสแตนเลส แบบเท้าเหยียบ"
+                                value={form.description}
+                                onChange={(e) => setForm(s => ({ ...s, description: e.target.value }))}
+                                className="form-input border border-gray-300 rounded px-2 py-1 w-full h-20 resize-none"
+                            />
+                        </FormRow>
+
+                        <FormRow label="ราคาเมื่อได้รับ">
+                            <input
+                                placeholder="60,000"
+                                value={form.price}
+                                onChange={(e) => setForm(s => ({ ...s, price: e.target.value }))}
+                                className="form-input border border-gray-300 rounded px-2 py-1 w-full"
+                            />
+                        </FormRow>
+
+                        <FormRow label="วันที่ได้รับ (พ.ศ.)">
+                            <div className="relative w-full flex items-center">
+                                <input
+                                    type="date"
+                                    value={form.receivedDateBE}
+                                    onChange={(e) => setForm(s => ({ ...s, receivedDateBE: e.target.value }))}
+                                    placeholder="2568-01-01"
+                                    className="form-input border border-gray-300 rounded px-2 py-1 w-full "
+                                    required
+                                />
+                            </div>
+                        </FormRow>
+
+                        <FormRow label="สถานะ">
+                            <input value="ปกติ" readOnly className="form-input bg-gray-100 border border-gray-300 rounded px-2 py-1 w-full" />
+                        </FormRow>
+
+                        <div className="flex justify-center gap-4 mt-6">
+                            <button type="submit" className="bg-BlueLight hover:bg-[#70a8b6] text-White px-4 py-2 rounded-md">
+                                เพิ่มข้อมูล
+                            </button>
+                            <button type="button" className="bg-RedLight hover:bg-red-600 text-White px-4 py-2 rounded-md" onClick={onClose}>
+                                ยกเลิก
+                            </button>
                         </div>
-                    </FormRow>
-
-                    <FormRow label="สถานะ">
-                        <input value="ปกติ"
-                            readOnly
-                            className="form-input bg-gray-100 border border-gray-300 rounded px-2 py-1 w-full"
-                        />
-                    </FormRow>
-
-                    <div className="flex justify-center gap-4 mt-6">
-                        <button
-                            type="submit"
-                            className="bg-BlueLight hover:bg-[#70a8b6] text-White px-4 py-2 rounded-md"
-                        >
-                            เพิ่มข้อมูล
-                        </button>
-                        <button
-                            type="button"
-                            className="bg-RedLight hover:bg-red-600 text-White px-4 py-2 rounded-md"
-                            onClick={handleClose}
-                        >
-                            ยกเลิก
-                        </button>
-                    </div>
-                </form>
+                    </form>
+                )}
             </div>
         </div>
     );
-};
+}
 
 const FormRow = ({ label, children }: { label: string; children: React.ReactNode }) => (
     <div className="flex items-center gap-4">
@@ -190,5 +189,3 @@ const FormRow = ({ label, children }: { label: string; children: React.ReactNode
         <div className="flex-1">{children}</div>
     </div>
 );
-
-export default Addkaruphan;

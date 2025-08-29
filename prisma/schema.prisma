@@ -112,11 +112,11 @@ model Category {
 // ข้อมูลครุภัณฑ์
 model Equipment {
     number       Int             @id @default(autoincrement()) // ลำดับภายใน
-    idnum        String?         @unique // หมายเลขครุภัณฑ์ (ถ้ามี)
+    idnum        String?         // หมายเลขID
     code         String          @unique // รหัสครุภัณฑ์หลัก เช่น "6530-008-0711/3"
     name         String
     receivedDate DateTime
-    price        Float?
+    price        Decimal? @db.Decimal(12,2)
     status       EquipmentStatus @default(NORMAL)
     description  String?
 
@@ -133,6 +133,7 @@ model Equipment {
     @@index([status])
     @@index([categoryId])
     @@index([code])
+    @@unique([categoryId, idnum])
     @@index([name])
 }
 
