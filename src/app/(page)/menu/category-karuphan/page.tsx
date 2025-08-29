@@ -54,12 +54,21 @@ export default function CategoryKaruphan() {
 
     const filteredData = useMemo(() => {
         const term = searchTerm.trim().toLowerCase();
-        return items.filter(
+        let filtered = items.filter(
             (i) =>
                 i.name.toLowerCase().includes(term) ||
                 (i.description ?? "").toLowerCase().includes(term)
         );
-    }, [items, searchTerm]);
+        // sort by createdAt
+        filtered = filtered.sort((a, b) => {
+            if (sortOrder === "newest") {
+                return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+            } else {
+                return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+            }
+        });
+        return filtered;
+    }, [items, searchTerm, sortOrder]);
 
     const totalPages = Math.ceil(filteredData.length / itemsPerPage) || 1;
     const startIndex = (currentPage - 1) * itemsPerPage;
@@ -171,10 +180,11 @@ export default function CategoryKaruphan() {
                         </div>
                         <button
                             onClick={() => setSortOrder(prev => prev === "newest" ? "oldest" : "newest")}
-                            className="p-2 border border-gray-300 rounded-lg hover:bg-gray-100"
+                            className={`p-2 border border-gray-300 rounded-lg hover:bg-gray-100 transition duration-150 flex items-center justify-center ${sortOrder === "newest" ? "bg-blue-50" : "bg-pink-50"}`}
                             title={sortOrder === "newest" ? "เรียงจากใหม่ไปเก่า" : "เรียงจากเก่าไปใหม่"}
                         >
-                            <Image src="/HamBmenu.png" alt="sort" width={20} height={20} />
+                            <Image src="/HamBmenu.png" alt="เรียงข้อมูล" width={20} height={20} />
+                            <span className="sr-only">เรียงข้อมูล</span>
                         </button>
                     </div>
                 </div>
