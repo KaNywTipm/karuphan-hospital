@@ -250,240 +250,240 @@ export interface BorrowReturn {
   receivedBy?: string;
 }
 
-export const borrowReturnData: BorrowReturn[] = [
-  {
-    id: 1,
-    borrowerName: "นางยืมแล้ว คืนเถ้อ",
-    groupName: "กลุ่มงานบริหารทั่วไป",
-    equipmentCode: "75878-5635",
-    equipmentName: "เครื่องพ่นยา ฝ. ใส่แผน",
-    category: "ครุภัณฑ์ทางการแพทย์และวิทยาศาสตร์",
-    returnDate: "15/8/56",
-    reason: "เอาไปใช้สาธิตในการประชุม",
-    status: "อนุมัติแล้ว/รอคืน",
-    borrowDate: "10/8/56",
-    userId: 2,
-  },
-  {
-    id: 2,
-    borrowerName: "นางเอ็งยืม คืนมา",
-    groupName: "กลุ่มงานบริการด้านปฐมภูมิและองค์รวม",
-    equipmentCode: "75874-5435",
-    equipmentName: "เครื่องตรวจครรภ์",
-    category: "ครุภัณฑ์ทางการแพทย์และวิทยาศาสตร์",
-    returnDate: "16/8/56",
-    reason: "อื่น",
-    status: "ไม่อนุมัติ",
-    borrowDate: "11/8/56",
-    userId: 2,
-  },
-  {
-    id: 3,
-    borrowerName: "นางยืนยืม มาคืน",
-    groupName: "กลุ่มงานเทคนิคการแพทย์",
-    equipmentCode: "75874-5425",
-    equipmentName: "คอมพิวเตอร์โน้ตบุ๊ก",
-    category: "ครุภัณฑ์คอมพิวเตอร์",
-    returnDate: "20/8/56",
-    reason: "อื่น",
-    status: "รออนุมัติ",
-    borrowDate: "15/8/56",
-    userId: 3,
-  },
-  {
-    id: 4,
-    borrowerName: "นางนั่งยืม รอคืน",
-    groupName: "กลุ่มงานบริการด้านปฐมภูมิและองค์รวม",
-    equipmentCode: "75874-5415",
-    equipmentName: "เก้าอี้เหล็กยาว",
-    category: "ครุภัณฑ์สำนักงาน",
-    returnDate: "11/8/56",
-    reason: "อื่น",
-    status: "อนุมัติแล้ว/รอคืน",
-    borrowDate: "06/8/56",
-    userId: 2,
-  },
-  {
-    id: 5,
-    borrowerName: "นางเอามา คืนนะ",
-    groupName: "กลุ่มงานทันตกรรม",
-    equipmentCode: "75874-5405",
-    equipmentName: "เครื่องเสียงไร้สาย",
-    category: "ครุภัณฑ์ไฟฟ้าและวิทยุ",
-    returnDate: "12/8/56",
-    reason: "อื่น",
-    status: "อนุมัติแล้ว/รอคืน",
-    borrowDate: "07/8/56",
-    userId: 3,
-  },
-  {
-    id: 6,
-    borrowerName: "นายทดสอบ สมมติ",
-    groupName: "กลุ่มงานบริการด้านปฐมภูมิและองค์รวม",
-    equipmentCode: "75874-5500",
-    equipmentName: "เครื่องโปรเจคเตอร์",
-    category: "ครุภัณฑ์โฆษณาและเผยแพร่",
-    returnDate: "25/8/56",
-    reason: "ใช้งาน",
-    status: "คืนแล้ว",
-    borrowDate: "20/8/56",
-    userId: 2,
-    returnCondition: "ปกติ",
-    actualReturnDate: "25/8/56",
-    receivedBy: "บางจิน รอดรวง",
-    returnNotes: "คืนในสภาพดี",
-  },
-  {
-    id: 7,
-    borrowerName: "นายชำรุด มาแล้ว",
-    groupName: "กลุ่มงานเภสัชกรรมและคุ้มครองผู้บริโภค",
-    equipmentCode: "75878-6001",
-    equipmentName: "เครื่องวัดความดัน",
-    category: "ครุภัณฑ์ทางการแพทย์และวิทยาศาสตร์",
-    returnDate: "20/8/56",
-    reason: "ใช้ตรวจผู้ป่วย",
-    status: "คืนแล้ว",
-    borrowDate: "18/8/56",
-    userId: 3,
-    returnCondition: "ชำรุด",
-    actualReturnDate: "20/8/56",
-    receivedBy: "บางจิน รอดรวง",
-    returnNotes: "หน้าจอแตก ปุ่มกดไม่ได้",
-  },
-  {
-    id: 8,
-    borrowerName: "นางสูญ หายไป",
-    groupName: "กลุ่มงานบริการด้านปฐมภูมิและองค์รวม",
-    equipmentCode: "75874-6002",
-    equipmentName: "แท็บเล็ต iPad",
-    category: "ครุภัณฑ์คอมพิวเตอร์",
-    returnDate: "22/8/56",
-    reason: "นำไปประชุม",
-    status: "คืนแล้ว",
-    borrowDate: "20/8/56",
-    userId: 2,
-    returnCondition: "สูญหาย",
-    actualReturnDate: "22/8/56",
-    receivedBy: "บางจิน รอดรวง",
-    returnNotes: "สูญหายระหว่างการเดินทาง",
-  },
-  {
-    id: 9,
-    borrowerName: "นายรอจำหน่าย ชิ้นเก่า",
-    groupName: "กลุ่มงานการแพทย์",
-    equipmentCode: "75874-6003",
-    equipmentName: "เครื่องพิมพ์เลเซอร์",
-    category: "ครุภัณฑ์สำนักงาน",
-    returnDate: "24/8/56",
-    reason: "พิมพ์เอกสาร",
-    status: "คืนแล้ว",
-    borrowDate: "22/8/56",
-    userId: 3,
-    returnCondition: "รอจำหน่าย",
-    actualReturnDate: "24/8/56",
-    receivedBy: "บางจิน รอดรวง",
-    returnNotes: "เก่ามาก ใช้งานไม่ได้ ต้องจำหน่าย",
-  },
-  {
-    id: 10,
-    borrowerName: "นายจำหน่าย เรียบร้อย",
-    groupName: "กลุ่มงานบริการด้านปฐมภูมิและองค์รวม",
-    equipmentCode: "75874-6004",
-    equipmentName: "เครื่องถ่ายเอกสาร",
-    category: "ครุภัณฑ์สำนักงาน",
-    returnDate: "26/8/56",
-    reason: "ถ่ายเอกสาร",
-    status: "คืนแล้ว",
-    borrowDate: "24/8/56",
-    userId: 2,
-    returnCondition: "จำหน่ายแล้ว",
-    actualReturnDate: "26/8/56",
-    receivedBy: "บางจิน รอดรวง",
-    returnNotes: "ดำเนินการจำหน่ายเรียบร้อยแล้ว",
-  },
-];
+// export const borrowReturnData: BorrowReturn[] = [
+//   {
+//     id: 1,
+//     borrowerName: "นางยืมแล้ว คืนเถ้อ",
+//     groupName: "กลุ่มงานบริหารทั่วไป",
+//     equipmentCode: "75878-5635",
+//     equipmentName: "เครื่องพ่นยา ฝ. ใส่แผน",
+//     category: "ครุภัณฑ์ทางการแพทย์และวิทยาศาสตร์",
+//     returnDate: "15/8/56",
+//     reason: "เอาไปใช้สาธิตในการประชุม",
+//     status: "อนุมัติแล้ว/รอคืน",
+//     borrowDate: "10/8/56",
+//     userId: 2,
+//   },
+//   {
+//     id: 2,
+//     borrowerName: "นางเอ็งยืม คืนมา",
+//     groupName: "กลุ่มงานบริการด้านปฐมภูมิและองค์รวม",
+//     equipmentCode: "75874-5435",
+//     equipmentName: "เครื่องตรวจครรภ์",
+//     category: "ครุภัณฑ์ทางการแพทย์และวิทยาศาสตร์",
+//     returnDate: "16/8/56",
+//     reason: "อื่น",
+//     status: "ไม่อนุมัติ",
+//     borrowDate: "11/8/56",
+//     userId: 2,
+//   },
+//   {
+//     id: 3,
+//     borrowerName: "นางยืนยืม มาคืน",
+//     groupName: "กลุ่มงานเทคนิคการแพทย์",
+//     equipmentCode: "75874-5425",
+//     equipmentName: "คอมพิวเตอร์โน้ตบุ๊ก",
+//     category: "ครุภัณฑ์คอมพิวเตอร์",
+//     returnDate: "20/8/56",
+//     reason: "อื่น",
+//     status: "รออนุมัติ",
+//     borrowDate: "15/8/56",
+//     userId: 3,
+//   },
+//   {
+//     id: 4,
+//     borrowerName: "นางนั่งยืม รอคืน",
+//     groupName: "กลุ่มงานบริการด้านปฐมภูมิและองค์รวม",
+//     equipmentCode: "75874-5415",
+//     equipmentName: "เก้าอี้เหล็กยาว",
+//     category: "ครุภัณฑ์สำนักงาน",
+//     returnDate: "11/8/56",
+//     reason: "อื่น",
+//     status: "อนุมัติแล้ว/รอคืน",
+//     borrowDate: "06/8/56",
+//     userId: 2,
+//   },
+//   {
+//     id: 5,
+//     borrowerName: "นางเอามา คืนนะ",
+//     groupName: "กลุ่มงานทันตกรรม",
+//     equipmentCode: "75874-5405",
+//     equipmentName: "เครื่องเสียงไร้สาย",
+//     category: "ครุภัณฑ์ไฟฟ้าและวิทยุ",
+//     returnDate: "12/8/56",
+//     reason: "อื่น",
+//     status: "อนุมัติแล้ว/รอคืน",
+//     borrowDate: "07/8/56",
+//     userId: 3,
+//   },
+//   {
+//     id: 6,
+//     borrowerName: "นายทดสอบ สมมติ",
+//     groupName: "กลุ่มงานบริการด้านปฐมภูมิและองค์รวม",
+//     equipmentCode: "75874-5500",
+//     equipmentName: "เครื่องโปรเจคเตอร์",
+//     category: "ครุภัณฑ์โฆษณาและเผยแพร่",
+//     returnDate: "25/8/56",
+//     reason: "ใช้งาน",
+//     status: "คืนแล้ว",
+//     borrowDate: "20/8/56",
+//     userId: 2,
+//     returnCondition: "ปกติ",
+//     actualReturnDate: "25/8/56",
+//     receivedBy: "บางจิน รอดรวง",
+//     returnNotes: "คืนในสภาพดี",
+//   },
+//   {
+//     id: 7,
+//     borrowerName: "นายชำรุด มาแล้ว",
+//     groupName: "กลุ่มงานเภสัชกรรมและคุ้มครองผู้บริโภค",
+//     equipmentCode: "75878-6001",
+//     equipmentName: "เครื่องวัดความดัน",
+//     category: "ครุภัณฑ์ทางการแพทย์และวิทยาศาสตร์",
+//     returnDate: "20/8/56",
+//     reason: "ใช้ตรวจผู้ป่วย",
+//     status: "คืนแล้ว",
+//     borrowDate: "18/8/56",
+//     userId: 3,
+//     returnCondition: "ชำรุด",
+//     actualReturnDate: "20/8/56",
+//     receivedBy: "บางจิน รอดรวง",
+//     returnNotes: "หน้าจอแตก ปุ่มกดไม่ได้",
+//   },
+//   {
+//     id: 8,
+//     borrowerName: "นางสูญ หายไป",
+//     groupName: "กลุ่มงานบริการด้านปฐมภูมิและองค์รวม",
+//     equipmentCode: "75874-6002",
+//     equipmentName: "แท็บเล็ต iPad",
+//     category: "ครุภัณฑ์คอมพิวเตอร์",
+//     returnDate: "22/8/56",
+//     reason: "นำไปประชุม",
+//     status: "คืนแล้ว",
+//     borrowDate: "20/8/56",
+//     userId: 2,
+//     returnCondition: "สูญหาย",
+//     actualReturnDate: "22/8/56",
+//     receivedBy: "บางจิน รอดรวง",
+//     returnNotes: "สูญหายระหว่างการเดินทาง",
+//   },
+//   {
+//     id: 9,
+//     borrowerName: "นายรอจำหน่าย ชิ้นเก่า",
+//     groupName: "กลุ่มงานการแพทย์",
+//     equipmentCode: "75874-6003",
+//     equipmentName: "เครื่องพิมพ์เลเซอร์",
+//     category: "ครุภัณฑ์สำนักงาน",
+//     returnDate: "24/8/56",
+//     reason: "พิมพ์เอกสาร",
+//     status: "คืนแล้ว",
+//     borrowDate: "22/8/56",
+//     userId: 3,
+//     returnCondition: "รอจำหน่าย",
+//     actualReturnDate: "24/8/56",
+//     receivedBy: "บางจิน รอดรวง",
+//     returnNotes: "เก่ามาก ใช้งานไม่ได้ ต้องจำหน่าย",
+//   },
+//   {
+//     id: 10,
+//     borrowerName: "นายจำหน่าย เรียบร้อย",
+//     groupName: "กลุ่มงานบริการด้านปฐมภูมิและองค์รวม",
+//     equipmentCode: "75874-6004",
+//     equipmentName: "เครื่องถ่ายเอกสาร",
+//     category: "ครุภัณฑ์สำนักงาน",
+//     returnDate: "26/8/56",
+//     reason: "ถ่ายเอกสาร",
+//     status: "คืนแล้ว",
+//     borrowDate: "24/8/56",
+//     userId: 2,
+//     returnCondition: "จำหน่ายแล้ว",
+//     actualReturnDate: "26/8/56",
+//     receivedBy: "บางจิน รอดรวง",
+//     returnNotes: "ดำเนินการจำหน่ายเรียบร้อยแล้ว",
+//   },
+// ];
 
-// ฟังก์ชันสำหรับอัปเดตสถานะครุภัณฑ์ตามการยืม-คืน
-export const updateEquipmentStatus = () => {
-  // อัปเดตสถานะของครุภัณฑ์ภายในตามข้อมูลการยืม
-  inCPUData.forEach((equipment) => {
-    const activeBorrow = borrowReturnData.find(
-      (borrow) =>
-        borrow.equipmentCode === equipment.code &&
-        (borrow.status === "อนุมัติแล้ว/รอคืน" || borrow.status === "รออนุมัติ")
-    );
+// // ฟังก์ชันสำหรับอัปเดตสถานะครุภัณฑ์ตามการยืม-คืน
+// export const updateEquipmentStatus = () => {
+//   // อัปเดตสถานะของครุภัณฑ์ภายในตามข้อมูลการยืม
+//   inCPUData.forEach((equipment) => {
+//     const activeBorrow = borrowReturnData.find(
+//       (borrow) =>
+//         borrow.equipmentCode === equipment.code &&
+//         (borrow.status === "อนุมัติแล้ว/รอคืน" || borrow.status === "รออนุมัติ")
+//     );
 
-    if (activeBorrow) {
-      equipment.status = `ยืมโดย ${activeBorrow.borrowerName}`;
-    } else {
-      // ถ้าไม่มีการยืมที่ active และสถานะปัจจุบันเป็น "ยืมโดย..." ให้เปลี่ยนเป็น "ปกติ"
-      if (equipment.status.startsWith("ยืมโดย")) {
-        equipment.status = "ปกติ";
-      }
-    }
-  });
-};
+//     if (activeBorrow) {
+//       equipment.status = `ยืมโดย ${activeBorrow.borrowerName}`;
+//     } else {
+//       // ถ้าไม่มีการยืมที่ active และสถานะปัจจุบันเป็น "ยืมโดย..." ให้เปลี่ยนเป็น "ปกติ"
+//       if (equipment.status.startsWith("ยืมโดย")) {
+//         equipment.status = "ปกติ";
+//       }
+//     }
+//   });
+// };
 
-// ฟังก์ชันสำหรับสร้างการยืมใหม่(แก้ขัดก่อนขึ้นข้อมูลหลังบ้าน)
-export const createNewBorrowRequest = (
-  borrowData: Omit<BorrowReturn, "id" | "status">
-) => {
-  const newId = Math.max(...borrowReturnData.map((item) => item.id)) + 1;
+// // ฟังก์ชันสำหรับสร้างการยืมใหม่(แก้ขัดก่อนขึ้นข้อมูลหลังบ้าน)
+// export const createNewBorrowRequest = (
+//   borrowData: Omit<BorrowReturn, "id" | "status">
+// ) => {
+//   const newId = Math.max(...borrowReturnData.map((item) => item.id)) + 1;
 
-  // กำหนดสถานะตาม groupName
-  const status =
-    borrowData.groupName === "กลุ่มงานบริการด้านปฐมภูมิและองค์รวม"
-      ? "อนุมัติแล้ว/รอคืน"
-      : "รออนุมัติ";
+//   // กำหนดสถานะตาม groupName
+//   const status =
+//     borrowData.groupName === "กลุ่มงานบริการด้านปฐมภูมิและองค์รวม"
+//       ? "อนุมัติแล้ว/รอคืน"
+//       : "รออนุมัติ";
 
-  const newRequest: BorrowReturn = {
-    ...borrowData,
-    id: newId,
-    status,
-  };
+//   const newRequest: BorrowReturn = {
+//     ...borrowData,
+//     id: newId,
+//     status,
+//   };
 
-  borrowReturnData.push(newRequest);
+//   borrowReturnData.push(newRequest);
 
-  // อัปเดตสถานะครุภัณฑ์
-  updateEquipmentStatus();
+//   // อัปเดตสถานะครุภัณฑ์
+//   updateEquipmentStatus();
 
-  return newRequest;
-};
+//   return newRequest;
+// };
 
-// ฟังก์ชันสำหรับอัปเดตสถานะ(แก้ขัดก่อนขึ้นข้อมูลหลังบ้าน)
-export const updateBorrowStatus = (
-  id: number,
-  newStatus: BorrowReturn["status"]
-) => {
-  const itemIndex = borrowReturnData.findIndex((item) => item.id === id);
-  if (itemIndex !== -1) {
-    borrowReturnData[itemIndex].status = newStatus;
-    return borrowReturnData[itemIndex];
-  }
-  return null;
-};
+// // ฟังก์ชันสำหรับอัปเดตสถานะ(แก้ขัดก่อนขึ้นข้อมูลหลังบ้าน)
+// export const updateBorrowStatus = (
+//   id: number,
+//   newStatus: BorrowReturn["status"]
+// ) => {
+//   const itemIndex = borrowReturnData.findIndex((item) => item.id === id);
+//   if (itemIndex !== -1) {
+//     borrowReturnData[itemIndex].status = newStatus;
+//     return borrowReturnData[itemIndex];
+//   }
+//   return null;
+// };
 
-// ฟังก์ชันสำหรับบันทึกข้อมูลการคืน(แก้ขัดก่อนขึ้นข้อมูลหลังบ้าน)
-export const updateReturnInfo = (
-  id: number,
-  returnData: {
-    returnCondition: BorrowReturn["returnCondition"];
-    returnNotes?: string;
-    actualReturnDate: string;
-    receivedBy?: string;
-  }
-) => {
-  const itemIndex = borrowReturnData.findIndex((item) => item.id === id);
-  if (itemIndex !== -1) {
-    borrowReturnData[itemIndex] = {
-      ...borrowReturnData[itemIndex],
-      status: "คืนแล้ว",
-      returnCondition: returnData.returnCondition,
-      returnNotes: returnData.returnNotes,
-      actualReturnDate: returnData.actualReturnDate,
-      receivedBy: returnData.receivedBy || "นางสาวดูแล ครุภัณฑ์",
-    };
-    return borrowReturnData[itemIndex];
-  }
-  return null;
-};
+// // ฟังก์ชันสำหรับบันทึกข้อมูลการคืน(แก้ขัดก่อนขึ้นข้อมูลหลังบ้าน)
+// export const updateReturnInfo = (
+//   id: number,
+//   returnData: {
+//     returnCondition: BorrowReturn["returnCondition"];
+//     returnNotes?: string;
+//     actualReturnDate: string;
+//     receivedBy?: string;
+//   }
+// ) => {
+//   const itemIndex = borrowReturnData.findIndex((item) => item.id === id);
+//   if (itemIndex !== -1) {
+//     borrowReturnData[itemIndex] = {
+//       ...borrowReturnData[itemIndex],
+//       status: "คืนแล้ว",
+//       returnCondition: returnData.returnCondition,
+//       returnNotes: returnData.returnNotes,
+//       actualReturnDate: returnData.actualReturnDate,
+//       receivedBy: returnData.receivedBy || "นางสาวดูแล ครุภัณฑ์",
+//     };
+//     return borrowReturnData[itemIndex];
+//   }
+//   return null;
+// };
