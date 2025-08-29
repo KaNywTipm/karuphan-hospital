@@ -231,6 +231,7 @@ export const equipmentCategories = [
 
 // ข้อมูลรายการยืม-คืน
 export interface BorrowReturn {
+  department: any;
   id: number;
   borrowerName: string;
   groupName: string; // สังกัดกลุ่มงาน

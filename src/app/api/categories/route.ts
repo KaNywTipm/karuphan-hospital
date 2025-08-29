@@ -1,18 +1,31 @@
-import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
-import { CategoryCreateSchema } from "@/lib/validators/asset";
-import { badRequest } from "@/lib/api-helpers";
+import { prisma } from "@/lib/prisma";
+import { CategoryCreateSchema } from "@/lib/validators/category";
 
 export async function GET() {
-    const items = await prisma.category.findMany({ orderBy: { name: "asc" } });
-    return NextResponse.json({ ok: true, data: items });
+    const categories = await prisma.category.findMany({
+        where: { isActive: true },
+        orderBy: { createdAt: "desc" },
+    });
+    return NextResponse.json(categories);
 }
 
 export async function POST(req: Request) {
     try {
         const body = await req.json();
-        const dto = CategoryCreateSchema.parse(body);
-        const data = await prisma.category.create({ data: { ...dto, isActive: true } });
-        return NextResponse.json({ ok: true, data }, { status: 201 });
-    } catch (e) { return badRequest(e); }
+        const parsed = CategoryCreateSchema.parse(body);
+        const created = await prisma.category.create({
+            data: {
+                name: parsed.name.trim(),
+                description: parsed.description ?? null,
+            },
+        });
+        return NextResponse.json(created, { status: 201 });
+    } catch (e: any) {
+        const msg =
+            e?.code === "P2002"
+                ? "มีชื่อหมวดหมู่ซ้ำในระบบ"
+                : e?.message || "เกิดข้อผิดพลาด";
+        return NextResponse.json({ error: msg }, { status: 400 });
+    }
 }

@@ -212,7 +212,7 @@ const ListKaruphan = () => {
                                 <th className="border border-gray-300 px-4 py-3 text-center text-sm font-medium">ชื่อครุภัณฑ์</th>
                                 <th className="border border-gray-300 px-4 py-3 text-center text-sm font-medium w-[200px]">รายละเอียดครุภัณฑ์</th>
                                 <th className="border border-gray-300 px-4 py-3 text-center text-sm font-medium w-[120px]">ราคาเมื่อได้รับ</th>
-                                <th className="border border-gray-300 px-4 py-3 text-center text-sm font-medium w-[100px]">วันที่ได้รับ</th>
+                                <th className="border border-gray-300 px-4 py-3 text-center text-sm font-medium w-[110px]">วันที่ได้รับ</th>
                                 <th className="border border-gray-300 px-4 py-3 text-center text-sm font-medium w-[120px]">สถานะ</th>
                                 <th className="border border-gray-300 px-2 py-3 text-center text-sm font-medium w-[90px]">แก้ไข</th>
                             </tr>
