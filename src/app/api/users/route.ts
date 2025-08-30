@@ -1,64 +1,33 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { Role } from "@prisma/client";
+import { guardApi } from "@/lib/api-guard";
 
-export async function GET() {
-    try {
-        const users = await prisma.user.findMany({
-            orderBy: { id: "asc" },
-            select: {
-                id: true,
-                username: true,
-                fullName: true,
-                phone: true,
-                email: true,
-                role: true,
-                department: true,
-                isActive: true,
-                createdAt: true,
-                updatedAt: true,
-            },
-        });
-        return NextResponse.json(users);
-    } catch (e: any) {
-        return NextResponse.json({ error: e.message }, { status: 500 });
-    }
-}
+export async function GET(req: Request) {
+    const ses = await guardApi(["ADMIN"]);
+    if (ses instanceof Response) return ses;
 
-export async function POST(req: Request) {
-    try {
-        const body = await req.json();
-        const {
-            username,
-            password,
-            fullName,
-            phone,
-            email,
-            role = Role.EXTERNAL,
-            department,
-            isActive = true,
-        } = body;
-        if (!username || !password || !fullName)
-            return NextResponse.json(
-                { error: "username, password, fullName จำเป็น" },
-                { status: 400 }
-            );
+    const { searchParams } = new URL(req.url);
+    const q = (searchParams.get("q") ?? "").trim();
+    const includeAdmin = searchParams.get("includeAdmin") === "true";
 
-        const created = await prisma.user.create({
-            data: {
-                username,
-                password, // โปรดเปลี่ยนเป็น hash ก่อนใช้จริง
-                fullName,
-                phone: phone ?? null,
-                email: email ?? null,
-                role,
-                department: department ?? null,
-                isActive,
-            },
-            select: { id: true, username: true, role: true },
-        });
-        return NextResponse.json(created, { status: 201 });
-    } catch (e: any) {
-        return NextResponse.json({ error: e.message }, { status: 500 });
-    }
+    const where: any = {
+        ...(q
+            ? {
+                OR: [
+                    { fullName: { contains: q, mode: "insensitive" } },
+                    { email: { contains: q, mode: "insensitive" } },
+                    { phone: { contains: q } },
+                ],
+            }
+            : {}),
+        ...(includeAdmin ? {} : { role: { not: "ADMIN" } }),
+    };
+
+    const users = await prisma.user.findMany({
+        where,
+        include: { department: true },
+        orderBy: { id: "desc" },
+    });
+
+    return NextResponse.json({ ok: true, data: users });
 }

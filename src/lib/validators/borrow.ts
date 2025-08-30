@@ -10,7 +10,7 @@ export const RejectSchema = z.object({
 });
 
 export const ReturnSchema = z.object({
-    condition: z.nativeEnum(ReturnCondition, { required_error: "เลือกสภาพ" }),
+    condition: z.nativeEnum(ReturnCondition),
     notes: z.string().max(2000).optional(),
     actualReturnDate: z.coerce.date().optional(), // default: now
 });
