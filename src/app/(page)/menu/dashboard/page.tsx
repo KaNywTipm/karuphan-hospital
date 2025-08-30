@@ -1,31 +1,95 @@
+"use client";
+
 import Image from "next/image";
-import { users, equipmentCategories, inCPUData, outCPUData, borrowReturnData } from "@/lib/data";
+import { useEffect, useState } from "react";
+
+// ชนิดข้อมูลแบบหลวม ๆ เพื่อกันฟิลด์ขาด
+type User = { role?: "ADMIN" | "INTERNAL" | "EXTERNAL" } & Record<string, any>;
+type Equipment = {
+    status?:
+    | "NORMAL"
+    | "IN_USE"
+    | "BROKEN"
+    | "LOST"
+    | "WAIT_DISPOSE"
+    | "DISPOSED";
+    price?: number | null | string;
+} & Record<string, any>;
+type Borrow = {
+    status?: "PENDING" | "APPROVED" | "RETURNED" | "REJECTED" | "OVERDUE";
+} & Record<string, any>;
 
 const Dashboard = () => {
-    const totalInternalUsers = users.filter((user) => user.role === "internal").length;
-    const totalExternalUsers = users.filter((user) => user.role === "external").length;
-    const totalKaruphan = equipmentCategories.length;
+    // state หลัก
+    const [users, setUsers] = useState<User[]>([]);
+    const [categories, setCategories] = useState<any[]>([]);
+    const [equipments, setEquipments] = useState<Equipment[]>([]);
+    const [borrows, setBorrows] = useState<Borrow[]>([]);
+    const [loading, setLoading] = useState(true);
 
-    // สถิติครุภัณฑ์
-    const totalInternalEquipment = inCPUData.length;
-    const totalExternalEquipment = outCPUData.length;
-    const totalAllEquipment = totalInternalEquipment + totalExternalEquipment;
+    // โหลดข้อมูลจริงจาก API (กันล่มด้วย try/catch และ fallback)
+    useEffect(() => {
+        let alive = true;
+        (async () => {
+            try {
+                setLoading(true);
+                const [u, c, e, b] = await Promise.all([
+                    fetch("/api/users", { cache: "no-store" })
+                        .then((r) => r.json())
+                        .catch(() => ({ data: [] })),
+                    fetch("/api/categories", { cache: "no-store" })
+                        .then((r) => r.json())
+                        .catch(() => ({ data: [] })),
+                    fetch("/api/equipment", { cache: "no-store" })
+                        .then((r) => r.json())
+                        .catch(() => ({ data: [] })),
+                    fetch("/api/borrow", { cache: "no-store" })
+                        .then((r) => r.json())
+                        .catch(() => ({ data: [] })),
+                ]);
 
-    // สถิติสถานะครุภัณฑ์
-    const normalEquipment = [...inCPUData, ...outCPUData].filter(item => item.status === "ปกติ").length;
-    const borrowedEquipment = [...inCPUData, ...outCPUData].filter(item => item.status.includes("ยืมโดย")).length;
-    const damagedEquipment = [...inCPUData, ...outCPUData].filter(item => item.status === "ชำรุด").length;
+                if (!alive) return;
+                setUsers(Array.isArray(u?.data) ? u.data : []);
+                setCategories(Array.isArray(c?.data) ? c.data : []);
+                setEquipments(Array.isArray(e?.data) ? e.data : []);
+                setBorrows(Array.isArray(b?.data) ? b.data : []);
+            } finally {
+                if (alive) setLoading(false);
+            }
+        })();
+        return () => {
+            alive = false;
+        };
+    }, []);
 
-    // สถิติการยืม-คืน
-    const pendingApproval = borrowReturnData.filter(item => item.status === "รออนุมัติ").length;
-    const approved = borrowReturnData.filter(item => item.status === "อนุมัติแล้ว/รอคืน").length;
-    const returned = borrowReturnData.filter(item => item.status === "คืนแล้ว").length;
-    const notApproved = borrowReturnData.filter(item => item.status === "ไม่อนุมัติ").length;
+    // --------- คำนวณสถิติ (ไม่พึ่ง mock) ---------
+    const totalInternalUsers = users.filter((u) => u.role === "INTERNAL").length;
+    const totalExternalUsers = users.filter((u) => u.role === "EXTERNAL").length;
 
-    // มูลค่าครุภัณฑ์รวม
-    const totalValue = [...inCPUData, ...outCPUData].reduce((sum, item) => sum + item.price, 0);
+    const totalKaruphan = categories.length; // จำนวนหมวดหมู่
+    const totalAllEquipment = equipments.length;
 
-    // ข้อมูลสำหรับกราฟ (จำลองข้อมูลรายเดือน)
+    // สถานะครุภัณฑ์
+    const normalEquipment = equipments.filter((x) => x.status === "NORMAL").length;
+    const borrowedEquipment = equipments.filter((x) => x.status === "IN_USE").length;
+    const damagedEquipment = equipments.filter((x) => x.status === "BROKEN").length;
+
+    // สถานะการยืม-คืน
+    const pendingApproval = borrows.filter((x) => x.status === "PENDING").length;
+    const approved = borrows.filter((x) => x.status === "APPROVED").length;
+    const returned = borrows.filter((x) => x.status === "RETURNED").length;
+    const notApproved = borrows.filter((x) => x.status === "REJECTED").length;
+
+    // มูลค่าครุภัณฑ์รวม (กันค่าไม่ใช่ตัวเลข)
+    const totalValue = equipments.reduce((sum, item) => {
+        const n =
+            typeof item.price === "number"
+                ? item.price
+                : Number(item.price ?? 0) || 0;
+        return sum + n;
+    }, 0);
+
+    // กราฟจำลองแบบเดิม
     const monthlyData = [
         { month: "มี.ค.-2025", value: 10, label: "10 รายการ" },
         { month: "เม.ย.-2025", value: 5, label: "5 รายการ" },
@@ -34,6 +98,7 @@ const Dashboard = () => {
         { month: "ก.ค.-2025", value: 1, label: "1 รายการ" },
     ];
 
+    // ---------------- UI เดิม ----------------
     return (
         <main className="dashboard wrapper py-8 bg-gray-50 min-h-screen">
             <section className="flex flex-col gap-8">
@@ -44,8 +109,14 @@ const Dashboard = () => {
                             <Image src="/data.png" alt="Equipment" width={48} height={48} />
                         </div>
                         <h3 className="text-lg font-semibold text-white mb-2">จำนวนครุภัณฑ์</h3>
-                        <p className="text-3xl font-bold text-white">{totalAllEquipment}</p>
-
+                        <p className="text-3xl font-bold text-white">
+                            {totalAllEquipment.toLocaleString("th-TH")}
+                        </p>
+                        {!loading && (
+                            <p className="text-white/80 text-sm mt-1">
+                                ปกติ {normalEquipment} • กำลังยืม {borrowedEquipment} • ชำรุด {damagedEquipment}
+                            </p>
+                        )}
                     </div>
 
                     <div className="rounded-xl shadow-lg p-6 text-left bg-gradient-to-br from-green-400 to-green-600 relative overflow-hidden">
@@ -53,8 +124,9 @@ const Dashboard = () => {
                             <Image src="/person.png" alt="Internal Users" width={48} height={48} />
                         </div>
                         <h3 className="text-lg font-semibold text-white mb-2">จำนวนพนักงานในแผนก</h3>
-                        <p className="text-3xl font-bold text-white">{totalInternalUsers}</p>
-
+                        <p className="text-3xl font-bold text-white">
+                            {totalInternalUsers.toLocaleString("th-TH")}
+                        </p>
                     </div>
 
                     <div className="rounded-xl shadow-lg p-6 text-left bg-gradient-to-br from-yellow-500 to-yellow-600 relative overflow-hidden">
@@ -62,8 +134,9 @@ const Dashboard = () => {
                             <Image src="/person.png" alt="External Users" width={48} height={48} />
                         </div>
                         <h3 className="text-lg font-semibold text-white mb-2">จำนวนพนักงานนอกแผนก</h3>
-                        <p className="text-3xl font-bold text-white">{totalExternalUsers}</p>
-
+                        <p className="text-3xl font-bold text-white">
+                            {totalExternalUsers.toLocaleString("th-TH")}
+                        </p>
                     </div>
                 </div>
 
@@ -74,12 +147,12 @@ const Dashboard = () => {
                             <h2 className="text-2xl font-bold text-gray-800">รายงานจำนวนการยืมครุภัณฑ์</h2>
                             <p className="text-gray-600">จำนวนแยกตามเดือน</p>
                         </div>
-                        <button className="text-gray-400 hover:text-gray-600">
+                        <button className="text-gray-400 hover:text-gray-600" aria-label="menu">
                             <Image src="/HamBmenu.png" alt="Menu" width={24} height={24} />
                         </button>
                     </div>
 
-                    {/* พื้นที่กราฟแบบง่าย */}
+                    {/* กราฟแท่งแบบง่าย */}
                     <div className="relative">
                         <div className="flex items-end justify-between h-64 mb-4">
                             {monthlyData.map((data, index) => {
@@ -88,7 +161,7 @@ const Dashboard = () => {
                                     "bg-purple-500",
                                     "bg-green-500",
                                     "bg-orange-500",
-                                    "bg-blue-600"
+                                    "bg-blue-600",
                                 ];
                                 const height = (data.value / 10) * 100;
 
@@ -100,7 +173,7 @@ const Dashboard = () => {
                                             </span>
                                             <div
                                                 className={`w-16 ${colors[index]} rounded-t-md transition-all duration-1000 ease-out`}
-                                                style={{ height: `${height}%`, minHeight: '20px' }}
+                                                style={{ height: `${height}%`, minHeight: "20px" }}
                                             />
                                         </div>
                                         <span className="text-sm text-gray-600 font-medium">{data.month}</span>
