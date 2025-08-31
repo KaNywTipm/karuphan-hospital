@@ -1,33 +1,39 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { guardApi } from "@/lib/api-guard";
+import { requireRole } from "@/lib/require-role";
+import { Prisma } from "@prisma/client";
 
 export async function GET(req: Request) {
-    const ses = await guardApi(["ADMIN"]);
-    if (ses instanceof Response) return ses;
+    // ต้องเป็น ADMIN เท่านั้น
+    const guard = await requireRole(["ADMIN"]);
+    if (guard) return guard; // คืน 401/403 ตามที่ requireRole ตรวจ
 
-    const { searchParams } = new URL(req.url);
-    const q = (searchParams.get("q") ?? "").trim();
-    const includeAdmin = searchParams.get("includeAdmin") === "true";
-
-    const where: any = {
-        ...(q
-            ? {
-                OR: [
-                    { fullName: { contains: q, mode: "insensitive" } },
-                    { email: { contains: q, mode: "insensitive" } },
-                    { phone: { contains: q } },
-                ],
-            }
-            : {}),
-        ...(includeAdmin ? {} : { role: { not: "ADMIN" } }),
-    };
+    const url = new URL(req.url);
+    const q = (url.searchParams.get("q") || "").trim();
+    const where = q
+        ? {
+            OR: [
+                { fullName: { contains: q, mode: Prisma.QueryMode.insensitive } },
+                { email: { contains: q, mode: Prisma.QueryMode.insensitive } },
+                { phone: { contains: q, mode: Prisma.QueryMode.insensitive } },
+            ],
+        }
+        : {};
 
     const users = await prisma.user.findMany({
         where,
-        include: { department: true },
-        orderBy: { id: "desc" },
+        orderBy: { createdAt: "desc" },
+        select: {
+            id: true,
+            fullName: true,
+            email: true,
+            phone: true,
+            role: true,
+            isActive: true,
+            department: { select: { id: true, name: true } },
+            createdAt: true,
+        },
     });
 
-    return NextResponse.json({ ok: true, data: users });
+    return NextResponse.json({ ok: true, items: users });
 }

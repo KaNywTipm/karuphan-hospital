@@ -1,159 +1,120 @@
-// src/app/api/users/[id]/route.ts
 import { NextResponse } from "next/server";
+import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { guardApi } from "@/lib/api-guard";
-import { UserUpdateSchema } from "@/lib/validators/user";
-import { Prisma } from "@prisma/client";
+import { requireRole, Role } from "@/lib/require-role";
+import { auth } from "@/lib/auth";
 
-const INTERNAL_DEPT_NAME = "กลุ่มงานบริการด้านปฐมภูมิและองค์รวม";
+const UpdateUserSchema = z.object({
+    fullName: z.string().min(1),
+    phone: z.string().trim().optional().nullable(),
+    role: z.enum(["ADMIN", "INTERNAL", "EXTERNAL"]),
+    departmentId: z.number().int().positive().nullable().optional(),
+    changeNote: z.string().optional(),
+});
 
+// PATCH /api/users/:id  (ADMIN เท่านั้น)
+export async function PATCH(req: Request, ctx: { params: { id: string } }) {
+    const guard = await requireRole(["ADMIN"]);
+    if (guard) return guard;
 
-export async function PATCH(req: Request, { params }: { params: { id: string } }) {
-    const ses = await guardApi(["ADMIN"]);
-    if (ses instanceof Response) return ses;
+    const id = Number(ctx.params.id);
+    if (!Number.isFinite(id)) {
+        return NextResponse.json({ ok: false, error: "invalid_id" }, { status: 400 });
+    }
 
-    const id = Number(params.id);
-    if (!Number.isFinite(id)) return NextResponse.json({ ok: false, error: "Invalid id" }, { status: 400 });
-
-    const bodyRaw = await req.json().catch(() => ({}));
-    const parsed = UserUpdateSchema.safeParse(bodyRaw);
-    if (!parsed.success) return NextResponse.json({ ok: false, error: parsed.error.flatten() }, { status: 400 });
+    const parsed = UpdateUserSchema.safeParse(await req.json());
+    if (!parsed.success) {
+        return NextResponse.json({ ok: false, error: parsed.error.flatten().fieldErrors }, { status: 400 });
+    }
     const body = parsed.data;
 
-    const prev = await prisma.user.findUnique({ where: { id }, include: { department: true } });
-    if (!prev) return NextResponse.json({ ok: false, error: "User not found" }, { status: 404 });
+    // INTERNAL เท่านั้นที่มี departmentId; role อื่น -> เคลียร์
+    const departmentId = body.role === "INTERNAL" ? (body.departmentId ?? null) : null;
 
-    let nextDept: { id: number; name: string } | null = null;
-    if (typeof body.departmentId !== "undefined") {
-        nextDept = body.departmentId
-            ? await prisma.department.findUnique({ where: { id: body.departmentId }, select: { id: true, name: true } })
-            : null;
-    } else if (prev.department) {
-        nextDept = { id: prev.department.id, name: prev.department.name };
-    }
+    const user = await prisma.user.update({
+        where: { id },
+        data: {
+            fullName: body.fullName,
+            phone: body.phone ?? null,
+            role: body.role as Role,
+            departmentId,
+        },
+        select: {
+            id: true,
+            fullName: true,
+            phone: true,
+            email: true,
+            role: true,
+            department: { select: { id: true, name: true } },
+        },
+    }).catch(() => null);
 
-    // กำหนดบทบาทอัตโนมัติ (ยกเว้น ADMIN)
-    let computedRole = body.role ?? prev.role;
-    if (computedRole !== "ADMIN") {
-        computedRole = nextDept?.name === INTERNAL_DEPT_NAME ? "INTERNAL" : "EXTERNAL";
-    }
+    if (!user) return NextResponse.json({ ok: false, error: "not_found" }, { status: 404 });
 
-    // กันลดสิทธิ์ ADMIN คนสุดท้าย
-    if (prev.role === "ADMIN" && computedRole !== "ADMIN") {
-        const otherAdmins = await prisma.user.count({ where: { role: "ADMIN", isActive: true, id: { not: id } } });
-        if (otherAdmins === 0) return NextResponse.json({ ok: false, error: "ต้องมีผู้ดูแลระบบอย่างน้อย 1 คน" }, { status: 400 });
-    }
-
-    const dataUpdate = {
-        fullName: typeof body.fullName !== "undefined" ? body.fullName : prev.fullName,
-        phone: typeof body.phone !== "undefined" ? body.phone : prev.phone,
-        departmentId: typeof body.departmentId !== "undefined" ? body.departmentId : prev.departmentId,
-        role: computedRole,
-    };
-
-    const noChange =
-        dataUpdate.fullName === prev.fullName &&
-        dataUpdate.phone === prev.phone &&
-        dataUpdate.departmentId === prev.departmentId &&
-        dataUpdate.role === prev.role;
-
-    if (noChange) return NextResponse.json({ ok: true, data: prev, unchanged: true });
-
-    const updated = await prisma.$transaction(async (tx) => {
-        const u = await tx.user.update({ where: { id }, data: dataUpdate, include: { department: true } });
-
-        await tx.auditLog.create({
+    // (ออปชัน) เขียน AuditLog
+    try {
+        const me = await auth();
+        await prisma.auditLog.create({
             data: {
-                userId: Number((ses as any).user?.id) || null,
+                userId: Number((me?.user as any)?.id) || null,
                 action: "UPDATE",
                 tableName: "User",
                 recordId: id,
-                oldValue: {
-                    departmentId: prev.departmentId,
-                    departmentName: prev.department?.name ?? null,
-                    role: prev.role,
-                },
-                newValue: {
-                    departmentId: u.departmentId,
-                    departmentName: u.department?.name ?? null,
-                    role: u.role,
-                    // จะไม่ใส่ undefined ลง JSON
-                    ...(body.changeNote ? { changeNote: body.changeNote } : {}),
-                },
+                newValue: user,
             },
         });
+    } catch { }
 
-        return u;
-    });
-
-    return NextResponse.json({ ok: true, data: updated });
+    return NextResponse.json({ ok: true, item: user });
 }
 
-// ---------- DELETE (ลบผู้ใช้) ----------
-export async function DELETE(req: Request, { params }: { params: { id: string } }) {
-    const ses = await guardApi(["ADMIN"]);
-    if (ses instanceof Response) return ses;
+// DELETE /api/users/:id  (ADMIN เท่านั้น)
+export async function DELETE(req: Request, ctx: { params: { id: string } }) {
+    const guard = await requireRole(["ADMIN"]);
+    if (guard) return guard;
 
-    const id = Number(params.id);
-    if (!Number.isFinite(id)) return NextResponse.json({ ok: false, error: "Invalid id" }, { status: 400 });
+    const id = Number(ctx.params.id);
+    if (!Number.isFinite(id)) {
+        return NextResponse.json({ ok: false, error: "invalid_id" }, { status: 400 });
+    }
 
-    const meId = Number((ses as any)?.user?.id) || null;
+    const me = await auth();
+    const myId = Number((me?.user as any)?.id);
+    if (id === myId) {
+        return NextResponse.json({ ok: false, error: "cannot_delete_self" }, { status: 400 });
+    }
 
     const target = await prisma.user.findUnique({
         where: { id },
-        select: { id: true, role: true, isActive: true },
+        select: { role: true },
     });
-    if (!target) return NextResponse.json({ ok: false, error: "User not found" }, { status: 404 });
-
-    // กันลบบัญชีตัวเอง
-    if (meId && meId === id) return NextResponse.json({ ok: false, error: "ไม่สามารถลบบัญชีของตนเองได้" }, { status: 400 });
+    if (!target) {
+        return NextResponse.json({ ok: false, error: "not_found" }, { status: 404 });
+    }
 
     // กันลบ ADMIN คนสุดท้าย
     if (target.role === "ADMIN") {
-        const otherAdminCount = await prisma.user.count({
-            where: { role: "ADMIN", isActive: true, id: { not: id } },
+        const adminCount = await prisma.user.count({
+            where: { role: "ADMIN", NOT: { id } },
         });
-        if (otherAdminCount === 0) {
-            return NextResponse.json({ ok: false, error: "ต้องมีผู้ดูแลระบบอย่างน้อย 1 คน" }, { status: 400 });
+        if (adminCount === 0) {
+            return NextResponse.json({ ok: false, error: "last_admin" }, { status: 400 });
         }
     }
 
-    const url = new URL(req.url);
-    const hard = url.searchParams.get("hard");
+    await prisma.user.delete({ where: { id } });
 
-    if (hard === "1" || hard === "true") {
-        // ลบถาวร
-        await prisma.$transaction(async (tx) => {
-            await tx.user.delete({ where: { id } });
-            await tx.auditLog.create({
-                data: {
-                    userId: meId,
-                    action: "DELETE",
-                    tableName: "User",
-                    recordId: id,
-                    oldValue: { role: target.role, isActive: target.isActive },
-                    newValue: Prisma.DbNull, 
-                },
-            });
-        });
-        return NextResponse.json({ ok: true, deleted: true, soft: false });
-    }
-
-    // Soft delete (ปิดการใช้งาน)
-    const updated = await prisma.$transaction(async (tx) => {
-        const u = await tx.user.update({ where: { id }, data: { isActive: false } });
-        await tx.auditLog.create({
+    // (ออปชัน) AuditLog
+    try {
+        await prisma.auditLog.create({
             data: {
-                userId: meId,
-                action: "UPDATE",
+                userId: myId || null,
+                action: "DELETE",
                 tableName: "User",
                 recordId: id,
-                oldValue: { isActive: target.isActive },
-                newValue: { isActive: false },
             },
         });
-        return u;
-    });
+    } catch { }
 
-    return NextResponse.json({ ok: true, deleted: false, soft: true, data: updated });
+    return NextResponse.json({ ok: true });
 }
