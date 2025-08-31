@@ -19,7 +19,8 @@ interface BorrowCartProps {
     onRemoveItem: (id: number) => void;
     onClearCart: () => void;
     borrowerType: "internal" | "external";
-    onBorrowSubmit: (borrowData: any) => void;
+    // แนะนำให้ onBorrowSubmit รองรับ async (return Promise)
+    onBorrowSubmit: (payload: any) => any | Promise<any>;
 }
 
 const BorrowCart = ({
@@ -28,28 +29,18 @@ const BorrowCart = ({
     onRemoveItem,
     onClearCart,
     borrowerType,
-    onBorrowSubmit
+    onBorrowSubmit,
 }: BorrowCartProps) => {
     const [showBorrowModal, setShowBorrowModal] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     const totalItems = cartItems.reduce((sum, item) => sum + item.quantity, 0);
-
-    const handleBorrowSubmit = (borrowData: any) => {
-        // เรียกใช้ callback หลักที่ส่งมาจากหน้าหลัก
-        onBorrowSubmit(borrowData);
-
-        // ล้างตะกร้าหลังส่งคำขอเรียบร้อย
-        onClearCart();
-        setShowBorrowModal(false);
-    };
 
     return (
         <>
             <div className="bg-white rounded-lg shadow border p-4 sticky top-4">
                 <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-semibold text-gray-800">
-                        รายการการยืม
-                    </h3>
+                    <h3 className="text-lg font-semibold text-gray-800">รายการการยืม</h3>
                     <span className="bg-red-100 text-red-800 text-sm font-medium px-2 py-1 rounded-full">
                         {totalItems} ชิ้น
                     </span>
@@ -70,9 +61,7 @@ const BorrowCart = ({
                                             <h4 className="font-medium text-sm text-gray-800 line-clamp-2">
                                                 {item.name}
                                             </h4>
-                                            <p className="text-xs text-gray-500">
-                                                {item.code}
-                                            </p>
+                                            <p className="text-xs text-gray-500">{item.code}</p>
                                             <p className="text-xs text-blue-600">
                                                 {item.details || item.category}
                                             </p>
@@ -80,13 +69,9 @@ const BorrowCart = ({
                                         <button
                                             onClick={() => onRemoveItem(item.id)}
                                             className="text-red-500 hover:text-red-700 ml-2 bg-gray-300 hover:bg-red-400 w-6 h-6 rounded-full flex items-center justify-center"
+                                            disabled={isSubmitting}
                                         >
-                                            <Image
-                                                src="/delete.png"
-                                                alt="remove"
-                                                width={16}
-                                                height={16}
-                                            />
+                                            <Image src="/delete.png" alt="remove" width={16} height={16} />
                                         </button>
                                     </div>
 
@@ -106,13 +91,15 @@ const BorrowCart = ({
                             <div className="flex gap-2 mb-3">
                                 <button
                                     onClick={() => setShowBorrowModal(true)}
-                                    className="flex-1 bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded-lg text-sm font-medium transition-colors"
+                                    className="flex-1 bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
+                                    disabled={isSubmitting}
                                 >
-                                    ยืนยันการยืม
+                                    {isSubmitting ? "กำลังยืนยัน..." : "ยืนยันการยืม"}
                                 </button>
                                 <button
                                     onClick={onClearCart}
-                                    className="bg-gray-500 hover:bg-gray-600 text-white py-2 px-4 rounded-lg text-sm font-medium transition-colors"
+                                    className="bg-gray-500 hover:bg-gray-600 text-white py-2 px-4 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
+                                    disabled={isSubmitting}
                                 >
                                     ยกเลิกการยืม
                                 </button>
@@ -132,26 +119,36 @@ const BorrowCart = ({
                         selectedEquipment={null}
                         cartItems={cartItems}
                         onClose={() => setShowBorrowModal(false)}
-                        onBorrow={(borrowData) => {
-                            // ส่งข้อมูลการยืมทั้งหมดในตะกร้า
-                            cartItems.forEach(item => {
-                                // สร้างข้อมูลการยืมสำหรับแต่ละชิ้น
-                                const itemBorrowData = {
-                                    ...borrowData,
-                                    equipmentCode: item.code,
-                                    equipmentName: item.name,
-                                    category: item.category,
-                                    quantity: item.quantity,
-                                    borrowerType,
-                                };
+                        onBorrow={async (borrowData) => {
+                            // borrowData: { returnDue, reason, ... } จากโมดัล
+                            try {
+                                setIsSubmitting(true);
 
-                                // เรียกใช้ callback ที่ส่งมาจากหน้าหลัก
-                                onBorrowSubmit(itemBorrowData);
-                            });
+                                const tasks = cartItems.map((item) =>
+                                    Promise.resolve(
+                                        onBorrowSubmit({
+                                            ...borrowData,
+                                            equipmentId: item.id,   // ✅ ใช้ id ให้ตรง DB
+                                            equipmentCode: item.code,
+                                            quantity: item.quantity ?? 1,
+                                            borrowerType,
+                                        })
+                                    )
+                                );
 
-                            // ล้างตะกร้าหลังส่งคำขอเรียบร้อย
-                            onClearCart();
-                            setShowBorrowModal(false);
+                                const results = await Promise.allSettled(tasks);
+                                const hasError = results.some(r => r.status === "rejected");
+
+                                if (hasError) {
+                                    alert("มีบางรายการยืมไม่สำเร็จ กรุณาตรวจสอบสถานะอีกครั้ง");
+                                } else {
+                                    // ทุกชิ้นสำเร็จ
+                                    onClearCart();
+                                    setShowBorrowModal(false);
+                                }
+                            } finally {
+                                setIsSubmitting(false);
+                            }
                         }}
                     />
                 </div>

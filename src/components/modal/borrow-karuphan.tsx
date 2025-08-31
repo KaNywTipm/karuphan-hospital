@@ -1,22 +1,20 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 
-// ฟังก์ชันแปลงวันที่จากปีคริสต์ศักราชเป็นปีไทย (พ.ศ.)
-const convertToThaiBuddhistDate = (date: Date): string => {
-    const year = date.getFullYear() + 543; // เพิ่ม 543 เพื่อแปลงเป็น พ.ศ.
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    return `${day}/${month}/${year}`;
+// ใช้สำหรับ default value ให้ input type="date"
+const toInputDate = (d: Date) => {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${y}-${m}-${day}`;
 };
 
-// ฟังก์ชันแปลงวันที่สำหรับ input type="date"
-const convertDateForInput = (date: Date): string => {
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
+type Me = {
+    fullName: string;
+    role: "ADMIN" | "INTERNAL" | "EXTERNAL";
+    department?: { id: number; name: string } | null;
 };
 
 interface CartItem {
@@ -29,7 +27,12 @@ interface CartItem {
 
 interface BorrowKaruphanProps {
     onClose?: () => void;
-    onBorrow?: (borrowData: any) => void;
+    onBorrow?: (borrowData: {
+        returnDue: string;   // ควรเป็น YYYY-MM-DD
+        reason: string;
+        borrowerName?: string;
+        department?: string | null;
+    }) => void;
     selectedEquipment?: {
         id: number;
         code: string;
@@ -40,54 +43,46 @@ interface BorrowKaruphanProps {
 }
 
 const BorrowKaruphan = ({ onClose, onBorrow, selectedEquipment, cartItems }: BorrowKaruphanProps) => {
-    const [borrowDate, setBorrowDate] = useState<string>(
-        convertDateForInput(new Date())
-    );
-    const [returnDate, setReturnDate] = useState<string>('');
+    const [me, setMe] = useState<Me | null>(null);
 
-    const [formData, setFormData] = useState({
-        equipmentCode: selectedEquipment?.code || '',
-        equipmentName: selectedEquipment?.name || '',
-        category: selectedEquipment?.category || '',
-        quantity: '1',
-        borrowerName: '',
-        department: '',
-        reason: '',
-    });
+    const [borrowDate] = useState<string>(toInputDate(new Date()));
+    const [returnDate, setReturnDate] = useState<string>("");
+    const [reason, setReason] = useState<string>("");
 
-    const handleClose = () => {
-        if (onClose) {
-            onClose();
-        }
-    };
+    async function fetchMe() {
+        try {
+            const r = await fetch(`/api/users/me?t=${Date.now()}`, { cache: "no-store" });
+            const j = await r.json().catch(() => ({}));
+            if (r.ok && j?.ok && j.user) setMe(j.user as Me);
+        } catch { }
+    }
 
-    const handleInputChange = (field: string, value: string) => {
-        setFormData(prev => ({
-            ...prev,
-            [field]: value
-        }));
-    };
+    useEffect(() => {
+        fetchMe();
+        const h = () => fetchMe(); // อัปเดตทันทีหลังผู้ใช้แก้โปรไฟล์
+        window.addEventListener("me:updated", h);
+        return () => window.removeEventListener("me:updated", h);
+    }, []);
+
+    const deptText =
+        me?.department?.name ??
+        (me?.role === "EXTERNAL" ? "บุคคลภายนอก" : "-");
+
+    const handleClose = () => onClose?.();
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
+        if (!returnDate) return;
 
-        // สร้างข้อมูลการยืม
-        const borrowData = {
-            cartItems: cartItems || [],
-            borrowerName: formData.borrowerName,
-            department: formData.department,
-            borrowDate: convertToThaiBuddhistDate(new Date(borrowDate)),
-            returnDate: returnDate ? convertToThaiBuddhistDate(new Date(returnDate)) : '',
-            reason: formData.reason,
-            borrowerType: 'internal', // จะถูกกำหนดใหม่ในหน้าที่เรียกใช้
-            userId: 1, // จะถูกกำหนดใหม่ในหน้าที่เรียกใช้
+        // ส่งวันที่แบบ ค.ศ. ให้ API (YYYY-MM-DD)
+        const payload = {
+            returnDue: returnDate,
+            reason: reason.trim(),
+            borrowerName: me?.fullName,
+            department: me?.department?.name ?? (me?.role === "EXTERNAL" ? "บุคคลภายนอก" : "-"),
         };
 
-        if (onBorrow) {
-            onBorrow(borrowData);
-        }
-
-        console.log('Borrow data:', borrowData);
+        onBorrow?.(payload);
     };
 
     return (
@@ -119,105 +114,72 @@ const BorrowKaruphan = ({ onClose, onBorrow, selectedEquipment, cartItems }: Bor
                                 cartItems.map((item, index) => (
                                     <tr key={item.id}>
                                         <td className="border border-gray-300 px-4 py-2 text-center">{index + 1}</td>
-                                        <td className="border border-gray-300 px-4 py-2 text-center">
-                                            {item.name}
-                                        </td>
-                                        <td className="border border-gray-300 px-4 py-2 text-center">
-                                            {item.category}
-                                        </td>
-                                        <td className="border border-gray-300 px-4 py-2 text-center">
-                                            {item.quantity}
-                                        </td>
+                                        <td className="border border-gray-300 px-4 py-2 text-center">{item.name}</td>
+                                        <td className="border border-gray-300 px-4 py-2 text-center">{item.category}</td>
+                                        <td className="border border-gray-300 px-4 py-2 text-center">{item.quantity}</td>
                                     </tr>
                                 ))
                             ) : (
                                 <tr>
                                     <td className="border border-gray-300 px-4 py-2 text-center">1</td>
                                     <td className="border border-gray-300 px-4 py-2 text-center">
-                                        {formData.equipmentName || 'ชื่อครุภัณฑ์'}
+                                        {selectedEquipment?.name || "ชื่อครุภัณฑ์"}
                                     </td>
                                     <td className="border border-gray-300 px-4 py-2 text-center">
-                                        {formData.category || 'ยี่ห้อ'}
+                                        {selectedEquipment?.category || "ยี่ห้อ/รุ่น/แบบ"}
                                     </td>
-                                    <td className="border border-gray-300 px-4 py-2 text-center">
-                                        {formData.quantity}
-                                    </td>
+                                    <td className="border border-gray-300 px-4 py-2 text-center">1</td>
                                 </tr>
                             )}
                         </tbody>
                     </table>
                 </div>
 
+                {/* ฟอร์มหลัก */}
                 <form onSubmit={handleSubmit} className="flex flex-col gap-4 text-sm">
                     <FormRow label="วันที่ยืม">
-                        <div className="relative w-full">
-                            <input
-                                type="date"
-                                value={borrowDate}
-                                onChange={(e) => setBorrowDate(e.target.value)}
-                                className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none transition-colors bg-white text-gray-700"
-                                required
-                            />
-                        </div>
+                        <input
+                            type="date"
+                            value={borrowDate}
+                            readOnly
+                            className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg bg-gray-100 text-gray-700"
+                        />
                     </FormRow>
 
                     <FormRow label="กำหนดคืน">
-                        <div className="relative w-full">
-                            <input
-                                type="date"
-                                value={returnDate}
-                                onChange={(e) => setReturnDate(e.target.value)}
-                                className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none transition-colors bg-white text-gray-700"
-                                required
-                            />
-                        </div>
+                        <input
+                            type="date"
+                            value={returnDate}
+                            onChange={(e) => setReturnDate(e.target.value)}
+                            className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none transition-colors bg-white text-gray-700"
+                            required
+                        />
                     </FormRow>
 
                     <FormRow label="เหตุผลที่ยืม">
                         <textarea
-                            placeholder="ยืม"
-                            value={formData.reason}
-                            onChange={(e) => handleInputChange('reason', e.target.value)}
+                            placeholder="ระบุเหตุผล"
+                            value={reason}
+                            onChange={(e) => setReason(e.target.value)}
                             className="form-input border border-gray-300 rounded px-3 py-2 w-full min-h-[100px] resize-vertical"
                             required
                         />
                     </FormRow>
 
-                    {/* ฟิลด์ซ่อนสำหรับข้อมูลครุภัณฑ์ */}
-                    <input
-                        type="hidden"
-                        value={formData.equipmentCode}
-                        onChange={(e) => handleInputChange('equipmentCode', e.target.value)}
-                    />
-                    <input
-                        type="hidden"
-                        value={formData.equipmentName}
-                        onChange={(e) => handleInputChange('equipmentName', e.target.value)}
-                    />
-                    <input
-                        type="hidden"
-                        value={formData.category}
-                        onChange={(e) => handleInputChange('category', e.target.value)}
-                    />
-
-                    {/* ฟิลด์สำหรับข้อมูลผู้ยืม (จะถูกกรอกอัตโนมัติจากข้อมูลผู้ใช้) */}
+                    {/* แสดงชื่อผู้ยืม/กลุ่มงานจากบัญชีจริง */}
                     <FormRow label="ชื่อผู้ยืม">
                         <input
-                            placeholder="ชื่อผู้ยืม"
-                            value={formData.borrowerName}
-                            onChange={(e) => handleInputChange('borrowerName', e.target.value)}
-                            className="form-input border border-gray-300 rounded px-3 py-2 w-full"
-                            required
+                            value={me?.fullName ?? "-"}
+                            readOnly
+                            className="form-input border border-gray-200 rounded px-3 py-2 w-full bg-gray-100 text-gray-700"
                         />
                     </FormRow>
 
-                    <FormRow label="แผนก/หน่วยงาน">
+                    <FormRow label="กลุ่มงาน">
                         <input
-                            placeholder="แผนก/หน่วยงาน"
-                            value={formData.department}
-                            onChange={(e) => handleInputChange('department', e.target.value)}
-                            className="form-input border border-gray-300 rounded px-3 py-2 w-full"
-                            required
+                            value={deptText}
+                            readOnly
+                            className="form-input border border-gray-200 rounded px-3 py-2 w-full bg-gray-100 text-gray-700"
                         />
                     </FormRow>
 

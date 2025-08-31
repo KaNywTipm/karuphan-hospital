@@ -164,16 +164,17 @@ export default function Editkaruphan({
                     </FormRow>
 
                     <FormRow label="วันที่ได้รับ (พ.ศ.)">
-                        <div className="relative w-full flex items-center">
-                            <input
-                                type="date"
-                                value={form.receivedDateBE}
-                                onChange={(e) => setForm(s => ({ ...s, receivedDateBE: e.target.value }))}
-                                className="form-input border border-gray-300 rounded px-2 py-1 w-full pr-10"
-                                required
-                            />
-                        </div>
-                    </FormRow>
+                            <div className="relative w-full flex items-center">
+                                <input
+                                    type="date"
+                                    value={form.receivedDateBE}
+                                    onChange={(e) => setForm(s => ({ ...s, receivedDateBE: e.target.value }))}
+                                    placeholder="2568-01-01"
+                                    className="form-input border border-gray-300 rounded px-2 py-1 w-full "
+                                    required
+                                />
+                            </div>
+                        </FormRow>
 
                     <FormRow label="สถานะ">
                         <select

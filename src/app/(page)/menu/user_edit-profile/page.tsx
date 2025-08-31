@@ -75,6 +75,8 @@ export default function UserEditProfile() {
         if (result.ok) {
             setMe(result.user);
             setIsEditing(false);
+            await fetch("/api/auth/session?update", { method: "POST" }).catch(() => { });
+            window.dispatchEvent(new Event("me:updated"));
         } else {
             alert("บันทึกข้อมูลไม่สำเร็จ");
         }

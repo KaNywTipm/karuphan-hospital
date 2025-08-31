@@ -1,14 +1,11 @@
-//show department fecth data user card
-
 "use client";
 
 import Image from "next/image";
 import Link from "next/link";
 import { signOut, useSession } from "next-auth/react";
-import { useEffect, useMemo, useState , useRef } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 type Role = "ADMIN" | "INTERNAL" | "EXTERNAL";
-
 type MenuItem = {
   icon: string;
   label: string;
@@ -21,43 +18,37 @@ const MENU: { title: string; items: MenuItem[] }[] = [
   {
     title: "MENU",
     items: [
-      { icon: "/list.png", label: "รายการยืมคืนครุภัณฑ์", href: "/role1-admin",   visible: ["ADMIN"] },
-      { icon: "/list.png", label: "รายการยืมครุภัณฑ์",      href: "/role2-internal", visible: ["INTERNAL"] },
-      { icon: "/list.png", label: "รายการยืมครุภัณฑ์",      href: "/role3-external", visible: ["EXTERNAL"] },
-
-      { icon: "/chart.png", label: "แดชบอร์ด", href: "/menu/dashboard", visible: ["ADMIN"] },
-
+      { icon: "/list.png",  label: "รายการยืมคืนครุภัณฑ์", href: "/role1-admin",           visible: ["ADMIN"] },
+      { icon: "/list.png",  label: "รายการยืมครุภัณฑ์",    href: "/role2-internal",        visible: ["INTERNAL"] },
+      { icon: "/list.png",  label: "รายการยืมครุภัณฑ์",    href: "/role3-external",        visible: ["EXTERNAL"] },
+      { icon: "/chart.png", label: "แดชบอร์ด",              href: "/menu/dashboard",        visible: ["ADMIN"] },
       {
         icon: "/status.png",
         label: "รายงานสรุปผล",
         href: "#",
         visible: ["ADMIN"],
         subItems: [
-          { icon: "/plus.png", label: "รายงานการยืมคืน",              href: "/menu/report1-borrow_return", visible: ["ADMIN"] },
-          { icon: "/plus.png", label: "รายงานครุภัณฑ์ที่ถูกยกเลิก",   href: "/menu/report2-not_approve",   visible: ["ADMIN"] },
-          { icon: "/plus.png", label: "รายงานสถานะของครุภัณฑ์",       href: "/menu/report3-status_karuphan", visible: ["ADMIN"] },
-          { icon: "/plus.png", label: "สรุปยอดครุภัณฑ์",               href: "/menu/report4-total_amount", visible: ["ADMIN"] },
+          { icon: "/plus.png", label: "รายงานการยืมคืน",         href: "/menu/report1-borrow_return",   visible: ["ADMIN"] },
+          { icon: "/plus.png", label: "รายงานครุภัณฑ์ที่ถูกยกเลิก", href: "/menu/report2-not_approve",     visible: ["ADMIN"] },
+          { icon: "/plus.png", label: "รายงานสถานะของครุภัณฑ์",   href: "/menu/report3-status_karuphan", visible: ["ADMIN"] },
+          { icon: "/plus.png", label: "สรุปยอดครุภัณฑ์",           href: "/menu/report4-total_amount",    visible: ["ADMIN"] },
         ],
       },
-
-      { icon: "/report.png", label: "ประวัติการยืมครุภัณฑ์", href: "/menu/user_history",               visible: ["INTERNAL", "EXTERNAL"] },
+      { icon: "/report.png", label: "ประวัติการยืมครุภัณฑ์", href: "/menu/user_history",            visible: ["INTERNAL","EXTERNAL"] },
       { icon: "/status.png", label: "สถานะการยืมครุภัณฑ์",   href: "/menu/userExternal-status-borrow", visible: ["EXTERNAL"] },
-
       {
         icon: "/data.png",
         label: "จัดการครุภัณฑ์",
         href: "#",
         visible: ["ADMIN"],
         subItems: [
-          { icon: "/list.png", label: "รายการครุภัณฑ์",        href: "/menu/list-karuphan",     visible: ["ADMIN"] },
+          { icon: "/list.png", label: "รายการครุภัณฑ์",   href: "/menu/list-karuphan",     visible: ["ADMIN"] },
           { icon: "/edit.png", label: "เพิ่มหมวดหมู่ครุภัณฑ์", href: "/menu/category-karuphan", visible: ["ADMIN"] },
         ],
       },
-
       { icon: "/person.png", label: "จัดการบุคลากร",  href: "/menu/manage-personnel", visible: ["ADMIN"] },
-      { icon: "/person.png", label: "แก้ไขโปรไฟล์",   href: "/menu/user_edit-profile", visible: ["INTERNAL", "EXTERNAL"] },
-
-      { icon: "/out.png", label: "ออกจากระบบ", href: "/sign-in", visible: ["ADMIN", "INTERNAL", "EXTERNAL"] },
+      { icon: "/person.png", label: "แก้ไขโปรไฟล์",   href: "/menu/user_edit-profile", visible: ["INTERNAL","EXTERNAL"] },
+      { icon: "/out.png",    label: "ออกจากระบบ",     href: "/sign-in",                 visible: ["ADMIN","INTERNAL","EXTERNAL"] },
     ],
   },
 ];
@@ -74,48 +65,50 @@ export default function Menu() {
   const [me, setMe] = useState<Me | null>(null);
   const [openSubMenus, setOpenSubMenus] = useState<string[]>([]);
 
-  const loadedRef = useRef(false);
-
-  // ดึงโปรไฟล์จาก API (ได้ department/name ครบ)
-  useEffect(() => {
-    let alive = true;
-    if (status !== "authenticated") return;
-    if (loadedRef.current) return;
-    loadedRef.current = true;
-
-    (async () => {
-      try {
-        const r = await fetch("/api/users/me", { cache: "no-store" });
-        const j = await r.json().catch(() => ({}));
-        if (!alive) return;
-        if (r.ok && j?.ok && j.user) setMe(j.user as Me);
-        // ถ้า API ไม่มี user ให้ fallback จาก session (อย่างน้อย role/id ยังอยู่)
-        else if (!me && session?.user)
-          setMe({
-            id: Number((session.user as any).id),
-            fullName: (session.user as any).name || "ผู้ใช้",
-            role: (String((session.user as any).role || "EXTERNAL").toUpperCase() as Role),
-            department: null,
-          });
-      } catch {
+  // ดึงโปรไฟล์จริงจาก API
+  async function fetchMe() {
+    try {
+      const r = await fetch(`/api/users/me?t=${Date.now()}`, { cache: "no-store" });
+      const j = await r.json().catch(() => ({}));
+      if (r.ok && j?.ok && j.user) {
+        setMe(j.user as Me);
+      } else if (session?.user) {
+        // fallback จาก session (กันหน้าแตก)
+        setMe({
+          id: Number((session.user as any).id),
+          fullName: (session.user as any).name || "ผู้ใช้",
+          role: String((session.user as any).role || "EXTERNAL").toUpperCase() as Role,
+          department: null,
+        });
       }
-    })();
+    } catch {
+    }
+  }
 
-    return () => { alive = false; };
-  }, [status, session, me]);
+  // โหลดเมื่อ auth พร้อม และรีเฟรชเมื่อมีการแก้โปรไฟล์ (ยิง event "me:updated")
+  useEffect(() => {
+    if (status === "authenticated") fetchMe();
+  }, [status]);
 
-  // role ที่ใช้สำหรับ filter เมนู
+  useEffect(() => {
+    const onUpdated = () => fetchMe();
+    window.addEventListener("me:updated", onUpdated);
+    return () => window.removeEventListener("me:updated", onUpdated);
+  }, []);
+
+  // role ที่ใช้ filter เมนู
   const role: Role = useMemo(
-    () =>
-      (String((session?.user as any)?.role || me?.role || "EXTERNAL").toUpperCase() as Role),
-    [session, me]
+    () => (me?.role || (String((session?.user as any)?.role || "EXTERNAL").toUpperCase() as Role)),
+    [me, session]
   );
 
   const displayName = me?.fullName ?? (session?.user as any)?.name ?? "ผู้ใช้ระบบครุภัณฑ์";
-  const displayDept = me?.department?.name ?? "กลุ่มงานบริการด้านปฐมภูมิและองค์รวม";
+  const displayDept = me?.department?.name ?? "-";
 
   const toggleSub = (label: string) =>
-    setOpenSubMenus((prev) => (prev.includes(label) ? prev.filter((l) => l !== label) : [...prev, label]));
+    setOpenSubMenus((prev) =>
+      prev.includes(label) ? prev.filter((l) => l !== label) : [...prev, label]
+    );
 
   return (
     <div className="flex flex-col h-full">
@@ -136,7 +129,6 @@ export default function Menu() {
           <div className="flex flex-col gap-2" key={group.title}>
             {group.items.map((item) => {
               if (!item.visible.includes(role)) return null;
-
               const isLogout = item.label === "ออกจากระบบ";
               const hasSub = !!item.subItems;
 

@@ -6,7 +6,7 @@ import { z } from "zod";
 const UpdateSchema = z.object({
     fullName: z.string().min(1, "กรอกชื่อ-สกุล"),
     phone: z.string().min(3, "กรอกเบอร์โทร").max(50),
-    departmentId: z.number().int().positive().nullable().optional(), // ภายนอกให้เป็น null ได้
+    departmentId: z.number().int().positive().nullable().optional(),
 });
 
 export async function GET() {
