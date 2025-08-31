@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 
-const itemsPerPage = 5;
+const itemsPerPage = 5; //fucn. all
 
 type Category = {
     id: number;

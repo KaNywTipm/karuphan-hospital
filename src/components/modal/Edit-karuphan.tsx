@@ -118,6 +118,16 @@ export default function Editkaruphan({
                         </select>
                     </FormRow>
 
+                    <FormRow label="เลขครุภัณฑ์">
+                            <input
+                                placeholder="0000-000-0000/0"
+                                value={form.code}
+                                onChange={(e) => setForm(s => ({ ...s, code: e.target.value }))}
+                                className="form-input border border-gray-300 rounded px-2 py-1 w-full"
+                                required
+                            />
+                        </FormRow>
+
                     <FormRow label="เลขที่ ID">
                         <input
                             value={form.idnum}
@@ -127,14 +137,6 @@ export default function Editkaruphan({
                         />
                     </FormRow>
 
-                    <FormRow label="เลขย่อย">
-                        <input
-                            placeholder="/1 /2"
-                            value={form.idnum}
-                            onChange={(e) => setForm(s => ({ ...s, idnum: e.target.value }))}
-                            className="form-input border border-gray-300 rounded px-2 py-1 w-full"
-                        />
-                    </FormRow>
 
                     <FormRow label="ชื่อครุภัณฑ์">
                         <input
@@ -170,9 +172,6 @@ export default function Editkaruphan({
                                 className="form-input border border-gray-300 rounded px-2 py-1 w-full pr-10"
                                 required
                             />
-                            <button type="button" className="absolute right-2">
-                                <Image src="/datetime.png" alt="Datetime" width={20} height={20} />
-                            </button>
                         </div>
                     </FormRow>
 

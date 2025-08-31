@@ -1,165 +1,140 @@
+//show department fecth data user card
+
 "use client";
 
-import { signOut } from "next-auth/react";
-import { role, currentUser } from "@/lib/data";
 import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
+import { signOut, useSession } from "next-auth/react";
+import { useEffect, useMemo, useState , useRef } from "react";
 
-const menuItems = [
+type Role = "ADMIN" | "INTERNAL" | "EXTERNAL";
+
+type MenuItem = {
+  icon: string;
+  label: string;
+  href: string;
+  visible: Role[];
+  subItems?: MenuItem[];
+};
+
+const MENU: { title: string; items: MenuItem[] }[] = [
   {
     title: "MENU",
     items: [
-      {
-        icon: "/list.png",
-        label: "รายการยืมคืนครุภัณฑ์",
-        href: "/role1-admin",
-        visible: ["admin"],
-      },
-      {
-        icon: "/list.png",
-        label: "รายการยืมครุภัณฑ์",
-        href: "/role2-internal",
-        visible: ["internal"],
-      },
-      {
-        icon: "/list.png",
-        label: "รายการยืมครุภัณฑ์",
-        href: "/role3-external",
-        visible: ["external"],
-      },
-      {
-        icon: "/chart.png",
-        label: "แดชบอร์ด",
-        href: "/menu/dashboard",
-        visible: ["admin"],
-      },
+      { icon: "/list.png", label: "รายการยืมคืนครุภัณฑ์", href: "/role1-admin",   visible: ["ADMIN"] },
+      { icon: "/list.png", label: "รายการยืมครุภัณฑ์",      href: "/role2-internal", visible: ["INTERNAL"] },
+      { icon: "/list.png", label: "รายการยืมครุภัณฑ์",      href: "/role3-external", visible: ["EXTERNAL"] },
+
+      { icon: "/chart.png", label: "แดชบอร์ด", href: "/menu/dashboard", visible: ["ADMIN"] },
+
       {
         icon: "/status.png",
         label: "รายงานสรุปผล",
         href: "#",
-        visible: ["admin"],
+        visible: ["ADMIN"],
         subItems: [
-          {
-            icon: "/plus.png",
-            label: "รายงานการยืมคืน",
-            href: "/menu/report1-borrow_return",
-            visible: ["admin"],
-          },
-          {
-            icon: "/plus.png",
-            label: "รายงานครุภัณฑ์ที่ถูกยกเลิก",
-            href: "/menu/report2-not_approve",
-            visible: ["admin"],
-          },
-          {
-            icon: "/plus.png",
-            label: "รายงานสถานะของครุภัณฑ์",
-            href: "/menu/report3-status_karuphan",
-            visible: ["admin"],
-          },
-          {
-            icon: "/plus.png",
-            label: "สรุปยอดครุภัณฑ์",
-            href: "/menu/report4-total_amount",
-            visible: ["admin"],
-          },
+          { icon: "/plus.png", label: "รายงานการยืมคืน",              href: "/menu/report1-borrow_return", visible: ["ADMIN"] },
+          { icon: "/plus.png", label: "รายงานครุภัณฑ์ที่ถูกยกเลิก",   href: "/menu/report2-not_approve",   visible: ["ADMIN"] },
+          { icon: "/plus.png", label: "รายงานสถานะของครุภัณฑ์",       href: "/menu/report3-status_karuphan", visible: ["ADMIN"] },
+          { icon: "/plus.png", label: "สรุปยอดครุภัณฑ์",               href: "/menu/report4-total_amount", visible: ["ADMIN"] },
         ],
       },
-      {
-        icon: "/report.png",
-        label: "ประวัติการยืมครุภัณฑ์",
-        href: "/menu/user_history",
-        visible: ["internal", "external"],
-      },
-      {
-        icon: "/status.png",
-        label: "สถานะการยืมครุภัณฑ์",
-        href: "/menu/userExternal-status-borrow",
-        visible: ["external"],
-      },
+
+      { icon: "/report.png", label: "ประวัติการยืมครุภัณฑ์", href: "/menu/user_history",               visible: ["INTERNAL", "EXTERNAL"] },
+      { icon: "/status.png", label: "สถานะการยืมครุภัณฑ์",   href: "/menu/userExternal-status-borrow", visible: ["EXTERNAL"] },
+
       {
         icon: "/data.png",
         label: "จัดการครุภัณฑ์",
         href: "#",
-        visible: ["admin"],
+        visible: ["ADMIN"],
         subItems: [
-          {
-            icon: "/list.png",
-            label: "รายการครุภัณฑ์",
-            href: "/menu/list-karuphan",
-            visible: ["admin"],
-          },
-          {
-            icon: "/edit.png",
-            label: "เพิ่มหมวดหมู่ครุภัณฑ์",
-            href: "/menu/category-karuphan",
-            visible: ["admin"],
-          },
+          { icon: "/list.png", label: "รายการครุภัณฑ์",        href: "/menu/list-karuphan",     visible: ["ADMIN"] },
+          { icon: "/edit.png", label: "เพิ่มหมวดหมู่ครุภัณฑ์", href: "/menu/category-karuphan", visible: ["ADMIN"] },
         ],
       },
-      {
-        icon: "/person.png",
-        label: "จัดการบุคลากร",
-        href: "/menu/manage-personnel",
-        visible: ["admin"],
-      },
-      {
-        icon: "/person.png",
-        label: "แก้ไขโปรไฟล์",
-        href: "/menu/user_edit-profile",
-        visible: ["internal", "external"],
-      },
-      {
-        icon: "/out.png",
-        label: "ออกจากระบบ",
-        href: "/sign-in",
-        visible: ["admin", "internal", "external"],
-      },
+
+      { icon: "/person.png", label: "จัดการบุคลากร",  href: "/menu/manage-personnel", visible: ["ADMIN"] },
+      { icon: "/person.png", label: "แก้ไขโปรไฟล์",   href: "/menu/user_edit-profile", visible: ["INTERNAL", "EXTERNAL"] },
+
+      { icon: "/out.png", label: "ออกจากระบบ", href: "/sign-in", visible: ["ADMIN", "INTERNAL", "EXTERNAL"] },
     ],
   },
 ];
 
-const Menu = () => {
+type Me = {
+  id: number;
+  fullName: string;
+  role: Role;
+  department?: { id: number; name: string } | null;
+};
+
+export default function Menu() {
+  const { data: session, status } = useSession();
+  const [me, setMe] = useState<Me | null>(null);
   const [openSubMenus, setOpenSubMenus] = useState<string[]>([]);
 
-  const toggleSubMenu = (label: string) => {
-    setOpenSubMenus(prev =>
-      prev.includes(label)
-        ? prev.filter(item => item !== label)
-        : [...prev, label]
-    );
-  }
+  const loadedRef = useRef(false);
+
+  // ดึงโปรไฟล์จาก API (ได้ department/name ครบ)
+  useEffect(() => {
+    let alive = true;
+    if (status !== "authenticated") return;
+    if (loadedRef.current) return;
+    loadedRef.current = true;
+
+    (async () => {
+      try {
+        const r = await fetch("/api/users/me", { cache: "no-store" });
+        const j = await r.json().catch(() => ({}));
+        if (!alive) return;
+        if (r.ok && j?.ok && j.user) setMe(j.user as Me);
+        // ถ้า API ไม่มี user ให้ fallback จาก session (อย่างน้อย role/id ยังอยู่)
+        else if (!me && session?.user)
+          setMe({
+            id: Number((session.user as any).id),
+            fullName: (session.user as any).name || "ผู้ใช้",
+            role: (String((session.user as any).role || "EXTERNAL").toUpperCase() as Role),
+            department: null,
+          });
+      } catch {
+      }
+    })();
+
+    return () => { alive = false; };
+  }, [status, session, me]);
+
+  // role ที่ใช้สำหรับ filter เมนู
+  const role: Role = useMemo(
+    () =>
+      (String((session?.user as any)?.role || me?.role || "EXTERNAL").toUpperCase() as Role),
+    [session, me]
+  );
+
+  const displayName = me?.fullName ?? (session?.user as any)?.name ?? "ผู้ใช้ระบบครุภัณฑ์";
+  const displayDept = me?.department?.name ?? "กลุ่มงานบริการด้านปฐมภูมิและองค์รวม";
+
+  const toggleSub = (label: string) =>
+    setOpenSubMenus((prev) => (prev.includes(label) ? prev.filter((l) => l !== label) : [...prev, label]));
 
   return (
     <div className="flex flex-col h-full">
-      {/* Profile Section */}
+      {/* โปรไฟล์ */}
       <div className="flex items-center gap-3 p-4 mb-4 bg-slate-600 rounded-lg">
         <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center flex-shrink-0">
-          <Image
-            src="/profile.png"
-            alt="profile"
-            width={20}
-            height={20}
-            className="text-gray-600"
-          />
+          <Image src="/profile.png" alt="profile" width={20} height={20} className="text-gray-600" />
         </div>
         <div className="flex-1 min-w-0 hidden lg:block">
-          <p className="text-white font-medium text-sm break-words">
-            {currentUser.name}
-          </p>
-          <p className="text-gray-300 text-xs break-words whitespace-normal">
-            {currentUser.department}
-          </p>
+          <p className="text-white font-medium text-sm break-words">{displayName}</p>
+          <p className="text-gray-300 text-xs break-words whitespace-normal">{displayDept}</p>
         </div>
       </div>
 
-
-      {/* Menu Items */}
+      {/* เมนู */}
       <div className="flex-1 text-sm">
-        {menuItems.map((i) => (
-          <div className="flex flex-col gap-2" key={i.title}>
-            {i.items.map((item) => {
+        {MENU.map((group) => (
+          <div className="flex flex-col gap-2" key={group.title}>
+            {group.items.map((item) => {
               if (!item.visible.includes(role)) return null;
 
               const isLogout = item.label === "ออกจากระบบ";
@@ -169,15 +144,10 @@ const Menu = () => {
                 <div key={item.label} className="flex flex-col">
                   {hasSub ? (
                     <button
-                      onClick={() => toggleSubMenu(item.label)}
-                      className={`flex items-center justify-center lg:justify-start gap-4 py-2 md:px-2 rounded-md text-White hover:bg-gray-700 w-full text-left`}
+                      onClick={() => toggleSub(item.label)}
+                      className="flex items-center justify-center lg:justify-start gap-4 py-2 md:px-2 rounded-md text-White hover:bg-gray-700 w-full text-left"
                     >
-                      <Image
-                        src={item.icon}
-                        alt=""
-                        width={20}
-                        height={20}
-                      />
+                      <Image src={item.icon} alt="" width={20} height={20} />
                       <span className="hidden lg:block flex-1">{item.label}</span>
                       <span className="hidden lg:block text-xs">
                         {openSubMenus.includes(item.label) ? "▼" : "▶"}
@@ -207,34 +177,26 @@ const Menu = () => {
                     </Link>
                   )}
 
-                  {hasSub && openSubMenus.includes(item.label) &&
-                    item.subItems
-                      .filter((sub) => sub.visible.includes(role))
-                      .map((sub) => (
+                  {hasSub &&
+                    openSubMenus.includes(item.label) &&
+                    item.subItems!
+                      .filter((s) => s.visible.includes(role))
+                      .map((s) => (
                         <Link
-                          href={sub.href}
-                          key={sub.label}
+                          href={s.href}
+                          key={s.label}
                           className="ml-8 flex items-center justify-start gap-3 text-white py-1 px-2 rounded hover:bg-gray-700 text-sm"
                         >
-                          <Image
-                            src={sub.icon}
-                            alt=""
-                            width={20}
-                            height={20}
-                            className="filter invert-0"
-                          />
-                          <span>{sub.label}</span>
+                          <Image src={s.icon} alt="" width={20} height={20} className="filter invert-0" />
+                          <span>{s.label}</span>
                         </Link>
                       ))}
                 </div>
               );
-            }
-            )};
+            })}
           </div>
         ))}
       </div>
     </div>
   );
-};
-
-export default Menu;
+}
