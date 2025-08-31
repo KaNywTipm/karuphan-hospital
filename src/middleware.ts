@@ -1,58 +1,28 @@
-// src/middleware.ts
-import { auth } from "@/lib/auth";
 import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
+import { getToken } from "next-auth/jwt";
 
-const PUBLIC_FILE = /\.(.*)$/;
-const PUBLIC_PATHS = ["/sign-in", "/sign-up", "/forgot-password", "/api/auth"];
+export async function middleware(req: NextRequest) {
+    const url = req.nextUrl;
+    const token = await getToken({ req, secret: process.env.AUTH_SECRET });
+    const role = (token as any)?.role as "ADMIN" | "INTERNAL" | "EXTERNAL" | undefined;
 
-const landingOf = (role: "ADMIN" | "INTERNAL" | "EXTERNAL") =>
-    role === "ADMIN"
-        ? "/role1-admin"
-        : role === "INTERNAL"
-            ? "/role2-internal"
-            : "/role3-external";
-
-export default auth((req) => {
-    const { pathname, origin } = req.nextUrl;
-    const session = req.auth as any;
-
-    // ปล่อยไฟล์สาธารณะ (.png .css .js ฯลฯ)
-    if (PUBLIC_FILE.test(pathname)) return NextResponse.next();
-
-    // ปล่อย asset ระบบ
-    if (pathname.startsWith("/_next") || pathname === "/favicon.ico")
-        return NextResponse.next();
-
-    // หน้าสาธารณะ
-    if (PUBLIC_PATHS.some((p) => pathname.startsWith(p))) {
-        if (
-            session &&
-            (pathname === "/sign-in" ||
-                pathname === "/sign-up" ||
-                pathname === "/forgot-password")
-        ) {
-            return NextResponse.redirect(new URL(landingOf(session.role), origin));
-        }
-        return NextResponse.next();
+    if (!token && !url.pathname.startsWith("/sign-in") && !url.pathname.startsWith("/sign-up")) {
+        return NextResponse.redirect(new URL("/sign-in", url));
     }
 
-    // ต้องล็อกอิน
-    if (!session) return NextResponse.redirect(new URL("/sign-in", origin));
+    if (url.pathname.startsWith("/role1-admin") && role !== "ADMIN")
+        return NextResponse.redirect(new URL("/", url));
 
-    // RBAC ตาม prefix
-    const role = session.role as "ADMIN" | "INTERNAL" | "EXTERNAL";
-    if (pathname.startsWith("/role1-admin") && role !== "ADMIN")
-        return NextResponse.redirect(new URL(landingOf(role), origin));
+    if (url.pathname.startsWith("/role2-internal") && !["ADMIN", "INTERNAL"].includes(role!))
+        return NextResponse.redirect(new URL("/", url));
 
-    if (pathname.startsWith("/role2-internal") && role !== "INTERNAL")
-        return NextResponse.redirect(new URL(landingOf(role), origin));
-
-    if (pathname.startsWith("/role3-external") && role !== "EXTERNAL")
-        return NextResponse.redirect(new URL(landingOf(role), origin));
+    if (url.pathname.startsWith("/role3-external") && !["ADMIN", "EXTERNAL"].includes(role!))
+        return NextResponse.redirect(new URL("/", url));
 
     return NextResponse.next();
-});
+}
 
 export const config = {
-    matcher: ["/((?!_next|api|favicon.ico).*)"], // api/auth ถูกปล่อยภายในโค้ดด้านบนแล้ว
+    matcher: ["/", "/role1-admin/:path*", "/role2-internal/:path*", "/role3-external/:path*", "/menu/:path*"],
 };

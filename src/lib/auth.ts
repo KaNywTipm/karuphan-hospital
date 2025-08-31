@@ -1,61 +1,52 @@
-// src/lib/auth.ts
-import NextAuth from "next-auth";
+import NextAuth, { type NextAuthConfig } from "next-auth";
 import Credentials from "next-auth/providers/credentials";
+import { PrismaAdapter } from "@auth/prisma-adapter";
+import { prisma } from "@/lib/prisma";
+import bcrypt from "bcryptjs";
 
-const SECRET = process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET;
-if (!SECRET) {
-    throw new Error("Missing AUTH_SECRET/NEXTAUTH_SECRET");
-}
-
-export const { handlers, auth, signIn, signOut } = NextAuth({
+export const authConfig: NextAuthConfig = {
+    adapter: PrismaAdapter(prisma),
     session: { strategy: "jwt" },
     providers: [
         Credentials({
-            name: "Email & Password",
-            credentials: {
-                email: { label: "email", type: "text" },
-                password: { label: "password", type: "password" },
-            },
+            name: "Credentials",
+            credentials: { email: {}, password: {} },
             async authorize(creds) {
                 if (!creds?.email || !creds?.password) return null;
-
-                // dynamic import กัน edge/middleware พัง
-                const { prisma } = await import("@/lib/prisma");
-                const { compare } = await import("bcryptjs");
-
                 const user = await prisma.user.findUnique({
-                    where: { email: String(creds.email) },
+                    where: { email: String(creds.email).toLowerCase() },
+                    include: { department: true },
                 });
                 if (!user || !user.isActive) return null;
 
-                const ok = await compare(
-                    String(creds.password),
-                    String(user.passwordHash)
-                );
+                const ok = await bcrypt.compare(String(creds.password), user.passwordHash);
                 if (!ok) return null;
 
                 return {
                     id: String(user.id),
-                    name: user.fullName,
                     email: user.email,
+                    name: user.fullName,
                     role: user.role,
-                };
+                    department: user.department?.name ?? null,
+                } as any;
             },
         }),
     ],
+    pages: { signIn: "/sign-in" },
     callbacks: {
         async jwt({ token, user }) {
-            if (user) token.role = (user as any).role;
+            if (user) {
+                token.role = (user as any).role;
+                token.department = (user as any).department ?? null;
+            }
             return token;
         },
         async session({ session, token }) {
-            (session as any).role = token.role;
+            (session.user as any).id = token.sub;
+            (session.user as any).role = token.role;
+            (session.user as any).department = token.department ?? null;
             return session;
         },
     },
-    pages: {
-        signIn: "/sign-in",
-        error: "/sign-in", // เวลาพลาด (CredentialsSignin) ให้กลับมาที่ /sign-in ด้วย
-    },
-    secret: SECRET,
-});
+};
+export const { handlers, auth, signIn, signOut } = NextAuth(authConfig);

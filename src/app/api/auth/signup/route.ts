@@ -2,73 +2,67 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 
-const PCU_LABEL = "กลุ่มงานบริการด้านปฐมภูมิและองค์รวม";
+const INTERNAL_DEPT_NAME = "กลุ่มงานบริการด้านปฐมภูมิและองค์รวม";
 
 export async function POST(req: Request) {
     try {
-        const {
-            fullName,
-            phone,
-            email,
-            password,
-            confirmPassword,
-            departmentName,
-        } = await req.json();
+        const body = await req.json();
+        const fullName = String(body.fullName || "").trim();
+        const email = String(body.email || "")
+            .toLowerCase()
+            .trim();
+        const password = String(body.password || "");
+        const phone = body.phone ? String(body.phone).trim() : null;
+        // ส่งมาจากฟอร์มสมัคร (แนะนำให้ส่ง departmentId จะเสถียรกว่า)
+        const departmentName = String(body.departmentName || "").trim();
 
-        if (
-            !fullName ||
-            !email ||
-            !password ||
-            !confirmPassword ||
-            !departmentName
-        ) {
+        if (!fullName || !email || !password) {
             return NextResponse.json(
                 { ok: false, error: "กรอกข้อมูลให้ครบ" },
                 { status: 400 }
             );
         }
-        if (password !== confirmPassword) {
-            return NextResponse.json(
-                { ok: false, error: "รหัสผ่านไม่ตรงกัน" },
-                { status: 400 }
-            );
-        }
 
-        const existed = await prisma.user.findUnique({ where: { email } });
-        if (existed)
+        const exists = await prisma.user.findUnique({ where: { email } });
+        if (exists)
             return NextResponse.json(
                 { ok: false, error: "อีเมลนี้ถูกใช้แล้ว" },
                 { status: 409 }
             );
 
-        const role = departmentName === PCU_LABEL ? "INTERNAL" : "EXTERNAL";
+        let department = null as { id: number; name: string } | null;
+        if (departmentName) {
+            department = await prisma.department.findUnique({
+                where: { name: departmentName },
+            });
+            if (!department)
+                return NextResponse.json(
+                    { ok: false, error: "ไม่พบหน่วยงาน" },
+                    { status: 400 }
+                );
+        }
 
-        const dept = await prisma.department.upsert({
-            where: { name: departmentName },
-            update: {},
-            create: { name: departmentName, isActive: true },
-            select: { id: true },
-        });
-
-        const passwordHash = await bcrypt.hash(password, 12);
+        const role =
+            department?.name === INTERNAL_DEPT_NAME ? "INTERNAL" : "EXTERNAL";
+        const passwordHash = await bcrypt.hash(password, 10);
 
         const user = await prisma.user.create({
             data: {
                 fullName,
-                phone,
                 email,
+                phone,
                 passwordHash,
                 role,
-                departmentId: dept.id,
+                departmentId: department?.id ?? null,
                 isActive: true,
             },
-            select: { id: true, fullName: true, email: true, role: true },
         });
 
         return NextResponse.json({ ok: true, user }, { status: 201 });
-    } catch (e: any) {
+    } catch (e) {
+        console.error("signup error", e);
         return NextResponse.json(
-            { ok: false, error: e.message ?? "Signup error" },
+            { ok: false, error: "สมัครไม่สำเร็จ" },
             { status: 500 }
         );
     }
