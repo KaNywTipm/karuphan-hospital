@@ -1,16 +1,13 @@
 import { z } from "zod";
-import { ReturnCondition } from "@prisma/client";
 
-export const ApproveSchema = z.object({
-    borrowDate: z.coerce.date().optional(), // default: now
+export const BorrowItemSchema = z.object({
+    equipmentId: z.coerce.number().int().positive(),
+    quantity: z.coerce.number().int().positive().default(1),
 });
 
-export const RejectSchema = z.object({
-    rejectReason: z.string().min(2, "กรอกเหตุผล"),
-});
-
-export const ReturnSchema = z.object({
-    condition: z.nativeEnum(ReturnCondition),
-    notes: z.string().max(2000).optional(),
-    actualReturnDate: z.coerce.date().optional(), // default: now
+export const BorrowCreateSchema = z.object({
+    borrowerType: z.enum(["INTERNAL", "EXTERNAL"]),
+    returnDue: z.string().min(10), // YYYY-MM-DD
+    reason: z.string().nullable().optional(),
+    items: z.array(BorrowItemSchema).min(1),
 });

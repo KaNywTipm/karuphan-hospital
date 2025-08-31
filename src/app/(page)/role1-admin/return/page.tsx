@@ -1,81 +1,80 @@
-'use client';
+"use client";
 
-import React, { useState, useEffect } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { borrowReturnData, updateReturnInfo, type BorrowReturn } from '@/lib/data';
-import Status from '@/components/dropdown/Status';
+import React, { useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import Status from "@/components/dropdown/Status";
 
-// ฟังก์ชันแปลงวันที่จากปีคริสต์ศักราชเป็นปีไทย (พ.ศ.)
-const convertToThaiBuddhistDate = (date: Date): string => {
-    const year = date.getFullYear() + 543; // เพิ่ม 543 เพื่อแปลงเป็น พ.ศ.
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-};
-
-// ฟังก์ชันแปลงวันที่จากปีไทย (พ.ศ.) เป็นปีคริสต์ศักราช
-const convertFromThaiBuddhistDate = (thaiBuddhistDate: string): string => {
-    if (!thaiBuddhistDate) return '';
-    const parts = thaiBuddhistDate.split('-');
-    if (parts.length === 3) {
-        const year = parseInt(parts[0]) - 543; // ลบ 543 เพื่อแปลงเป็น ค.ศ.
-        return `${year}-${parts[1]}-${parts[2]}`;
+// แปลงวัน ค.ศ. -> yyyy-MM-dd(พ.ศ.) สำหรับ input[type=date]
+const isoToBE = (iso?: string | null) => {
+    if (!iso) {
+        const d = new Date();
+        return `${d.getFullYear() + 543}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
     }
-    return thaiBuddhistDate;
+    const d = new Date(iso);
+    return `${d.getFullYear() + 543}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+};
+// yyyy-MM-dd(พ.ศ.) -> yyyy-MM-dd(ค.ศ.)
+const beToCE = (be: string) => {
+    if (!be) return "";
+    const [y, m, d] = be.split("-");
+    return `${Number(y) - 543}-${m}-${d}`;
 };
 
-const ReturnPage = () => {
+export default function ReturnPage() {
     const router = useRouter();
     const searchParams = useSearchParams();
-    const [borrowRequest, setBorrowRequest] = useState<BorrowReturn | null>(null);
-    const [returnCondition, setReturnCondition] = useState<string>('');
-    const [returnNotes, setReturnNotes] = useState<string>('');
+    const id = Number(searchParams.get("id"));
+
+    const [borrowRequest, setBorrowRequest] = useState<any>(null);
     const [selectedStatus, setSelectedStatus] = useState<any>(null);
-    const [actualReturnDate, setActualReturnDate] = useState<string>(
-        convertToThaiBuddhistDate(new Date())
-    );
+    const [returnNotes, setReturnNotes] = useState("");
+    const [actualReturnDate, setActualReturnDate] = useState<string>(isoToBE(null));
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        // ดึงข้อมูลจาก URL params
-        const requestId = searchParams.get('id');
-        if (requestId) {
-            // ค้นหาข้อมูลจาก borrowReturnData
-            const request = borrowReturnData.find(item => item.id === parseInt(requestId));
-            if (request) {
-                setBorrowRequest(request);
+        if (!id || !Number.isFinite(id)) { setLoading(false); return; }
+        (async () => {
+            try {
+                const r = await fetch(`/api/borrow/${id}`, { cache: "no-store" });
+                const j = await r.json().catch(() => ({}));
+                if (r.ok && j?.ok) {
+                    setBorrowRequest(j.data);
+                    // ถ้ามี actualReturnDate เดิม → แปลงขึ้น input
+                    setActualReturnDate(isoToBE(j.data.actualReturnDate));
+                } else {
+                    alert(j?.error ?? "โหลดคำขอไม่สำเร็จ");
+                }
+            } catch {
+                alert("โหลดคำขอไม่สำเร็จ");
+            } finally {
+                setLoading(false);
             }
-        }
-    }, [searchParams]);
+        })();
+    }, [id]);
 
-    const handleReturn = () => {
-        if (borrowRequest && selectedStatus) {
-            // แปลงวันที่กลับเป็นปีคริสต์ศักราชก่อนบันทึก
-            const christianDate = convertFromThaiBuddhistDate(actualReturnDate);
-
-            // บันทึกข้อมูลการคืนพร้อมสภาพครุภัณฑ์
-            const updatedRequest = updateReturnInfo(borrowRequest.id, {
-                returnCondition: selectedStatus.label as BorrowReturn['returnCondition'],
-                returnNotes: returnNotes,
-                actualReturnDate: christianDate,
-                receivedBy: 'บางจิน รอดรวง'
+    const handleReturn = async () => {
+        if (!borrowRequest || !selectedStatus) return;
+        try {
+            const r = await fetch(`/api/borrow/${id}/return`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    actualReturnDate: beToCE(actualReturnDate),
+                    returnCondition: selectedStatus.label, // "ปกติ", "ชำรุด", "สูญหาย", "รอจำหน่าย", "จำหน่ายแล้ว" -> map ใน API แล้ว
+                    returnNotes,
+                }),
             });
-
-            if (updatedRequest) {
-                console.log('Item returned:', updatedRequest);
-                console.log('Return condition:', selectedStatus.label);
-                console.log('Return notes:', returnNotes);
-
-                // กลับไปหน้า role1-admin และไปที่ tab "คืนแล้ว"
-                router.push('/role1-admin');
-            }
+            const j = await r.json().catch(() => ({}));
+            if (!r.ok || !j?.ok) return alert(j?.error ?? "บันทึกรับคืนไม่สำเร็จ");
+            router.push("/role1-admin"); // กลับไปแท็บ "คืนแล้ว" ได้ตามที่หน้า list จัดการ
+        } catch {
+            alert("บันทึกรับคืนไม่สำเร็จ");
         }
     };
 
-    const handleCancel = () => {
-        router.push('/role1-admin');
-    };
+    const handleCancel = () => router.push("/role1-admin");
 
-    if (!borrowRequest) {
+    if (loading) {
         return (
             <div className="min-h-screen bg-gray-100 flex items-center justify-center">
                 <div className="text-center">
@@ -84,6 +83,9 @@ const ReturnPage = () => {
                 </div>
             </div>
         );
+    }
+    if (!borrowRequest) {
+        return <div className="p-6">ไม่พบคำขอ</div>;
     }
 
     return (
@@ -98,103 +100,67 @@ const ReturnPage = () => {
             {/* Main Content */}
             <div className="p-6">
                 <div className="bg-white rounded-lg shadow-lg max-w-4xl mx-auto">
-                    {/* Form Header */}
                     <div className="bg-white rounded-t-lg p-6">
                         <h2 className="text-xl font-semibold text-gray-800 mb-6">
-                            รายการยืมรอคืน
+                            รายการยืมรอคืน #{borrowRequest.id}
                         </h2>
 
-                        {/* Equipment Table */}
+                        {/* Equipment Table (ดีไซน์เดิม) */}
                         <div className="mb-6">
                             <table className="w-full border-collapse">
                                 <thead>
                                     <tr className="bg-red-300">
-                                        <th className="border border-gray-300 px-4 py-2 text-left text-sm font-medium text-gray-700">
-                                            ลำดับ
-                                        </th>
-                                        <th className="border border-gray-300 px-4 py-2 text-left text-sm font-medium text-gray-700">
-                                            ชื่อครุภัณฑ์
-                                        </th>
-                                        <th className="border border-gray-300 px-4 py-2 text-left text-sm font-medium text-gray-700">
-                                            กำหนดคืน
-                                        </th>
-                                        <th className="border border-gray-300 px-4 py-2 text-left text-sm font-medium text-gray-700">
-                                            สภาพ
-                                        </th>
+                                        <th className="border border-gray-300 px-4 py-2 text-left text-sm font-medium text-gray-700">ลำดับ</th>
+                                        <th className="border border-gray-300 px-4 py-2 text-left text-sm font-medium text-gray-700">ชื่อครุภัณฑ์</th>
+                                        <th className="border border-gray-300 px-4 py-2 text-left text-sm font-medium text-gray-700">กำหนดคืน</th>
+                                        <th className="border border-gray-300 px-4 py-2 text-left text-sm font-medium text-gray-700">สภาพ</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <tr>
-                                        <td className="border border-gray-300 px-4 py-3 text-sm text-gray-900">
-                                            1
-                                        </td>
-                                        <td className="border border-gray-300 px-4 py-3 text-sm text-gray-900">
-                                            {borrowRequest.equipmentName}
-                                        </td>
-                                        <td className="border border-gray-300 px-4 py-3 text-sm text-gray-900">
-                                            {borrowRequest.returnDate}
-                                        </td>
-                                        <td className="border border-gray-300 px-4 py-3 text-sm text-gray-900">
-                                            {/* Status Dropdown */}
-                                            <select
-                                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                                value={selectedStatus?.id || ''}
-                                                onChange={(e) => {
-                                                    const statusId = parseInt(e.target.value);
-                                                    const status = Status[0].items.find(item => item.id === statusId);
-                                                    setSelectedStatus(status);
-                                                }}
-                                            >
-                                                <option value="">เลือกสภาพ</option>
-                                                {Status[0].items.map((status) => (
-                                                    <option key={status.id} value={status.id}>
-                                                        {status.label}
-                                                    </option>
-                                                ))}
-                                            </select>
-                                        </td>
-                                    </tr>
+                                    {borrowRequest.items.map((it: any, idx: number) => (
+                                        <tr key={it.number}>
+                                            <td className="border border-gray-300 px-4 py-3 text-sm text-gray-900">{idx + 1}</td>
+                                            <td className="border border-gray-300 px-4 py-3 text-sm text-gray-900">{it.name}</td>
+                                            <td className="border border-gray-300 px-4 py-3 text-sm text-gray-900">
+                                                {borrowRequest.returnDue
+                                                    ? new Date(borrowRequest.returnDue).toLocaleDateString("th-TH")
+                                                    : "-"}
+                                            </td>
+                                            <td className="border border-gray-300 px-4 py-3 text-sm text-gray-900">
+                                                <select
+                                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                                    value={selectedStatus?.id || ""}
+                                                    onChange={(e) => {
+                                                        const id = parseInt(e.target.value);
+                                                        const status = Status[0].items.find(s => s.id === id);
+                                                        setSelectedStatus(status ?? null);
+                                                    }}
+                                                >
+                                                    <option value="">เลือกสภาพ</option>
+                                                    {Status[0].items.map(s => (
+                                                        <option key={s.id} value={s.id}>{s.label}</option>
+                                                    ))}
+                                                </select>
+                                            </td>
+                                        </tr>
+                                    ))}
                                 </tbody>
                             </table>
                         </div>
 
-                        {/* Return Information */}
+                        {/* ข้อมูลประกอบ (ดีไซน์เดิม) */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                            {/* Left Column */}
                             <div className="space-y-4">
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        วันที่ยืม {borrowRequest.borrowDate || 'ไม่ระบุ'}
-                                    </label>
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        กำหนดคืน {borrowRequest.returnDate}
-                                    </label>
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        บุคลากร {borrowRequest.department}
-                                    </label>
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        ผู้ยืม {borrowRequest.borrowerName}
-                                    </label>
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        เหตุผลที่ยืม {borrowRequest.reason}
-                                    </label>
-                                </div>
+                                <div>วันที่ยืม {borrowRequest.borrowDate ? new Date(borrowRequest.borrowDate).toLocaleDateString("th-TH") : "ไม่ระบุ"}</div>
+                                <div>กำหนดคืน {borrowRequest.returnDue ? new Date(borrowRequest.returnDue).toLocaleDateString("th-TH") : "-"}</div>
+                                <div>บุคลากร {borrowRequest.department}</div>
+                                <div>ผู้ยืม {borrowRequest.borrowerName}</div>
+                                <div>เหตุผลที่ยืม {borrowRequest.reason ?? "-"}</div>
                             </div>
 
-                            {/* Right Column */}
                             <div className="space-y-4">
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        วันที่คืน
-                                    </label>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">วันที่คืน</label>
                                     <input
                                         type="date"
                                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -204,9 +170,7 @@ const ReturnPage = () => {
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        เหตุผลคืน
-                                    </label>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">เหตุผลคืน</label>
                                     <textarea
                                         className="w-full px-3 py-2 border border-gray-300 rounded-md h-20 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
                                         placeholder="ระบุเหตุผลหรือหมายเหตุ..."
@@ -215,24 +179,21 @@ const ReturnPage = () => {
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        ผู้รับคืน
-                                    </label>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">ผู้รับคืน</label>
                                     <div className="bg-gray-200 rounded px-3 py-2 text-sm text-gray-700">
-                                        บางจิน รอดรวง
+                                        {/* ชื่อผู้รับคืนจริงจะมาจาก session ฝั่ง API บันทึกเป็น receivedById อยู่แล้ว */}
+                                        เจ้าหน้าที่ผู้รับคืน
                                     </div>
                                 </div>
                             </div>
                         </div>
 
-                        {/* Action Buttons */}
+                        {/* ปุ่ม */}
                         <div className="flex justify-start gap-4">
                             <button
                                 onClick={handleReturn}
                                 disabled={!selectedStatus}
-                                className={`px-6 py-2 rounded-lg font-medium transition-colors ${selectedStatus
-                                    ? 'bg-blue-500 hover:bg-blue-600 text-white'
-                                    : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                className={`px-6 py-2 rounded-lg font-medium transition-colors ${selectedStatus ? "bg-blue-500 hover:bg-blue-600 text-white" : "bg-gray-300 text-gray-500 cursor-not-allowed"
                                     }`}
                             >
                                 บันทึก
@@ -249,6 +210,4 @@ const ReturnPage = () => {
             </div>
         </div>
     );
-};
-
-export default ReturnPage;
+}

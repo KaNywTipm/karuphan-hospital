@@ -1,45 +1,64 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { guardApi } from "@/lib/api-guard";
-import { ApproveSchema } from "@/lib/validators/borrow";
+import { auth } from "@/lib/auth";
 
 export async function PATCH(
-    req: Request,
+    _: Request,
     { params }: { params: { id: string } }
 ) {
-    const ses = await guardApi(["ADMIN"]);
-    if (ses instanceof Response) return ses;
+    const session = await auth();
+    if (!session)
+        return NextResponse.json(
+            { ok: false, error: "unauthorized" },
+            { status: 401 }
+        );
+    const meId = Number((session.user as any).id);
+    const role = String((session.user as any).role || "");
+    if (role !== "ADMIN")
+        return NextResponse.json(
+            { ok: false, error: "forbidden" },
+            { status: 403 }
+        );
 
     const id = Number(params.id);
-    const body = ApproveSchema.safeParse(await req.json().catch(() => ({})));
-    if (!body.success)
+    if (!Number.isFinite(id))
+        return NextResponse.json({ ok: false, error: "bad_id" }, { status: 400 });
+
+    const req = await prisma.borrowRequest.findUnique({
+        where: { id },
+        include: { items: true },
+    });
+    if (!req)
         return NextResponse.json(
-            { ok: false, error: body.error.flatten() },
+            { ok: false, error: "not_found" },
+            { status: 404 }
+        );
+    if (req.status !== "PENDING")
+        return NextResponse.json(
+            { ok: false, error: "invalid_status" },
             { status: 400 }
         );
 
-    const adminId = Number((ses as any).user?.id);
+    await prisma.$transaction(async (tx) => {
+        // เปลี่ยนสถานะครุภัณฑ์เป็น IN_USE
+        for (const it of req.items) {
+            await tx.equipment.update({
+                where: { number: it.equipmentId },
+                data: { status: "IN_USE" },
+            });
+        }
 
-    const updated = await prisma.$transaction(async (tx) => {
-        const br = await tx.borrowRequest.update({
+        await tx.borrowRequest.update({
             where: { id },
             data: {
                 status: "APPROVED",
+                borrowDate: new Date(),
+                approvedById: meId,
                 approvedAt: new Date(),
-                approvedById: adminId,
-                borrowDate: body.data.borrowDate ?? new Date(),
+                rejectReason: null,
             },
-            include: { items: true },
         });
-
-        // อัปเดตสถานะครุภัณฑ์ทุกชิ้นในคำขอเป็น IN_USE
-        await tx.equipment.updateMany({
-            where: { number: { in: br.items.map((i) => i.equipmentId) } },
-            data: { status: "IN_USE" },
-        });
-
-        return br;
     });
 
-    return NextResponse.json({ ok: true, data: { id: updated.id } });
+    return NextResponse.json({ ok: true });
 }

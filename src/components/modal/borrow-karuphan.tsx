@@ -43,8 +43,8 @@ interface BorrowKaruphanProps {
 }
 
 const BorrowKaruphan = ({ onClose, onBorrow, selectedEquipment, cartItems }: BorrowKaruphanProps) => {
-    const [me, setMe] = useState<Me | null>(null);
 
+    const [me, setMe] = useState<Me | null>(null);
     const [borrowDate] = useState<string>(toInputDate(new Date()));
     const [returnDate, setReturnDate] = useState<string>("");
     const [reason, setReason] = useState<string>("");
@@ -70,19 +70,45 @@ const BorrowKaruphan = ({ onClose, onBorrow, selectedEquipment, cartItems }: Bor
 
     const handleClose = () => onClose?.();
 
+    // เพิ่มฟังก์ชัน handleBorrow สำหรับการส่งคำขอยืม
+    async function handleBorrow({ returnDue, reason }: { returnDue: string; reason: string }) {
+        if (!cartItems || cartItems.length === 0) {
+            alert("ไม่มีรายการในตะกร้า");
+            return;
+        }
+        const items = cartItems.map(ci => ({
+            equipmentId: ci.id,
+            quantity: Number(ci.quantity ?? 1),
+        }));
+        const body = {
+            borrowerType: "INTERNAL",
+            returnDue,
+            reason: reason?.trim() || null,
+            items,
+        };
+        try {
+            const res = await fetch("/api/borrow", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(body),
+            });
+            const j = await res.json().catch(() => ({}));
+            if (!res.ok || !j?.ok) {
+                alert(typeof j?.error === "string" ? j.error : JSON.stringify(j?.error ?? j, null, 2));
+                return;
+            }
+            alert("บันทึกคำขอยืมสำเร็จ");
+            // TODO: เคลียร์ตะกร้า/รีเฟรชตามเหมาะสม...
+        } catch (err) {
+            alert("เกิดข้อผิดพลาดในการส่งคำขอยืม");
+        }
+    }
+
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         if (!returnDate) return;
-
         // ส่งวันที่แบบ ค.ศ. ให้ API (YYYY-MM-DD)
-        const payload = {
-            returnDue: returnDate,
-            reason: reason.trim(),
-            borrowerName: me?.fullName,
-            department: me?.department?.name ?? (me?.role === "EXTERNAL" ? "บุคคลภายนอก" : "-"),
-        };
-
-        onBorrow?.(payload);
+        handleBorrow({ returnDue: returnDate, reason });
     };
 
     return (
@@ -186,13 +212,13 @@ const BorrowKaruphan = ({ onClose, onBorrow, selectedEquipment, cartItems }: Bor
                     <div className="flex justify-center gap-4 mt-6">
                         <button
                             type="submit"
-                            className="bg-BlueLight hover:bg-teal-500 text-white px-6 py-2 rounded-md font-medium transition-colors"
+                            className="bg-BlueLight hover:bg-Green text-white px-6 py-2 rounded-md font-medium transition-colors"
                         >
                             บันทึก
                         </button>
                         <button
                             type="button"
-                            className="bg-RedLight hover:bg-red-500 text-white px-6 py-2 rounded-md font-medium transition-colors"
+                            className="bg-RedLight hover:bg-Red text-white px-6 py-2 rounded-md font-medium transition-colors"
                             onClick={handleClose}
                         >
                             ยกเลิก
