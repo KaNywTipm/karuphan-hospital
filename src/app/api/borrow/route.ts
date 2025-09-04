@@ -17,7 +17,6 @@ export async function GET() {
         },
     });
 
-    // map ให้ตรงกับคอลัมน์ในตาราง (join ชื่อ/เลขครุภัณฑ์แบบ ',' ได้)
     const data = rows.map((r) => ({
         id: r.id,
         status: r.status,

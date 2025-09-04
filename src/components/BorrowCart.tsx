@@ -128,7 +128,7 @@ const BorrowCart = ({
                                     Promise.resolve(
                                         onBorrowSubmit({
                                             ...borrowData,
-                                            equipmentId: item.id,   // ✅ ใช้ id ให้ตรง DB
+                                            equipmentId: item.id,
                                             equipmentCode: item.code,
                                             quantity: item.quantity ?? 1,
                                             borrowerType,
