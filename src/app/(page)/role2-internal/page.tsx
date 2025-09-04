@@ -194,7 +194,7 @@ export default function InternalBorrowPage() {
                                     className="px-4 py-2 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500"
                                 >
                                     <option value="">ทุกหมวดหมู่</option>
-                                    {categories.map((c) => (
+                                    {(Array.isArray(categories) ? categories : Array.isArray((categories as any)?.data) ? (categories as any).data : []).map((c: { id: number, name: string }) => (
                                         <option key={c.id} value={String(c.id)}>{c.name}</option>
                                     ))}
                                 </select>

@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { signOut, useSession } from "next-auth/react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 
 type Role = "ADMIN" | "INTERNAL" | "EXTERNAL";
 type MenuItem = {
@@ -18,37 +18,37 @@ const MENU: { title: string; items: MenuItem[] }[] = [
   {
     title: "MENU",
     items: [
-      { icon: "/list.png",  label: "รายการยืมคืนครุภัณฑ์", href: "/role1-admin",           visible: ["ADMIN"] },
-      { icon: "/list.png",  label: "รายการยืมครุภัณฑ์",    href: "/role2-internal",        visible: ["INTERNAL"] },
-      { icon: "/list.png",  label: "รายการยืมครุภัณฑ์",    href: "/role3-external",        visible: ["EXTERNAL"] },
-      { icon: "/chart.png", label: "แดชบอร์ด",              href: "/menu/dashboard",        visible: ["ADMIN"] },
+      { icon: "/list.png", label: "รายการยืมคืนครุภัณฑ์", href: "/role1-admin", visible: ["ADMIN"] },
+      { icon: "/list.png", label: "รายการยืมครุภัณฑ์", href: "/role2-internal", visible: ["INTERNAL"] },
+      { icon: "/list.png", label: "รายการยืมครุภัณฑ์", href: "/role3-external", visible: ["EXTERNAL"] },
+      { icon: "/chart.png", label: "แดชบอร์ด", href: "/menu/dashboard", visible: ["ADMIN"] },
       {
         icon: "/status.png",
         label: "รายงานสรุปผล",
         href: "#",
         visible: ["ADMIN"],
         subItems: [
-          { icon: "/plus.png", label: "รายงานการยืมคืน",         href: "/menu/report1-borrow_return",   visible: ["ADMIN"] },
-          { icon: "/plus.png", label: "รายงานครุภัณฑ์ที่ถูกยกเลิก", href: "/menu/report2-not_approve",     visible: ["ADMIN"] },
-          { icon: "/plus.png", label: "รายงานสถานะของครุภัณฑ์",   href: "/menu/report3-status_karuphan", visible: ["ADMIN"] },
-          { icon: "/plus.png", label: "สรุปยอดครุภัณฑ์",           href: "/menu/report4-total_amount",    visible: ["ADMIN"] },
+          { icon: "/plus.png", label: "รายงานการยืมคืน", href: "/menu/report1-borrow_return", visible: ["ADMIN"] },
+          { icon: "/plus.png", label: "รายงานครุภัณฑ์ที่ถูกยกเลิก", href: "/menu/report2-not_approve", visible: ["ADMIN"] },
+          { icon: "/plus.png", label: "รายงานสถานะของครุภัณฑ์", href: "/menu/report3-status_karuphan", visible: ["ADMIN"] },
+          { icon: "/plus.png", label: "สรุปยอดครุภัณฑ์", href: "/menu/report4-total_amount", visible: ["ADMIN"] },
         ],
       },
-      { icon: "/report.png", label: "ประวัติการยืมครุภัณฑ์", href: "/menu/user_history",            visible: ["INTERNAL","EXTERNAL"] },
-      { icon: "/status.png", label: "สถานะการยืมครุภัณฑ์",   href: "/menu/userExternal-status-borrow", visible: ["EXTERNAL"] },
+      { icon: "/report.png", label: "ประวัติการยืมครุภัณฑ์", href: "/menu/user_history", visible: ["INTERNAL", "EXTERNAL"] },
+      { icon: "/status.png", label: "สถานะการยืมครุภัณฑ์", href: "/menu/userExternal-status-borrow", visible: ["EXTERNAL"] },
       {
         icon: "/data.png",
         label: "จัดการครุภัณฑ์",
         href: "#",
         visible: ["ADMIN"],
         subItems: [
-          { icon: "/list.png", label: "รายการครุภัณฑ์",   href: "/menu/list-karuphan",     visible: ["ADMIN"] },
+          { icon: "/list.png", label: "รายการครุภัณฑ์", href: "/menu/list-karuphan", visible: ["ADMIN"] },
           { icon: "/edit.png", label: "เพิ่มหมวดหมู่ครุภัณฑ์", href: "/menu/category-karuphan", visible: ["ADMIN"] },
         ],
       },
-      { icon: "/person.png", label: "จัดการบุคลากร",  href: "/menu/manage-personnel", visible: ["ADMIN"] },
-      { icon: "/person.png", label: "แก้ไขโปรไฟล์",   href: "/menu/user_edit-profile", visible: ["INTERNAL","EXTERNAL"] },
-      { icon: "/out.png",    label: "ออกจากระบบ",     href: "/sign-in",                 visible: ["ADMIN","INTERNAL","EXTERNAL"] },
+      { icon: "/person.png", label: "จัดการบุคลากร", href: "/menu/manage-personnel", visible: ["ADMIN"] },
+      { icon: "/person.png", label: "แก้ไขโปรไฟล์", href: "/menu/user_edit-profile", visible: ["INTERNAL", "EXTERNAL"] },
+      { icon: "/out.png", label: "ออกจากระบบ", href: "/sign-in", visible: ["ADMIN", "INTERNAL", "EXTERNAL"] },
     ],
   },
 ];
@@ -66,7 +66,7 @@ export default function Menu() {
   const [openSubMenus, setOpenSubMenus] = useState<string[]>([]);
 
   // ดึงโปรไฟล์จริงจาก API
-  async function fetchMe() {
+  const fetchMe = useCallback(async () => {
     try {
       const r = await fetch(`/api/users/me?t=${Date.now()}`, { cache: "no-store" });
       const j = await r.json().catch(() => ({}));
@@ -83,18 +83,18 @@ export default function Menu() {
       }
     } catch {
     }
-  }
+  }, [session]);
 
   // โหลดเมื่อ auth พร้อม และรีเฟรชเมื่อมีการแก้โปรไฟล์ (ยิง event "me:updated")
   useEffect(() => {
     if (status === "authenticated") fetchMe();
-  }, [status]);
+  }, [status, fetchMe]);
 
   useEffect(() => {
     const onUpdated = () => fetchMe();
     window.addEventListener("me:updated", onUpdated);
     return () => window.removeEventListener("me:updated", onUpdated);
-  }, []);
+  }, [fetchMe]);
 
   // role ที่ใช้ filter เมนู
   const role: Role = useMemo(
