@@ -39,7 +39,8 @@ export default function CategoryKaruphan() {
             const res = await fetch("/api/categories", { cache: "no-store" });
             const data = await res.json();
             if (!res.ok) throw new Error(data?.error || "โหลดข้อมูลไม่สำเร็จ");
-            setItems(data);
+            // API now returns { ok: true, data: [...] }
+            setItems(Array.isArray(data.data) ? data.data : []);
             setError(null);
         } catch (e: any) {
             setError(e.message);

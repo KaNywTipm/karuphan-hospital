@@ -208,7 +208,7 @@ export default function EditPersonnel({ user, onClose, onSave }: Props) {
                             {/* กลุ่มงาน */}
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    กลุ่มงาน (เลือกได้ถ้ามี)
+                                    กลุ่มงาน
                                 </label>
                                 <select
                                     value={form.departmentId}

@@ -2,12 +2,29 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { CategoryCreateSchema } from "@/lib/validators/category";
 
-export async function GET() {
-    const categories = await prisma.category.findMany({
-        where: { isActive: true },
-        orderBy: { createdAt: "desc" },
-    });
-    return NextResponse.json(categories);
+export async function GET(req: Request) {
+    try {
+        const url = new URL(req.url);
+        const q = url.searchParams.get("q") || "";
+        const activeOnly = url.searchParams.get("activeOnly");
+
+        const rows = await prisma.category.findMany({
+            where: {
+                ...(activeOnly ? { isActive: true } : {}),
+                name: { contains: q, mode: "insensitive" },
+            },
+            select: { id: true, name: true, description: true, isActive: true },
+            orderBy: { name: "asc" },
+        });
+
+        return NextResponse.json(
+            { ok: true, data: rows },
+            { headers: { "Cache-Control": "no-store" } }
+        );
+    } catch (e: any) {
+        console.error("GET /api/categories error:", e);
+        return NextResponse.json({ ok: false, error: "failed" }, { status: 500 });
+    }
 }
 
 export async function POST(req: Request) {
