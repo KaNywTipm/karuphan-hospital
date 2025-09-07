@@ -1,5 +1,6 @@
 "use client";
 import Image from "next/image";
+import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Editpersonnel from "@/components/modal/Edit-personnel";
@@ -68,8 +69,8 @@ export default function Managepersonnel() {
         const list: UserRow[] = Array.isArray(j.items)
           ? j.items
           : Array.isArray(j.data)
-          ? j.data
-          : [];
+            ? j.data
+            : [];
         setUsers(list);
       } else {
         console.warn("load users failed:", j);
@@ -239,7 +240,15 @@ export default function Managepersonnel() {
                   currentPageData.map((user, index) => (
                     <tr key={user.id} className="border-b hover:bg-gray-50">
                       <td className="px-4 py-3 text-sm text-gray-900">{startIndex + index + 1}</td>
-                      <td className="px-4 py-3 text-sm text-gray-900">{user.fullName}</td>
+                      <td className="px-4 py-3 text-sm text-gray-900">
+                        {user.role === "ADMIN" ? (
+                          user.fullName
+                        ) : (
+                          <Link href={`/admin/users/${user.id}`} className="text-blue-600 hover:underline">
+                            {user.fullName}
+                          </Link>
+                        )}
+                      </td>
                       <td className="px-4 py-3 text-sm text-gray-900">
                         {displayUnitLabel(user.role.toLowerCase() as any)}
                       </td>
