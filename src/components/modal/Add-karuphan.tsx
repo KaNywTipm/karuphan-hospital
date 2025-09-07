@@ -31,7 +31,7 @@ export default function Addkaruphan({ onClose, onAdd }: Props) {
     const [loading, setLoading] = useState(true);
 
     const [form, setForm] = useState({
-        categoryId: 0,
+        categoryId: "",
         code: "",
         idnum: "",
         name: "",
@@ -39,6 +39,12 @@ export default function Addkaruphan({ onClose, onAdd }: Props) {
         price: "",
         receivedDateBE: todayBE(), // แสดง/กรอกเป็น พ.ศ.
     });
+
+    // Normalize categories to always be an array of Category
+    const list: Category[] =
+        Array.isArray(categories) ? categories :
+            Array.isArray((categories as any)?.data) ? (categories as any).data :
+                [];
 
     useEffect(() => {
         (async () => {
@@ -94,12 +100,12 @@ export default function Addkaruphan({ onClose, onAdd }: Props) {
                             <select
                                 className="form-input border border-gray-300 rounded px-2 py-1 w-full"
                                 value={form.categoryId}
-                                onChange={(e) => setForm(s => ({ ...s, categoryId: Number(e.target.value) }))}
+                                onChange={(e) => setForm(s => ({ ...s, categoryId: e.target.value }))}
                                 required
                             >
-                                <option value={0} disabled>เลือกหมวดหมู่</option>
-                                {categories.map((c) => (
-                                    <option key={c.id} value={c.id}>{c.name}</option>
+                                <option value="" disabled>เลือกหมวดหมู่</option>
+                                {list.map((c) => (
+                                    <option key={c.id} value={String(c.id)}>{c.name}</option>
                                 ))}
                             </select>
                         </FormRow>
