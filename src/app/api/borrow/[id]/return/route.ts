@@ -1,10 +1,10 @@
+// src/app/api/borrow/[id]/return/route.ts
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
-/** รองรับทั้ง TH/EN และ enum ตรง ๆ */
 function toReturnCondition(input: any):
     "NORMAL" | "BROKEN" | "LOST" | "WAIT_DISPOSE" | "DISPOSED" | null {
     if (!input) return "NORMAL";
@@ -18,8 +18,6 @@ function toReturnCondition(input: any):
         default: return null;
     }
 }
-
-/** แปลงวันที่ (กันเคส พ.ศ. และ YYYY-MM-DD) */
 function normalizeDate(d?: string | null) {
     if (!d) return new Date();
     if (/^\d{4}-\d{2}-\d{2}$/.test(d)) {
@@ -31,48 +29,38 @@ function normalizeDate(d?: string | null) {
     return isNaN(iso.getTime()) ? new Date() : iso;
 }
 
-async function handleReturn(req: Request, params: { id: string }) {
-    // 1) ตรวจสิทธิ์
+async function handle(req: Request, idParam: string) {
     const session: any = await auth();
     if (!session) return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
     const role = String(session.role ?? session.user?.role ?? "").toUpperCase();
     if (role !== "ADMIN") return NextResponse.json({ ok: false, error: "forbidden" }, { status: 403 });
 
-    const id = Number(params.id);
-    if (!Number.isFinite(id)) return NextResponse.json({ ok: false, error: "invalid id" }, { status: 400 });
-
-    // 2) รับ payload
-    const body = await req.json().catch(() => ({}));
-    const returnedAt = normalizeDate(body.actualReturnDate ?? body.returnedAt);
-    const cond = toReturnCondition(body.returnCondition ?? body.condition);
-    const notes: string | undefined = body.returnNotes ?? body.notes ?? undefined;
+    const id = Number(idParam);
+    const payload = await req.json().catch(() => ({}));
+    const returnedAt = normalizeDate(payload.actualReturnDate ?? payload.returnedAt);
+    const cond = toReturnCondition(payload.returnCondition ?? payload.condition);
+    const notes: string | undefined = payload.returnNotes ?? payload.notes ?? undefined;
     if (!cond) return NextResponse.json({ ok: false, error: "invalid returnCondition" }, { status: 400 });
 
     const receiverId = Number((session.user as any)?.id || 0) || null;
 
     try {
-        const updated = await prisma.$transaction(async (tx) => {
-            // 3) ดึงคำขอ
-            const br = await tx.borrowRequest.findUnique({
-                where: { id },
-                include: { items: true },
-            });
-            if (!br) throw new Error("not_found");
-            if (br.status !== "APPROVED") throw new Error("only_approved");
+        const br = await prisma.borrowRequest.findUnique({ where: { id }, include: { items: true } });
+        if (!br) return NextResponse.json({ ok: false, error: "not-found" }, { status: 404 });
+        if (br.status !== "APPROVED") return NextResponse.json({ ok: false, error: "only-approved" }, { status: 400 });
 
-            // 4) อัปเดตคำขอเป็น RETURNED
-            const u = await tx.borrowRequest.update({
+        await prisma.$transaction(async (tx) => {
+            await tx.borrowRequest.update({
                 where: { id },
                 data: {
                     status: "RETURNED",
-                    actualReturnDate: returnedAt,    // ถ้า schema ไม่มี ให้ลบฟิลด์นี้ออก
-                    returnCondition: cond,           // ต้องมี enum ใน model
+                    actualReturnDate: returnedAt as any,
+                    returnCondition: cond as any,
                     returnNotes: notes,
-                    receivedById: receiverId,        // ถ้าไม่มี FK นี้ ให้ตัดออก
+                    receivedById: receiverId as any,
                 },
             });
 
-            // 5) อัปเดตสถานะครุภัณฑ์ตามผลคืน (อ้างอิงด้วย number)
             const equipmentStatus =
                 cond === "BROKEN" ? "BROKEN" :
                     cond === "LOST" ? "LOST" :
@@ -82,44 +70,33 @@ async function handleReturn(req: Request, params: { id: string }) {
             await Promise.all(
                 br.items.map((it) =>
                     tx.equipment.update({
-                        where: { number: it.equipmentId }, // ✅ ใช้ number ตามสคีมาของคุณ
-                        data: { status: equipmentStatus },
+                        where: { number: it.equipmentId }, // อ้างอิง number
+                        data: { status: equipmentStatus as any },
                     })
                 )
             );
 
-            // (อ็อปชัน) บันทึก log
+            // ถ้ามีตาราง auditLog ค่อยบันทึก (ไม่มีจะ throw → ล้อม try/catch)
             try {
                 await tx.auditLog.create({
                     data: {
-                        userId: receiverId,
+                        userId: receiverId as any,
                         action: "RETURN",
                         tableName: "BorrowRequest",
                         recordId: id,
-                        oldValue: { status: br.status },
-                        newValue: { status: "RETURNED", returnCondition: cond },
+                        oldValue: { status: br.status } as any,
+                        newValue: { status: "RETURNED", returnCondition: cond } as any,
                     },
                 });
-            } catch { /* ไม่มีตารางก็ข้ามได้ */ }
-
-            return u;
+            } catch { }
         });
 
-        return NextResponse.json({ ok: true, data: updated });
-    } catch (e: any) {
-        if (e?.message === "not_found")
-            return NextResponse.json({ ok: false, error: "not found" }, { status: 404 });
-        if (e?.message === "only_approved")
-            return NextResponse.json({ ok: false, error: "only-approved" }, { status: 400 });
+        return NextResponse.json({ ok: true });
+    } catch (e) {
         console.error("return error:", e);
         return NextResponse.json({ ok: false, error: "server error" }, { status: 500 });
     }
 }
 
-// รองรับทั้ง PATCH (ของเดิม) และ POST (ของใหม่)
-export async function PATCH(req: Request, { params }: { params: { id: string } }) {
-    return handleReturn(req, params);
-}
-export async function POST(req: Request, { params }: { params: { id: string } }) {
-    return handleReturn(req, params);
-}
+export async function PATCH(req: Request, { params }: { params: { id: string } }) { return handle(req, params.id); }
+export async function POST(req: Request, { params }: { params: { id: string } }) { return handle(req, params.id); }

@@ -38,7 +38,7 @@ export async function GET(req: Request, { params }: { params: { userId: string }
             include: {
                 items: {
                     include: {
-                        equipment: { select: { number: true, name: true } }, // ใช้ number ตามสคีมาของคุณ
+                        equipment: { select: { number: true, name: true } },
                     },
                 },
             },

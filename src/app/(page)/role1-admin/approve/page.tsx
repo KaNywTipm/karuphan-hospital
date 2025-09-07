@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
-// แปลงวันที่ ISO -> แสดงแบบไทยอ่านง่าย
+// แปลงวันที่ ISO -> แสดงแบบไทย
 const fmtTH = (iso?: string | null) => {
     if (!iso) return "-";
     try {
@@ -102,15 +102,16 @@ export default function ApprovePage() {
                             <button onClick={onApprove} className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg">
                                 อนุมัติ
                             </button>
-                            <input
-                                value={rejectReason}
-                                onChange={(e) => setRejectReason(e.target.value)}
-                                placeholder="เหตุผลไม่อนุมัติ (ถ้าไม่อนุมัติ)"
-                                className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                            />
                             <button onClick={onReject} className="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-lg">
                                 ไม่อนุมัติ
                             </button>
+                            <input
+                                value={rejectReason}
+                                onChange={(e) => setRejectReason(e.target.value)}
+                                placeholder="เหตุผลไม่อนุมัติ"
+                                className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            />
+                            
                         </div>
                     </div>
                 </div>

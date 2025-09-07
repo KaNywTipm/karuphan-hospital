@@ -4,7 +4,13 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import BorrowCart from "@/components/BorrowCart";
 
-type Category = { id: number; name: string };
+type Category = { id: number | string; name: string };
+
+function asList<T = any>(v: any): T[] {
+    if (Array.isArray(v)) return v;
+    if (Array.isArray(v?.data)) return v.data;
+    return [];
+}
 type EquipFromApi = {
     number: number; code: string; name: string;
     description?: string | null; receivedDate: string;
@@ -21,6 +27,8 @@ const itemsPerPage = 5;
 
 export default function ExternalBorrowPage() {
     const [categories, setCategories] = useState<Category[]>([]);
+    // normalize categories
+    const list: Category[] = asList(categories);
     const [items, setItems] = useState<RowUI[]>([]);
     const [loading, setLoading] = useState(true);
 
@@ -156,7 +164,11 @@ export default function ExternalBorrowPage() {
                                     className="px-4 py-2 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500"
                                 >
                                     <option value="">ทุกหมวดหมู่</option>
-                                    {categories.map((c) => <option key={c.id} value={String(c.id)}>{c.name}</option>)}
+                                    {list.map((c) => (
+                                        <option key={String(c.id)} value={String(c.id)}>
+                                            {c.name}
+                                        </option>
+                                    ))}
                                 </select>
                             </div>
 

@@ -1,127 +1,177 @@
 "use client";
-import React, { useState } from 'react';
-import Image from 'next/image';
+import React, { useEffect, useMemo, useState } from "react";
+import Image from "next/image";
 
-// ข้อมูลจำลองสำหรับสถานะการยืมของผู้ใช้ภายนอก
-const externalBorrowData = [
-    {
-        id: 1,
-        borrowDate: '03/01/2025',
-        returnDate: '-',
-        borrowerName: 'นายพิสิฐ',
-        equipmentName: 'ชื่อครุภัณฑ์',
-        status: 'รออนุมัติ',
-        reason: 'กล่องเก็บการ์ด'
-    },
-    {
-        id: 2,
-        borrowDate: '29/02/2025',
-        returnDate: '-',
-        borrowerName: 'นายพิสิฐ',
-        equipmentName: 'ชื่อครุภัณฑ์',
-        status: 'อนุมัติ',
-        reason: 'กล่องเก็บการ์ด'
-    },
-    {
-        id: 3,
-        borrowDate: '02/03/2025',
-        returnDate: '-',
-        borrowerName: 'นายพิสิฐ',
-        equipmentName: 'ชื่อครุภัณฑ์',
-        status: 'อนุมัติ',
-        reason: 'กล่องเก็บการ์ด'
-    },
-    {
-        id: 4,
-        borrowDate: '30/03/2025',
-        returnDate: '-',
-        borrowerName: 'นายพิสิฐ',
-        equipmentName: 'ชื่อครุภัณฑ์',
-        status: 'ไม่อนุมัติ',
-        reason: ''
-    },
-    {
-        id: 5,
-        borrowDate: '14/03/2025',
-        returnDate: '-',
-        borrowerName: 'นายพิสิฐ',
-        equipmentName: 'ชื่อครุภัณฑ์',
-        status: 'รออนุมัติ',
-        reason: ''
-    },
-    {
-        id: 6,
-        borrowDate: '30/03/2025',
-        returnDate: '-',
-        borrowerName: 'นายพิสิฐ',
-        equipmentName: 'ชื่อครุภัณฑ์',
-        status: 'ไม่อนุมัติ',
-        reason: ''
-    },
-    {
-        id: 7,
-        borrowDate: '30/03/2025',
-        returnDate: '-',
-        borrowerName: 'นายพิสิฐ',
-        equipmentName: 'ชื่อครุภัณฑ์',
-        status: 'ไม่อนุมัติ',
-        reason: ''
-    },
-];
+/* ---------- helpers ---------- */
+type BorrowItem = { equipment?: { number?: number; name?: string } };
+type BorrowRequest = {
+    id: number;
+    status: string; // PENDING | APPROVED | REJECTED | RETURNED | ...
+    requestedAt?: string;
+    createdAt?: string;
+    requestDate?: string;
+    returnDue?: string;
+    actualReturnDate?: string;
+    reason?: string;
+    notes?: string;
+    receivedBy?: { fullName?: string } | null;
+    items?: BorrowItem[];
+};
 
+const asList = <T,>(v: any): T[] =>
+    Array.isArray(v) ? v : Array.isArray(v?.data) ? v.data : [];
+
+const lc = (v: any) => String(v ?? "").toLowerCase();
+
+const toThaiStatus = (s: string) => {
+    const t = String(s).toUpperCase();
+    if (t === "PENDING") return "รออนุมัติ";
+    if (t === "APPROVED") return "อนุมัติ";
+    if (t === "REJECTED") return "ไม่อนุมัติ";
+    if (t === "RETURNED") return "คืนแล้ว";
+    if (t === "OVERDUE") return "เกินกำหนด";
+    return s || "-";
+};
+
+const statusBadgeClass = (s: string) => {
+    const t = String(s).toUpperCase();
+    if (t === "APPROVED") return "bg-green-100 text-green-800";
+    if (t === "REJECTED") return "bg-red-100 text-red-800";
+    if (t === "RETURNED") return "bg-blue-100 text-blue-800";
+    if (t === "PENDING") return "bg-amber-100 text-amber-800";
+    if (t === "OVERDUE") return "bg-fuchsia-100 text-fuchsia-800";
+    return "bg-gray-100 text-gray-800";
+};
+
+const fmtDate = (d?: string | null) =>
+    d ? new Date(d).toLocaleDateString("th-TH") : "-";
+
+/* ---------- page ---------- */
 export default function UserExternalStatusBorrow() {
-    const [searchTerm, setSearchTerm] = useState('');
+    const [all, setAll] = useState<BorrowRequest[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [searchTerm, setSearchTerm] = useState("");
     const [sortOrder, setSortOrder] = useState<"newest" | "oldest">("newest");
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 5;
 
-    // ฟิลเตอร์ข้อมูลตามการค้นหา
-    const filteredData = externalBorrowData.filter(item =>
-        item.borrowerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        item.equipmentName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        item.status.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        item.reason.toLowerCase().includes(searchTerm.toLowerCase())
-    ).sort((a, b) => {
-        // เรียงตาม borrowDate
-        const dateA = new Date(a.borrowDate);
-        const dateB = new Date(b.borrowDate);
-
-        if (sortOrder === "newest") {
-            return dateB.getTime() - dateA.getTime(); // ใหม่ไปเก่า
-        } else {
-            return dateA.getTime() - dateB.getTime(); // เก่าไปใหม่
+    async function load() {
+        setLoading(true);
+        try {
+            const res = await fetch("/api/borrow/history/me", {
+                credentials: "include",
+                cache: "no-store",
+            });
+            const json = await res.json();
+            setAll(asList<BorrowRequest>(json));
+        } catch {
+            setAll([]);
+        } finally {
+            setLoading(false);
         }
-    });
+    }
 
-    // คำนวณข้อมูลสำหรับหน้าปัจจุบัน
-    const totalPages = Math.ceil(filteredData.length / itemsPerPage);
+    useEffect(() => {
+        load();
+    }, []);
+
+    // เลือก "คำขอล่าสุด" (เรียงตามวันที่/หรือ id ถ้าไม่มีวันที่)
+    const latest: BorrowRequest | null = useMemo(() => {
+        if (!all.length) return null;
+        const withKey = all.map((r) => {
+            const dateStr = r.requestedAt || r.createdAt || r.requestDate || null;
+            const key = dateStr ? new Date(dateStr).getTime() : r.id ?? 0;
+            return { r, key };
+        });
+        withKey.sort((a, b) => b.key - a.key); // ใหม่สุดก่อน
+        return withKey[0].r;
+    }, [all]);
+
+    // แปลงคำขอล่าสุดให้เป็น "หนึ่งอุปกรณ์ = หนึ่งแถว"
+    type Row = {
+        id: number;
+        borrowDateISO: string | null;
+        returnDueISO: string | null;
+        approverOrReceiver: string;
+        equipmentName: string;
+        status: string;
+        reason: string;
+    };
+    const flatRows: Row[] = useMemo(() => {
+        if (!latest) return [];
+        const borrowDateISO =
+            latest.requestedAt || latest.createdAt || latest.requestDate || null;
+        const returnDueISO = latest.returnDue ?? null;
+        const reason = latest.reason ?? latest.notes ?? "";
+        // หมายเหตุ: ถ้ายังไม่คืน จะยังไม่มีผู้รับคืน ก็แสดง "-"
+        const approverOrReceiver = latest.receivedBy?.fullName ?? "-";
+        const items = latest.items ?? [];
+        if (!items.length) {
+            return [
+                {
+                    id: latest.id,
+                    borrowDateISO,
+                    returnDueISO,
+                    approverOrReceiver,
+                    equipmentName: "-",
+                    status: latest.status,
+                    reason,
+                },
+            ];
+        }
+        return items.map((it) => ({
+            id: latest.id,
+            borrowDateISO,
+            returnDueISO,
+            approverOrReceiver,
+            equipmentName: it.equipment?.name ?? "-",
+            status: latest.status,
+            reason,
+        }));
+    }, [latest]);
+
+    // ค้นหา + เรียง
+    const filteredData = useMemo(() => {
+        const s = lc(searchTerm);
+        const list = [...flatRows].filter(
+            (r) =>
+                lc(r.equipmentName).includes(s) ||
+                lc(r.approverOrReceiver).includes(s) ||
+                lc(r.reason).includes(s) ||
+                lc(toThaiStatus(r.status)).includes(s)
+        );
+        list.sort((a, b) => {
+            const da = new Date(a.borrowDateISO ?? 0).getTime();
+            const db = new Date(b.borrowDateISO ?? 0).getTime();
+            return sortOrder === "newest" ? db - da : da - db;
+        });
+        return list;
+    }, [flatRows, searchTerm, sortOrder]);
+
+    // แบ่งหน้า
+    const totalPages = Math.max(1, Math.ceil(filteredData.length / itemsPerPage));
     const startIndex = (currentPage - 1) * itemsPerPage;
     const currentData = filteredData.slice(startIndex, startIndex + itemsPerPage);
 
-    const getStatusBgColor = (status: string) => {
-        switch (status) {
-            case 'อนุมัติ':
-                return 'bg-green-100 text-green-800';
-            case 'ไม่อนุมัติ':
-                return 'bg-red-100 text-red-800';
-            case 'รออนุมัติ':
-                return 'bg-blue-100 text-blue-800';
-            default:
-                return 'bg-gray-100 text-gray-800';
-        }
-    };
-
     return (
         <div className="p-6 bg-gray-50 min-h-screen flex flex-col gap-8">
-            {/* Section: Table */}
             <section className="bg-white rounded-lg shadow border">
-                <div className="p-4 border-b flex justify-between items-center">
-                    <h2 className="text-lg font-semibold text-gray-800">สถานะการยืมครุภัณฑ์</h2>
-                    <div className="flex items-center gap-4">
+                <div className="p-4 border-b flex flex-wrap gap-3 items-center justify-between">
+                    <h2 className="text-lg font-semibold text-gray-800">
+                        สถานะการยืมครุภัณฑ์ (ล่าสุด)
+                    </h2>
+                    <div className="flex items-center gap-2">
+                        <button
+                            onClick={load}
+                            className="px-3 py-2 text-sm border rounded-lg hover:bg-gray-50"
+                            title="รีเฟรช"
+                        >
+                            รีเฟรช
+                        </button>
                         <div className="relative">
                             <input
                                 type="text"
-                                placeholder="ค้นหาสถานะการยืม"
+                                placeholder="ค้นหาในคำขอล่าสุด"
                                 value={searchTerm}
                                 onChange={(e) => {
                                     setSearchTerm(e.target.value);
@@ -134,11 +184,13 @@ export default function UserExternalStatusBorrow() {
                                 alt="search"
                                 width={20}
                                 height={20}
-                                className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+                                className="absolute left-3 top-1/2 -translate-y-1/2"
                             />
                         </div>
                         <button
-                            onClick={() => setSortOrder(prev => prev === "newest" ? "oldest" : "newest")}
+                            onClick={() =>
+                                setSortOrder((p) => (p === "newest" ? "oldest" : "newest"))
+                            }
                             className="p-2 border border-gray-300 rounded-lg hover:bg-gray-100"
                             title={sortOrder === "newest" ? "เรียงจากใหม่ไปเก่า" : "เรียงจากเก่าไปใหม่"}
                         >
@@ -161,57 +213,88 @@ export default function UserExternalStatusBorrow() {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-200">
-                            {currentData.map((item, index) => (
-                                <tr key={item.id} className="hover:bg-gray-50">
-                                    <td className="px-4 py-3 text-sm text-gray-900">{startIndex + index + 1}</td>
-                                    <td className="px-4 py-3 text-sm text-gray-900">{item.borrowDate}</td>
-                                    <td className="px-4 py-3 text-sm text-gray-900">{item.returnDate}</td>
-                                    <td className="px-4 py-3 text-sm text-gray-900">{item.borrowerName}</td>
-                                    <td className="px-4 py-3 text-sm text-gray-900">{item.equipmentName}</td>
-                                    <td className="px-4 py-3 text-sm">
-                                        <span className={`px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap ${getStatusBgColor(item.status)}`}>
-                                            {item.status}
-                                        </span>
-                                    </td>
-                                    <td className="px-4 py-3 text-sm text-gray-900">{item.reason}</td>
-                                </tr>
-                            ))}
-
-                            {currentData.length === 0 && (
+                            {loading && (
                                 <tr>
                                     <td colSpan={7} className="px-4 py-6 text-center text-sm text-gray-500">
-                                        ไม่พบข้อมูลที่ค้นหา
+                                        กำลังโหลดข้อมูล…
                                     </td>
                                 </tr>
                             )}
+
+                            {!loading && latest === null && (
+                                <tr>
+                                    <td colSpan={7} className="px-4 py-6 text-center text-sm text-gray-500">
+                                        ยังไม่มีคำขอล่าสุด
+                                    </td>
+                                </tr>
+                            )}
+
+                            {!loading &&
+                                latest !== null &&
+                                currentData.map((item, index) => (
+                                    <tr key={`${item.id}-${index}`} className="hover:bg-gray-50">
+                                        <td className="px-4 py-3 text-sm text-gray-900">
+                                            {startIndex + index + 1}
+                                        </td>
+                                        <td className="px-4 py-3 text-sm text-gray-900">
+                                            {fmtDate(item.borrowDateISO)}
+                                        </td>
+                                        <td className="px-4 py-3 text-sm text-gray-900">
+                                            {fmtDate(item.returnDueISO)}
+                                        </td>
+                                        <td className="px-4 py-3 text-sm text-gray-900">
+                                            {item.approverOrReceiver || "-"}
+                                        </td>
+                                        <td className="px-4 py-3 text-sm text-gray-900">
+                                            {item.equipmentName}
+                                        </td>
+                                        <td className="px-4 py-3 text-sm">
+                                            <span
+                                                className={`px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap ${statusBadgeClass(
+                                                    item.status
+                                                )}`}
+                                            >
+                                                {toThaiStatus(item.status)}
+                                            </span>
+                                        </td>
+                                        <td className="px-4 py-3 text-sm text-gray-900">
+                                            {item.reason || "-"}
+                                        </td>
+                                    </tr>
+                                ))}
                         </tbody>
                     </table>
                 </div>
 
-                <div className="flex items-center justify-between px-4 py-3 border-t">
-                    <span className="text-sm text-gray-700">
-                        แสดง {startIndex + 1} - {Math.min(startIndex + itemsPerPage, filteredData.length)} จาก {filteredData.length} รายการ
-                    </span>
-                    <div className="flex items-center gap-1">
-                        <button
-                            onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                            className="px-3 py-1 text-sm text-gray-500 hover:text-gray-700 disabled:opacity-50"
-                            disabled={currentPage === 1}
-                        >
-                            ← Previous
-                        </button>
-                        <span className="w-8 h-8 flex items-center justify-center bg-gray-800 text-white rounded text-sm">
-                            {currentPage}
+
+                {!loading && latest !== null && (
+                    <div className="flex items-center justify-between px-4 py-3 border-t">
+                        <span className="text-sm text-gray-700">
+                            แสดง {filteredData.length === 0 ? 0 : startIndex + 1} -{" "}
+                            {Math.min(startIndex + itemsPerPage, filteredData.length)} จาก{" "}
+                            {filteredData.length} รายการ
                         </span>
-                        <button
-                            onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                            className="px-3 py-1 text-sm text-gray-700 hover:text-gray-900 disabled:opacity-50"
-                            disabled={currentPage === totalPages || totalPages === 0}
-                        >
-                            Next →
-                        </button>
+                        <div className="flex items-center gap-1">
+                            <button
+                                onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
+                                className="px-3 py-1 text-sm text-gray-500 hover:text-gray-700 disabled:opacity-50"
+                                disabled={currentPage <= 1}
+                            >
+                                ← Previous
+                            </button>
+                            <span className="w-8 h-8 flex items-center justify-center bg-gray-800 text-white rounded text-sm">
+                                {currentPage}
+                            </span>
+                            <button
+                                onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
+                                className="px-3 py-1 text-sm text-gray-700 hover:text-gray-900 disabled:opacity-50"
+                                disabled={currentPage >= totalPages}
+                            >
+                                Next →
+                            </button>
+                        </div>
                     </div>
-                </div>
+                )}
             </section>
         </div>
     );

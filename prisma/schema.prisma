@@ -53,7 +53,7 @@ enum ReturnCondition {
 
 // ---------- Models ----------
 
-// หน่วยงาน/สังกัด เพื่อให้ข้อมูลสะอาด ไม่พิมพ์ต่างรูป
+// หน่วยงาน/สังกัด
 model Department {
     id       Int     @id @default(autoincrement())
     name     String  @unique
@@ -81,13 +81,16 @@ model User {
     department   Department? @relation(fields: [departmentId], references: [id], onUpdate: Cascade, onDelete: SetNull)
 
     // ความสัมพันธ์กับคำขอยืม
+
     requests       BorrowRequest[] @relation("Requester")
     returnReceipts BorrowRequest[] @relation("Receiver")
     approvals      BorrowRequest[] @relation("Approver")
+    rejected       BorrowRequest[] @relation("Rejector") // เพิ่มความสัมพันธ์กับผู้ไม่อนุมัติ
     auditLogs      AuditLog[]
 
-    createdAt DateTime @default(now())
-    updatedAt DateTime @updatedAt
+    createdAt     DateTime        @default(now())
+    updatedAt     DateTime        @updatedAt
+    BorrowRequest BorrowRequest[]
 
     @@index([role])
     @@index([isActive])
@@ -98,7 +101,7 @@ model User {
 model Category {
     id          Int     @id @default(autoincrement())
     name        String  @unique // เช่น "คอมพิวเตอร์", "เครื่องมือแพทย์"
-    description String?
+    description String? // รายละเอียดเพิ่มเติม
     isActive    Boolean @default(true)
 
     equipments Equipment[]
@@ -112,11 +115,11 @@ model Category {
 // ข้อมูลครุภัณฑ์
 model Equipment {
     number       Int             @id @default(autoincrement()) // ลำดับภายใน
-    idnum        String?         // หมายเลขID
+    idnum        String?   // หมายเลขID
     code         String          @unique // รหัสครุภัณฑ์หลัก เช่น "6530-008-0711/3"
     name         String
     receivedDate DateTime
-    price        Decimal? @db.Decimal(12,2)
+    price        Decimal?        @db.Decimal(12, 2)
     status       EquipmentStatus @default(NORMAL)
     description  String?
 
@@ -130,10 +133,10 @@ model Equipment {
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
 
+    @@unique([categoryId, idnum])
     @@index([status])
     @@index([categoryId])
     @@index([code])
-    @@unique([categoryId, idnum])
     @@index([name])
 }
 
@@ -172,6 +175,11 @@ model BorrowRequest {
     approvedBy   User?     @relation("Approver", fields: [approvedById], references: [id], onUpdate: Cascade, onDelete: SetNull)
     approvedAt   DateTime?
 
+    // ผู้ไม่อนุมัติ (Admin)
+    rejectedById Int?
+    rejectedBy   User?     @relation("Rejector", fields: [rejectedById], references: [id], onUpdate: Cascade, onDelete: SetNull)
+    rejectedAt   DateTime?
+
     // เหตุผลต่าง ๆ
     reason       String? // เหตุผลที่ยืม
     notes        String? // หมายเหตุเพิ่มเติม
@@ -182,6 +190,8 @@ model BorrowRequest {
 
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
+    User      User?    @relation(fields: [userId], references: [id])
+    userId    Int?
 
     @@index([status])
     @@index([borrowerType])
