@@ -181,7 +181,6 @@ export default function ReturnPage() {
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">ผู้รับคืน</label>
                                     <div className="bg-gray-200 rounded px-3 py-2 text-sm text-gray-700">
-                                        {/* ชื่อผู้รับคืนจริงจะมาจาก session ฝั่ง API บันทึกเป็น receivedById อยู่แล้ว */}
                                         เจ้าหน้าที่ผู้รับคืน
                                     </div>
                                 </div>
