@@ -241,13 +241,7 @@ export default function Managepersonnel() {
                     <tr key={user.id} className="border-b hover:bg-gray-50">
                       <td className="px-4 py-3 text-sm text-gray-900">{startIndex + index + 1}</td>
                       <td className="px-4 py-3 text-sm text-gray-900">
-                        {user.role === "ADMIN" ? (
-                          user.fullName
-                        ) : (
-                          <Link href={`/admin/users/${user.id}`} className="text-blue-600 hover:underline">
-                            {user.fullName}
-                          </Link>
-                        )}
+                        {user.fullName}
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-900">
                         {displayUnitLabel(user.role.toLowerCase() as any)}

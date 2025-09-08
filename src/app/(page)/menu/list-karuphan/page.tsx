@@ -55,7 +55,7 @@ export default function ListKaruphan() {
     const [sortOrder, setSortOrder] = useState<"newest" | "oldest">("newest");
     const [currentPage, setCurrentPage] = useState(1);
 
-    // ▼ ใหม่: สถานะตัวกรองหมวดหมู่ + รายชื่อหมวดหมู่
+    // สถานะตัวกรองหมวดหมู่ + รายชื่อหมวดหมู่
     const [categories, setCategories] = useState<Category[]>([]);
     const [categoryId, setCategoryId] = useState<number | "all">("all");
 
@@ -122,9 +122,16 @@ export default function ListKaruphan() {
     const endIndex = startIndex + itemsPerPage;
     const currentItems = filteredData.slice(startIndex, endIndex);
 
-    const formatDate = (ymd: string) => {
-        const [y, m, d] = ymd.split("-");
-        return `${d}/${m}/${y}`;
+    const formatDate = (ymd?: string) => {
+        if (!ymd) return "-";
+        const [yStr = "", mStr = "", dStr = ""] = ymd.split("-");
+        const y = Number(yStr);
+        const m = Number(mStr);
+        const d = Number(dStr);
+        if (!y || !m || !d) return ymd;
+
+        const be = y < 2400 ? y + 543 : y; // ถ้าเป็น ค.ศ. (<2400) ค่อยบวก 543
+        return `${d}/${m}/${be}`;
     };
     const formatPrice = (n?: number | null) =>
         n == null ? "-" : Number(n).toLocaleString("th-TH", { maximumFractionDigits: 2 });

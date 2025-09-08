@@ -2,12 +2,12 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { CategoryCreateSchema } from "@/lib/validators/category";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export async function GET() {
-  const list = await prisma.category.findMany({
-    orderBy: { name: "asc" },
-    select: { id: true, name: true },
-  });
-  return NextResponse.json({ ok: true, data: list });
+  const rows = await prisma.category.findMany({ orderBy: { id: "asc" } });
+  return NextResponse.json({ ok: true, data: rows });
 }
 
 export async function POST(req: Request) {
