@@ -135,11 +135,30 @@ const BorrowKaruphan = ({ onClose, onBorrow, onSuccess, selectedEquipment, cartI
         }
     }
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!returnDate) return;
-        // ส่งวันที่แบบ ค.ศ. ให้ API (YYYY-MM-DD)
-        handleBorrow({ returnDue: returnDate, reason });
+
+        // ❗ถ้า parent ส่ง onBorrow มา ให้เรียกอันนั้น (parent จะเคลียร์ตะกร้า/รีโหลดเอง)
+        if (onBorrow) {
+            try {
+                setSubmitting(true);
+                await onBorrow({
+                    external: null,
+                    notes: null,
+                    returnDue: returnDate,
+                    reason,
+                });
+                onSuccess?.();
+                onClose?.();
+            } finally {
+                setSubmitting(false);
+            }
+            return;
+        }
+
+        // fallback เดิม: ยิง API ในโมดอลเอง (กรณีเรียกใช้โมดอลแบบ standalone)
+        await handleBorrow({ returnDue: returnDate, reason });
     };
 
     return (

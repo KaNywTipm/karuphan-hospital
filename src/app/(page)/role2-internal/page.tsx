@@ -1,36 +1,74 @@
 "use client";
 
+
+// --- Helper & Components ---
+const BORROWER_TYPE: "INTERNAL" | "EXTERNAL" = "INTERNAL";
+type Status = "NORMAL" | "IN_USE" | "BROKEN" | "LOST" | "WAIT_DISPOSE" | "DISPOSED";
+const STATUS_MAP: Record<Status, { label: string; cls: string }> = {
+    NORMAL: { label: "ปกติ", cls: "bg-emerald-100 text-emerald-800" },
+    IN_USE: { label: "กำลังใช้งาน", cls: "bg-amber-100 text-amber-800" },
+    BROKEN: { label: "ชำรุด", cls: "bg-red-100 text-red-800" },
+    LOST: { label: "สูญหาย", cls: "bg-gray-100 text-gray-800" },
+    WAIT_DISPOSE: { label: "รอจำหน่าย", cls: "bg-yellow-100 text-yellow-800" },
+    DISPOSED: { label: "จำหน่ายแล้ว", cls: "bg-purple-100 text-purple-800" },
+};
+function StatusBadge({ status }: { status: Status }) {
+    const m = STATUS_MAP[status];
+    return (
+        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${m.cls}`}>
+            {m.label}
+        </span>
+    );
+}
+function BorrowButton({ disabled, onClick }: { disabled?: boolean; onClick: () => void }) {
+    return (
+        <button
+            onClick={onClick}
+            disabled={disabled}
+            className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-semibold
+                ${disabled
+                    ? "bg-gray-200 text-gray-500 cursor-not-allowed"
+                    : "bg-emerald-600 text-white hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-300"}`}
+            title={disabled ? "สถานะนี้ยืมไม่ได้" : "ยืมครุภัณฑ์ชิ้นนี้"}
+            aria-disabled={disabled ? 'true' : undefined}
+        >
+            <svg width="16" height="16" viewBox="0 0 24 24" className="opacity-90">
+                <path d="M3 3h2l.4 2M7 13h10l3-8H6.4M7 13l-2 6h13" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" />
+            </svg>
+            ยืม
+        </button>
+    );
+}
+
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import BorrowCart from "@/components/BorrowCart";
+import BorrowKaruphan from "@/components/modal/borrow-karuphan";
 
 type Category = { id: number; name: string };
-
 type EquipFromApi = {
-    number: number;            // PK
+    number: number;
     code: string;
     name: string;
     description?: string | null;
-    receivedDate: string;      // "YYYY-MM-DD"
-    status: "NORMAL" | "IN_USE" | "BROKEN" | "LOST" | "WAIT_DISPOSE" | "DISPOSED";
+    receivedDate: string;
+    status: Status;
     category?: { id: number; name: string } | null;
     busy?: boolean;
     available?: number;
 };
-
 type RowUI = {
-    id: number;                // ใช้ number เป็น id ของ UI
+    id: number;
     code: string;
     name: string;
     category: string;
     categoryId?: number;
     details?: string;
     receivedDate: string;
-    status: EquipFromApi["status"];
+    status: Status;
     busy?: boolean;
     available?: number;
 };
-
 type CartItem = {
     id: number;
     code: string;
@@ -39,21 +77,22 @@ type CartItem = {
     details?: string;
     quantity: number;
 };
-
 const itemsPerPage = 5;
+
 
 export default function InternalBorrowPage() {
     const [categories, setCategories] = useState<Category[]>([]);
     const [items, setItems] = useState<RowUI[]>([]);
     const [loading, setLoading] = useState(true);
-
     const [searchTerm, setSearchTerm] = useState("");
-    const [selectedCategory, setSelectedCategory] = useState<string>(""); // เก็บเป็น string ใน select
+    const [selectedCategory, setSelectedCategory] = useState<string>("");
     const [sortOrder, setSortOrder] = useState<"newest" | "oldest">("newest");
     const [currentPage, setCurrentPage] = useState(1);
-
     const [cartItems, setCartItems] = useState<CartItem[]>([]);
     const [selectedIds, setSelectedIds] = useState<number[]>([]);
+    // Quick borrow modal state
+    const [showQuickBorrow, setShowQuickBorrow] = useState(false);
+    const [quickItem, setQuickItem] = useState<RowUI | null>(null);
 
     const mapToUI = (r: EquipFromApi): RowUI => ({
         id: r.number,
@@ -72,7 +111,7 @@ export default function InternalBorrowPage() {
         setLoading(true);
         const [catRes, eqRes] = await Promise.all([
             fetch("/api/categories", { cache: "no-store" }),
-            fetch(`/api/equipment?status=NORMAL&sort=receivedDate:${sortOrder === "newest" ? "desc" : "asc"}&page=1&pageSize=1000`, { cache: "no-store" }),
+            fetch(`/api/equipment?sort=receivedDate:${sortOrder === "newest" ? "desc" : "asc"}&page=1&pageSize=1000`, { cache: "no-store" }),
         ]);
         const cats: Category[] = await catRes.json();
         const eqJson = await eqRes.json();
@@ -93,10 +132,8 @@ export default function InternalBorrowPage() {
                     item.name.toLowerCase().includes(q) ||
                     item.code.toLowerCase().includes(q) ||
                     item.category.toLowerCase().includes(q);
-
                 const matchesCategory =
                     selectedCategory === "" || item.categoryId === Number(selectedCategory);
-
                 return matchesSearch && matchesCategory;
             })
             .sort((a, b) => {
@@ -131,12 +168,10 @@ export default function InternalBorrowPage() {
             ];
         });
     };
-
     const handleUpdateQuantity = (id: number, quantity: number) => {
         if (quantity <= 0) return handleRemoveFromCart(id);
         setCartItems((prev) => prev.map((x) => (x.id === id ? { ...x, quantity } : x)));
     };
-
     const handleRemoveFromCart = (id: number) => {
         setCartItems((prev) => prev.filter((x) => x.id !== id));
     };
@@ -158,15 +193,13 @@ export default function InternalBorrowPage() {
 
     // -------- Submit borrow (ยิง API จริง) --------
     const handleBorrowSubmit = async (borrowData: any) => {
-        // สร้าง payload ให้ API /api/borrow จัดการต่อ (ฝั่งเซิร์ฟเวอร์ผูก user จาก session)
         const payload = {
-            borrowerType: "INTERNAL" as const,
-            returnDue: borrowData?.returnDue,    // "YYYY-MM-DD"
+            borrowerType: BORROWER_TYPE,
+            returnDue: borrowData?.returnDue,
             reason: borrowData?.reason ?? null,
             notes: borrowData?.notes ?? null,
             items: cartItems.map((it) => ({ equipmentId: it.id, quantity: it.quantity })),
         };
-
         const res = await fetch("/api/borrow", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -177,8 +210,6 @@ export default function InternalBorrowPage() {
             alert(json?.error || "ยืมไม่สำเร็จ");
             return;
         }
-
-        // สำเร็จ → รีโหลดรายการและเคลียร์ตะกร้า
         await load();
         setCartItems([]);
         alert("ยืมครุภัณฑ์สำเร็จ");
@@ -205,7 +236,6 @@ export default function InternalBorrowPage() {
                                     ))}
                                 </select>
                             </div>
-
                             <div className="relative">
                                 <input
                                     type="text"
@@ -217,7 +247,6 @@ export default function InternalBorrowPage() {
                                 <Image src="/search.png" alt="search" width={20} height={20}
                                     className="absolute left-3 top-1/2 -translate-y-1/2" />
                             </div>
-
                             <button
                                 onClick={() => setSortOrder((p) => (p === "newest" ? "oldest" : "newest"))}
                                 className="p-2 border border-gray-300 rounded-lg hover:bg-gray-100"
@@ -227,7 +256,6 @@ export default function InternalBorrowPage() {
                             </button>
                         </div>
                     </div>
-
                     {loading ? (
                         <div className="p-6 text-gray-500">กำลังโหลด...</div>
                     ) : (
@@ -247,50 +275,48 @@ export default function InternalBorrowPage() {
                                             <th className="border px-4 py-3 text-center w-[150px]">เลขครุภัณฑ์</th>
                                             <th className="border px-4 py-3 text-center">ชื่อครุภัณฑ์</th>
                                             <th className="border px-4 py-3 text-center w-[200px]">รายละเอียด</th>
-                                            <th className="border px-4 py-3 text-center w-[120px]">เพิ่ม</th>
+                                            <th className="border px-4 py-3 text-center w-[130px]">สถานะ</th>
+                                            <th className="border px-4 py-3 text-center w-[110px]">ยืม</th>
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-gray-200">
-                                        {currentItems.map((item, index) => {
-                                            const isBusy = item.busy || item.available === 0;
+                                        {currentItems.map((row, idx) => {
+                                            const isBusy = row.status !== "NORMAL";
                                             return (
-                                                <tr key={item.id} className="hover:bg-gray-50">
+                                                <tr key={row.id} className="hover:bg-gray-50">
                                                     <td className="border px-4 py-3 text-center">
                                                         <input
                                                             type="checkbox"
-                                                            checked={selectedIds.includes(item.id)}
-                                                            onChange={() => handleSelectItem(item.id)}
+                                                            checked={selectedIds.includes(row.id)}
+                                                            onChange={() => handleSelectItem(row.id)}
                                                             disabled={isBusy}
                                                         />
                                                     </td>
-                                                    <td className="border px-4 py-3 text-center">{startIndex + index + 1}</td>
-                                                    <td className="border px-4 py-3 text-center">{item.code}</td>
-                                                    <td className="border px-4 py-3 text-center flex items-center gap-2 justify-center">
-                                                        {item.name}
-                                                        {isBusy && (
-                                                            <span className="ml-2 text-xs px-2 py-0.5 rounded-full bg-amber-100 text-amber-800">กำลังถูกยืม</span>
-                                                        )}
-                                                    </td>
-                                                    <td className="border px-4 py-3 text-center">{item.details || item.category}</td>
+                                                    <td className="border px-4 py-3 text-center">{startIndex + idx + 1}</td>
+                                                    <td className="border px-4 py-3 text-center">{row.code}</td>
+                                                    <td className="border px-4 py-3 text-center flex items-center gap-2 justify-center">{row.name}</td>
+                                                    <td className="border px-4 py-3 text-center">{row.details || row.category}</td>
                                                     <td className="border px-4 py-3 text-center">
-                                                        <button
-                                                            onClick={() => handleAddToCart(item)}
-                                                            className="px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 hover:bg-green-200 disabled:opacity-50"
+                                                        <StatusBadge status={row.status} />
+                                                    </td>
+                                                    <td className="border px-4 py-3 text-center">
+                                                        <BorrowButton
                                                             disabled={isBusy}
-                                                        >
-                                                            เพิ่มลงรายการ
-                                                        </button>
+                                                            onClick={() => {
+                                                                setQuickItem(row);
+                                                                setShowQuickBorrow(true);
+                                                            }}
+                                                        />
                                                     </td>
                                                 </tr>
                                             );
                                         })}
                                         {!currentItems.length && (
-                                            <tr><td colSpan={6} className="border px-4 py-6 text-center text-gray-500">ไม่พบครุภัณฑ์ที่ว่าง</td></tr>
+                                            <tr><td colSpan={7} className="border px-4 py-6 text-center text-gray-500">ไม่พบครุภัณฑ์</td></tr>
                                         )}
                                     </tbody>
                                 </table>
                             </div>
-
                             <div className="p-4">
                                 <button
                                     onClick={handleAddSelectedToCart}
@@ -300,7 +326,6 @@ export default function InternalBorrowPage() {
                                     เพิ่มรายการที่เลือกลงตะกร้า
                                 </button>
                             </div>
-
                             <div className="flex items-center justify-between px-4 py-3 border-t">
                                 <span className="text-sm text-gray-700">
                                     แสดง {filteredData.length ? startIndex + 1 : 0} - {Math.min(endIndex, filteredData.length)} จาก {filteredData.length} รายการ
@@ -322,7 +347,6 @@ export default function InternalBorrowPage() {
                     )}
                 </section>
             </div>
-
             {/* Cart Sidebar */}
             <div className="w-80">
                 <BorrowCart
@@ -334,6 +358,44 @@ export default function InternalBorrowPage() {
                     onBorrowSubmit={handleBorrowSubmit}
                 />
             </div>
+            {/* Quick Borrow Modal */}
+            {showQuickBorrow && quickItem && (
+                <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
+                    <BorrowKaruphan
+                        selectedEquipment={null}
+                        cartItems={[{
+                            id: quickItem.id,
+                            code: quickItem.code,
+                            name: quickItem.name,
+                            category: quickItem.category ?? "",
+                            quantity: 1,
+                        }]}
+                        onClose={() => { setShowQuickBorrow(false); setQuickItem(null); }}
+                        onBorrow={async (form) => {
+                            const payload = {
+                                borrowerType: BORROWER_TYPE,
+                                returnDue: form.returnDue,
+                                reason: form.reason ?? null,
+                                notes: form.notes ?? null,
+                                items: [{ equipmentId: quickItem.id, quantity: 1 }],
+                            };
+                            const res = await fetch("/api/borrow", {
+                                method: "POST",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify(payload),
+                            });
+                            const json = await res.json().catch(() => ({}));
+                            if (!res.ok || json?.ok !== true) {
+                                alert(json?.error || "ยืมไม่สำเร็จ");
+                                return;
+                            }
+                            setShowQuickBorrow(false);
+                            setQuickItem(null);
+                            await load();
+                        }}
+                    />
+                </div>
+            )}
         </div>
     );
 }
