@@ -160,7 +160,8 @@ export default function Managepersonnel() {
         if (!j) return;
         const updated = j.item ?? j.data ?? j.user;
         if (!j.ok || !updated) return alert("บันทึกไม่สำเร็จ");
-        setUsers((prev) => prev.map((u) => (u.id === payload.id ? updated : u)));
+        // ดึง users ใหม่จาก backend เพื่อให้ข้อมูลล่าสุดเสมอ (เช่น กลุ่มงานที่ disconnect แล้ว)
+        load("");
         closeModal();
       })
       .catch(() => alert("บันทึกไม่สำเร็จ"));

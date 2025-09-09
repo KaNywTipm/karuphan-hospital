@@ -55,10 +55,20 @@ export default function EditPersonnel({ user, onClose, onSave }: Props) {
         fullName: user?.fullName ?? "",
         role: user?.role ?? "INTERNAL",
         phone: user?.phone ?? "",
-        departmentId:
-            user?.department?.id != null ? String(user.department.id) : "",
+        departmentId: user?.department?.id != null ? String(user.department.id) : "",
         changeNote: "",
     }));
+
+    // sync form state เมื่อ user เปลี่ยน (เช่น หลัง save แล้วเปิด modal ใหม่)
+    useEffect(() => {
+        setForm({
+            fullName: user?.fullName ?? "",
+            role: user?.role ?? "INTERNAL",
+            phone: user?.phone ?? "",
+            departmentId: user?.department?.id != null ? String(user.department.id) : "",
+            changeNote: "",
+        });
+    }, [user]);
 
     // โหลดรายการกลุ่มงาน (ขึ้นให้ครบ) + นับจำนวนผู้ใช้ (withCount=1)
     useEffect(() => {
@@ -126,13 +136,18 @@ export default function EditPersonnel({ user, onClose, onSave }: Props) {
         setSaving(true);
         try {
             if (!user) return;
+            let departmentId: number | null = null;
+            if (form.departmentId && form.departmentId !== "") {
+                departmentId = Number(form.departmentId);
+            }
+            // EXTERNAL: ถ้าเลือก '-', ส่ง null, ถ้าเลือกกลุ่มงาน ส่ง id
+            // INTERNAL/ADMIN: ส่ง id ตามปกติ
             onSave({
                 id: user.id,
                 fullName: form.fullName.trim(),
                 role: form.role,
                 phone: form.phone.trim() ? form.phone.trim() : null,
-                departmentId:
-                    form.role === "EXTERNAL" ? null : (form.departmentId === "" ? null : Number(form.departmentId)),
+                departmentId: departmentId,
                 changeNote: form.changeNote.trim() || undefined,
             });
         } finally {
@@ -219,13 +234,12 @@ export default function EditPersonnel({ user, onClose, onSave }: Props) {
                                 </label>
                                 <select
                                     value={form.departmentId}
-                                    onChange={(e) =>
-                                        setForm((s) => ({ ...s, departmentId: e.target.value }))
-                                    }
-                                    disabled={loadingDept}
+                                    onChange={(e) => setForm((s) => ({ ...s, departmentId: e.target.value }))}
+                                    disabled={loadingDept || form.role === "ADMIN"}
                                     className="w-full rounded-md border border-gray-300 px-3 py-2 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100"
                                 >
-                                    <option value="">เลือกกลุ่มงาน</option>
+                                    {/* กรณี EXTERNAL ให้เลือก "- ไม่มีกลุ่มงาน" ได้ */}
+                                    <option value="">{form.role === "EXTERNAL" ? "- ไม่มีกลุ่มงาน -" : "เลือกกลุ่มงาน"}</option>
                                     {deptOptions.map((d) => (
                                         <option key={d.id} value={d.id}>
                                             {d.name}

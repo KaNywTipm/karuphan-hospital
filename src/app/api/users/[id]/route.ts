@@ -19,20 +19,37 @@ function parseIdMaybe(v: any): number | null {
 }
 async function ensureDepartmentIdByName(name: string) {
     let dep =
-        (await prisma.department.findUnique({ where: { name } }).catch(() => null)) ||
+        (await prisma.department
+            .findUnique({ where: { name } })
+            .catch(() => null)) ||
         (await prisma.department.findFirst({ where: { name } })) ||
         (await prisma.department.create({ data: { name } }));
     return dep.id;
 }
 
-export async function PATCH(req: Request, { params }: { params: { id: string } }) {
+export async function PATCH(
+    req: Request,
+    { params }: { params: { id: string } }
+) {
     const session: any = await auth();
-    if (!session) return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
+    if (!session)
+        return NextResponse.json(
+            { ok: false, error: "unauthorized" },
+            { status: 401 }
+        );
     const myRole = String(session.role ?? session.user?.role ?? "").toUpperCase();
-    if (myRole !== "ADMIN") return NextResponse.json({ ok: false, error: "forbidden" }, { status: 403 });
+    if (myRole !== "ADMIN")
+        return NextResponse.json(
+            { ok: false, error: "forbidden" },
+            { status: 403 }
+        );
 
     const id = Number(params.id);
-    if (!Number.isFinite(id)) return NextResponse.json({ ok: false, error: "invalid-id" }, { status: 400 });
+    if (!Number.isFinite(id))
+        return NextResponse.json(
+            { ok: false, error: "invalid-id" },
+            { status: 400 }
+        );
 
     const body = await req.json().catch(() => ({} as any));
     const fullName: string | undefined = body.fullName?.trim();
@@ -42,7 +59,11 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
         where: { id },
         select: { id: true, role: true, departmentId: true, isActive: true },
     });
-    if (!current) return NextResponse.json({ ok: false, error: "not-found" }, { status: 404 });
+    if (!current)
+        return NextResponse.json(
+            { ok: false, error: "not-found" },
+            { status: 404 }
+        );
 
     // ไม่ auto เปลี่ยนเป็น INTERNAL อีกต่อไป
     const roleInput = body.role;
@@ -54,7 +75,10 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
             where: { role: "ADMIN", isActive: true, id: { not: id } },
         });
         if (otherAdmins === 0) {
-            return NextResponse.json({ ok: false, error: "cannot-demote-last-admin" }, { status: 409 });
+            return NextResponse.json(
+                { ok: false, error: "cannot-demote-last-admin" },
+                { status: 409 }
+            );
         }
     }
 
@@ -64,32 +88,51 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
         role: targetRole,
     };
 
-    const hasDepInPayload = Object.prototype.hasOwnProperty.call(body, "departmentId");
+    const hasDepInPayload = Object.prototype.hasOwnProperty.call(
+        body,
+        "departmentId"
+    );
     const depIdFromBody = parseIdMaybe(body.departmentId);
 
     if (targetRole === "EXTERNAL") {
-        // ✅ ภายนอก: อนุญาตให้เลือกกลุ่มงานได้
+        //  ภายนอก: อนุญาตให้เลือกกลุ่มงานได้
         if (hasDepInPayload) {
-            if (depIdFromBody) {
-                const dep = await prisma.department.findUnique({ where: { id: depIdFromBody } });
-                if (!dep) return NextResponse.json({ ok: false, error: "department-not-found" }, { status: 404 });
+            if (depIdFromBody && typeof depIdFromBody === "number") {
+                const dep = await prisma.department.findUnique({
+                    where: { id: depIdFromBody },
+                });
+                if (!dep)
+                    return NextResponse.json(
+                        { ok: false, error: "department-not-found" },
+                        { status: 404 }
+                    );
                 data.department = { connect: { id: depIdFromBody } };
             } else {
-                // ส่ง null/"" มา = ล้างกลุ่มงาน
+                // ส่ง null, '', undefined, 0, หรืออะไรก็ตามที่ไม่ใช่เลข id ที่ถูกต้อง = ล้างกลุ่มงาน
                 data.department = { disconnect: true };
             }
         }
         // ถ้าไม่ส่ง departmentId มาเลย → ไม่แตะกลุ่มงาน
     } else if (targetRole === "INTERNAL") {
-        // ✅ ภายใน: ต้องมี departmentId ที่ valid
+        // ภายใน: ต้องมี departmentId ที่ valid
         if (!depIdFromBody) {
             return NextResponse.json(
-                { ok: false, error: "department-required", message: "ผู้ใช้ภายในต้องเลือกกลุ่มงาน" },
+                {
+                    ok: false,
+                    error: "department-required",
+                    message: "ผู้ใช้ภายในต้องเลือกกลุ่มงาน",
+                },
                 { status: 400 }
             );
         }
-        const depExists = await prisma.department.findUnique({ where: { id: depIdFromBody } });
-        if (!depExists) return NextResponse.json({ ok: false, error: "department-not-found" }, { status: 404 });
+        const depExists = await prisma.department.findUnique({
+            where: { id: depIdFromBody },
+        });
+        if (!depExists)
+            return NextResponse.json(
+                { ok: false, error: "department-not-found" },
+                { status: 404 }
+            );
         data.department = { connect: { id: depIdFromBody } };
     } else if (targetRole === "ADMIN") {
         // ✅ แอดมิน: ผูกกับกลุ่มงานที่กำหนดไว้เสมอ
@@ -113,6 +156,9 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
         return NextResponse.json({ ok: true, item: updated });
     } catch (e: any) {
         console.error("PATCH /api/users/[id] error:", e);
-        return NextResponse.json({ ok: false, error: "server-error" }, { status: 500 });
+        return NextResponse.json(
+            { ok: false, error: "server-error" },
+            { status: 500 }
+        );
     }
 }
