@@ -7,11 +7,11 @@ export const dynamic = "force-dynamic";
 /**
  * DELETE /api/categories/:id
  * - ต้องเป็น ADMIN
- * - ลบจริง (hard delete)
+ * - ค่าเริ่มต้น: soft delete -> isActive=false
+ * - ถ้าส่ง ?hard=1 -> ลบจริง แต่จะยอมเฉพาะเมื่อไม่มีครุภัณฑ์ในหมวดนั้น (otherwise 409)
  * - not-found -> 404
- * - มีการอ้างอิงอยู่ (FK) -> 409 category-in-use
  */
-export async function DELETE(_: Request, { params }: { params: { id: string } }) {
+export async function DELETE(req: Request, { params }: { params: { id: string } }) {
     const session: any = await auth();
     if (!session) {
         return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
@@ -26,33 +26,47 @@ export async function DELETE(_: Request, { params }: { params: { id: string } })
         return NextResponse.json({ ok: false, error: "invalid-id" }, { status: 400 });
     }
 
+    const hard = new URL(req.url).searchParams.get("hard") === "1";
+
     try {
-        // เช็คว่ามีจริงก่อน (จะ throw P2025 ถ้าไม่มี)
+        // เช็คว่ามีจริงก่อน
         await prisma.category.findUniqueOrThrow({ where: { id } });
 
-        // ลบจริง
-        await prisma.category.delete({ where: { id } });
-
-        return NextResponse.json({ ok: true }, { status: 200 });
-    } catch (e: any) {
-        // ไม่พบ
-        if (e?.code === "P2025") {
-            return NextResponse.json({ ok: false, error: "not-found" }, { status: 404 });
+        if (!hard) {
+            // -------- Soft delete --------
+            await prisma.category.update({
+                where: { id },
+                data: { isActive: false },
+            });
+            return NextResponse.json({ ok: true, hard: false }, { status: 200 });
         }
 
-        // ติด Foreign Key (ยังมีอุปกรณ์ใช้หมวดหมู่นี้อยู่)
-        if (e?.code === "P2003" || /Foreign key/i.test(e?.message ?? "")) {
-            // นับจำนวนเพื่อส่งรายละเอียด (ไม่ critical ถ้านับพลาด)
-            const equipmentCount =
-                (await prisma.equipment.count({ where: { categoryId: id } }).catch(() => undefined)) ??
-                undefined;
-
+        // -------- Hard delete (ต้องไม่มีของอ้างอยู่) --------
+        const equipmentCount = await prisma.equipment.count({ where: { categoryId: id } });
+        if (equipmentCount > 0) {
             return NextResponse.json(
                 { ok: false, error: "category-in-use", detail: { equipmentCount } },
                 { status: 409 }
             );
         }
 
+        await prisma.category.delete({ where: { id } });
+        return NextResponse.json({ ok: true, hard: true }, { status: 200 });
+
+    } catch (e: any) {
+        // ไม่พบ
+        if (e?.code === "P2025") {
+            return NextResponse.json({ ok: false, error: "not-found" }, { status: 404 });
+        }
+        // กันกรณีโดน FK แม้เราจะเช็ค count แล้ว (เพื่อความชัวร์)
+        if (e?.code === "P2003" || /Foreign key/i.test(e?.message ?? "")) {
+            const equipmentCount =
+                (await prisma.equipment.count({ where: { categoryId: id } }).catch(() => undefined)) ?? undefined;
+            return NextResponse.json(
+                { ok: false, error: "category-in-use", detail: { equipmentCount } },
+                { status: 409 }
+            );
+        }
         console.error("DELETE /api/categories/:id error:", e);
         return NextResponse.json({ ok: false, error: "server-error" }, { status: 500 });
     }
