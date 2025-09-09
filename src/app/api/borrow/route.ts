@@ -3,54 +3,79 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 export const dynamic = "force-dynamic";
 
+const ALLOWED_STATUS = new Set([
+    "PENDING",
+    "APPROVED",
+    "RETURNED",
+    "REJECTED",
+    "OVERDUE",
+]);
+const ALLOWED_BORROWER = new Set(["INTERNAL", "EXTERNAL"]);
+
+function pickStatus(v: string | null | undefined) {
+    if (!v) return undefined;
+    const s = v.toUpperCase();
+    return ALLOWED_STATUS.has(s) ? (s as any) : undefined;
+}
+function pickBorrower(v: string | null | undefined) {
+    if (!v) return undefined;
+    const s = v.toUpperCase();
+    return ALLOWED_BORROWER.has(s) ? (s as any) : undefined;
+}
+
 export async function GET(req: Request) {
-    const { searchParams } = new URL(req.url);
-    const status = searchParams.get("status") as
-        | "PENDING"
-        | "APPROVED"
-        | "RETURNED"
-        | "REJECTED"
-        | "OVERDUE"
-        | undefined;
-    const borrowerType = searchParams.get("borrowerType") as
-        | "INTERNAL"
-        | "EXTERNAL"
-        | undefined;
-    const page = Math.max(1, Number(searchParams.get("page") || "1"));
-    const pageSize = Math.min(
-        100,
-        Math.max(1, Number(searchParams.get("pageSize") || "20"))
-    );
+    try {
+        const { searchParams } = new URL(req.url);
+        const status = pickStatus(searchParams.get("status"));
+        const borrowerType = pickBorrower(searchParams.get("borrowerType"));
 
-    const where = { status, borrowerType };
+        const page = Math.max(1, Number(searchParams.get("page") || "1"));
+        const pageSize = Math.min(
+            100,
+            Math.max(1, Number(searchParams.get("pageSize") || "20"))
+        );
 
-    const [total, rows] = await prisma.$transaction([
-        prisma.borrowRequest.count({ where }),
-        prisma.borrowRequest.findMany({
-            where,
-            include: {
-                requester: {
-                    select: {
-                        id: true,
-                        fullName: true,
-                        department: { select: { name: true } },
+        // ✅ สร้าง where แบบไม่ยัด null/undefined
+        const where = {
+            ...(status ? { status } : {}),
+            ...(borrowerType ? { borrowerType } : {}),
+        };
+
+        // ✅ count แบบตรงๆ ไม่ใช้ select/_count
+        const [total, rows] = await prisma.$transaction([
+            prisma.borrowRequest.count({ where }),
+            prisma.borrowRequest.findMany({
+                where,
+                include: {
+                    requester: {
+                        select: {
+                            id: true,
+                            fullName: true,
+                            department: { select: { name: true } },
+                        },
+                    },
+                    approvedBy: { select: { id: true, fullName: true } },
+                    receivedBy: { select: { id: true, fullName: true } },
+                    items: {
+                        include: {
+                            equipment: { select: { number: true, code: true, name: true } },
+                        },
                     },
                 },
-                approvedBy: { select: { id: true, fullName: true } },
-                receivedBy: { select: { id: true, fullName: true } },
-                items: {
-                    include: {
-                        equipment: { select: { number: true, code: true, name: true } },
-                    },
-                },
-            },
-            orderBy: [{ createdAt: "desc" }],
-            skip: (page - 1) * pageSize,
-            take: pageSize,
-        }),
-    ]);
+                orderBy: [{ createdAt: "desc" }],
+                skip: (page - 1) * pageSize,
+                take: pageSize,
+            }),
+        ]);
 
-    return NextResponse.json({ ok: true, total, page, pageSize, data: rows });
+        return NextResponse.json({ ok: true, total, page, pageSize, data: rows });
+    } catch (e: any) {
+        console.error("[GET /api/borrow] ", e);
+        return NextResponse.json(
+            { ok: false, error: e?.message || "internal-error" },
+            { status: 500 }
+        );
+    }
 }
 
 export async function POST(req: Request) {

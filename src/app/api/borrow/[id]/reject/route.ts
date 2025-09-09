@@ -17,26 +17,44 @@ export async function PATCH(req: Request, { params }: Params) {
     const id = Number(params.id);
     const { rejectReason } = await req.json();
 
-    const row = await prisma.borrowRequest.findUnique({ where: { id } });
-    if (!row)
+    const reqRow = await prisma.borrowRequest.findUnique({
+        where: { id },
+        include: { items: true },
+    });
+    if (!reqRow)
         return NextResponse.json(
             { ok: false, error: "not-found" },
             { status: 404 }
         );
-    if (row.status !== "PENDING")
+    if (reqRow.status !== "PENDING")
         return NextResponse.json(
             { ok: false, error: "invalid-status" },
             { status: 400 }
         );
 
-    await prisma.borrowRequest.update({
-        where: { id },
-        data: {
-            status: "REJECTED",
-            rejectedById: Number(admin.user.id),
-            rejectedAt: new Date(),
-            rejectReason: rejectReason ?? null,
-        },
+    await prisma.$transaction(async (tx) => {
+        await tx.borrowRequest.update({
+            where: { id },
+            data: {
+                status: "REJECTED",
+                rejectedById: Number(admin.user.id),
+                rejectedAt: new Date(),
+                rejectReason: rejectReason ?? null,
+            },
+        });
+
+        await tx.equipment.updateMany({
+            where: {
+                number: { in: reqRow.items.map((i) => i.equipmentId) },
+                currentRequestId: id,
+            },
+            data: {
+                status: "NORMAL",
+                currentRequestId: null,
+                statusChangedAt: new Date(),
+                statusNote: "Request rejected",
+            },
+        });
     });
 
     return NextResponse.json({ ok: true });
