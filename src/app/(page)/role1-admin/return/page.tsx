@@ -20,16 +20,27 @@ const beToCE = (be: string) => {
     return `${Number(y) - 543}-${m}-${d}`;
 };
 
+
 export default function ReturnPage() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const id = Number(searchParams.get("id"));
 
     const [borrowRequest, setBorrowRequest] = useState<any>(null);
-    const [selectedStatus, setSelectedStatus] = useState<any>(null);
+    // ใช้รหัส enum string
+    const [returnCondition, setReturnCondition] = useState<string>("");
     const [returnNotes, setReturnNotes] = useState("");
     const [actualReturnDate, setActualReturnDate] = useState<string>(isoToBE(null));
     const [loading, setLoading] = useState(true);
+
+    // ตัวเลือกสภาพคืน (enum)
+    const RETURN_OPTIONS = [
+        { value: "NORMAL", label: "ปกติ" },
+        { value: "BROKEN", label: "ชำรุด" },
+        { value: "LOST", label: "สูญหาย" },
+        { value: "WAIT_DISPOSE", label: "รอจำหน่าย" },
+        { value: "DISPOSED", label: "จำหน่ายแล้ว" },
+    ];
 
     useEffect(() => {
         if (!id || !Number.isFinite(id)) { setLoading(false); return; }
@@ -53,20 +64,19 @@ export default function ReturnPage() {
     }, [id]);
 
     const handleReturn = async () => {
-        if (!borrowRequest || !selectedStatus) return;
+        if (!borrowRequest || !returnCondition) return;
         try {
             const r = await fetch(`/api/borrow/${id}/return`, {
                 method: "PATCH",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    actualReturnDate: beToCE(actualReturnDate),
-                    returnCondition: selectedStatus.label, // "ปกติ", "ชำรุด", "สูญหาย", "รอจำหน่าย", "จำหน่ายแล้ว" -> map ใน API แล้ว
+                    returnCondition, // ส่งเป็น NORMAL/BROKEN/...
                     returnNotes,
                 }),
             });
             const j = await r.json().catch(() => ({}));
             if (!r.ok || !j?.ok) return alert(j?.error ?? "บันทึกรับคืนไม่สำเร็จ");
-            router.push("/role1-admin"); // กลับไปแท็บ "คืนแล้ว" ได้ตามที่หน้า list จัดการ
+            router.push("/role1-admin");
         } catch {
             alert("บันทึกรับคืนไม่สำเร็จ");
         }
@@ -84,9 +94,16 @@ export default function ReturnPage() {
             </div>
         );
     }
+
     if (!borrowRequest) {
         return <div className="p-6">ไม่พบคำขอ</div>;
     }
+
+    // ชื่อแอดมินผู้รับคืน
+    const adminName =
+        borrowRequest?.receivedBy?.fullName ??
+        borrowRequest?.approvedBy?.fullName ??
+        "ผู้ดูแลระบบ";
 
     return (
         <div className="min-h-screen bg-gray-100">
@@ -118,9 +135,9 @@ export default function ReturnPage() {
                                 </thead>
                                 <tbody>
                                     {borrowRequest.items.map((it: any, idx: number) => (
-                                        <tr key={it.number}>
+                                        <tr key={it.equipment?.number ?? idx}>
                                             <td className="border border-gray-300 px-4 py-3 text-sm text-gray-900">{idx + 1}</td>
-                                            <td className="border border-gray-300 px-4 py-3 text-sm text-gray-900">{it.name}</td>
+                                            <td className="border border-gray-300 px-4 py-3 text-sm text-gray-900">{it.equipment?.name ?? '-'}</td>
                                             <td className="border border-gray-300 px-4 py-3 text-sm text-gray-900">
                                                 {borrowRequest.returnDue
                                                     ? new Date(borrowRequest.returnDue).toLocaleDateString("th-TH")
@@ -129,16 +146,12 @@ export default function ReturnPage() {
                                             <td className="border border-gray-300 px-4 py-3 text-sm text-gray-900">
                                                 <select
                                                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                                    value={selectedStatus?.id || ""}
-                                                    onChange={(e) => {
-                                                        const id = parseInt(e.target.value);
-                                                        const status = Status[0].items.find(s => s.id === id);
-                                                        setSelectedStatus(status ?? null);
-                                                    }}
+                                                    value={returnCondition}
+                                                    onChange={(e) => setReturnCondition(e.target.value)}
                                                 >
                                                     <option value="">เลือกสภาพ</option>
-                                                    {Status[0].items.map(s => (
-                                                        <option key={s.id} value={s.id}>{s.label}</option>
+                                                    {RETURN_OPTIONS.map((s) => (
+                                                        <option key={s.value} value={s.value}>{s.label}</option>
                                                     ))}
                                                 </select>
                                             </td>
@@ -181,7 +194,7 @@ export default function ReturnPage() {
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">ผู้รับคืน</label>
                                     <div className="bg-gray-200 rounded px-3 py-2 text-sm text-gray-700">
-                                        เจ้าหน้าที่ผู้รับคืน
+                                        {adminName}
                                     </div>
                                 </div>
                             </div>
@@ -191,9 +204,8 @@ export default function ReturnPage() {
                         <div className="flex justify-start gap-4">
                             <button
                                 onClick={handleReturn}
-                                disabled={!selectedStatus}
-                                className={`px-6 py-2 rounded-lg font-medium transition-colors ${selectedStatus ? "bg-blue-500 hover:bg-blue-600 text-white" : "bg-gray-300 text-gray-500 cursor-not-allowed"
-                                    }`}
+                                disabled={!returnCondition}
+                                className={`px-6 py-2 rounded-lg font-medium transition-colors ${returnCondition ? "bg-blue-500 hover:bg-blue-600 text-white" : "bg-gray-300 text-gray-500 cursor-not-allowed"}`}
                             >
                                 บันทึก
                             </button>
@@ -210,3 +222,4 @@ export default function ReturnPage() {
         </div>
     );
 }
+

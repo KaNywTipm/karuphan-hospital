@@ -15,6 +15,7 @@ const toInputDate = (d: Date) => {
 type Me = {
     fullName: string;
     role: "ADMIN" | "INTERNAL" | "EXTERNAL";
+    phone?: string | null;
     department?: { id: number; name: string } | null;
 };
 
@@ -46,7 +47,7 @@ interface CartItem {
 type BorrowKaruphanProps = {
     onClose?: () => void;
     onBorrow?: (borrowData: {
-        external: null;
+        external: { name: string; dept: string; phone: string } | null;
         notes: null;
         returnDue: string;
         reason: string;
@@ -66,7 +67,7 @@ type BorrowKaruphanProps = {
 const BorrowKaruphan = ({ onClose, onBorrow, onSuccess, selectedEquipment, cartItems }: BorrowKaruphanProps) => {
     const router = useRouter();
     const [me, setMe] = useState<Me | null>(null);
-    const [borrowDate] = useState<string>(toInputDate(new Date()));
+    const [borrowDate, setBorrowDate] = useState<string>(toInputDate(new Date()));
     const [returnDate, setReturnDate] = useState<string>("");
     const [reason, setReason] = useState<string>("");
     const [submitting, setSubmitting] = useState(false);
@@ -93,7 +94,7 @@ const BorrowKaruphan = ({ onClose, onBorrow, onSuccess, selectedEquipment, cartI
     const handleClose = () => onClose?.();
 
     // เพิ่มฟังก์ชัน handleBorrow สำหรับการส่งคำขอยืม
-    async function handleBorrow({ returnDue, reason }: { returnDue: string; reason: string }) {
+    async function handleBorrow({ borrowDate, returnDue, reason }: { borrowDate: string; returnDue: string; reason: string }) {
         if (!cartItems || cartItems.length === 0) {
             alert("ไม่มีรายการในตะกร้า");
             return;
@@ -103,12 +104,20 @@ const BorrowKaruphan = ({ onClose, onBorrow, onSuccess, selectedEquipment, cartI
             quantity: Number(ci.quantity ?? 1),
         }));
         const borrowerType: "INTERNAL" | "EXTERNAL" = me?.role === "EXTERNAL" ? "EXTERNAL" : "INTERNAL";
-        const body = {
-            borrowerType,           // ใช้ค่าจริงจากผู้ใช้
+        let body: any = {
+            borrowerType,
+            borrowDate,
             returnDue,
             reason: reason?.trim() || null,
             items,
         };
+        if (borrowerType === "EXTERNAL") {
+            body.externalName = me?.fullName?.trim() || null;
+            body.externalDept = me?.department?.name?.trim() || null;
+            body.externalPhone = me?.phone?.toString().trim() || null;
+        } else if (borrowerType === "INTERNAL" && me) {
+            body.requesterId = (me as any).id ?? null;
+        }
         try {
             setSubmitting(true);
             const res = await fetch("/api/borrow", {
@@ -137,14 +146,21 @@ const BorrowKaruphan = ({ onClose, onBorrow, onSuccess, selectedEquipment, cartI
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!returnDate) return;
+        if (!borrowDate || !returnDate) return;
 
         // ❗ถ้า parent ส่ง onBorrow มา ให้เรียกอันนั้น (parent จะเคลียร์ตะกร้า/รีโหลดเอง)
+        const borrowerType: "INTERNAL" | "EXTERNAL" = me?.role === "EXTERNAL" ? "EXTERNAL" : "INTERNAL";
         if (onBorrow) {
             try {
                 setSubmitting(true);
-                await onBorrow({
-                    external: null,
+                onBorrow({
+                    external: borrowerType === "EXTERNAL"
+                        ? {
+                            name: me?.fullName ?? "",
+                            dept: me?.department?.name ?? "",
+                            phone: me?.phone ?? "",
+                        }
+                        : null,
                     notes: null,
                     returnDue: returnDate,
                     reason,
@@ -158,7 +174,7 @@ const BorrowKaruphan = ({ onClose, onBorrow, onSuccess, selectedEquipment, cartI
         }
 
         // fallback เดิม: ยิง API ในโมดอลเอง (กรณีเรียกใช้โมดอลแบบ standalone)
-        await handleBorrow({ returnDue: returnDate, reason });
+        await handleBorrow({ borrowDate, returnDue: returnDate, reason });
     };
 
     return (
@@ -217,8 +233,9 @@ const BorrowKaruphan = ({ onClose, onBorrow, onSuccess, selectedEquipment, cartI
                         <input
                             type="date"
                             value={borrowDate}
-                            readOnly
-                            className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg bg-gray-100 text-gray-700"
+                            onChange={e => setBorrowDate(e.target.value)}
+                            className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none transition-colors bg-white text-gray-700"
+                            required
                         />
                     </FormRow>
 
@@ -248,6 +265,7 @@ const BorrowKaruphan = ({ onClose, onBorrow, onSuccess, selectedEquipment, cartI
                             value={me?.fullName ?? "-"}
                             readOnly
                             className="form-input border border-gray-200 rounded px-3 py-2 w-full bg-gray-100 text-gray-700"
+                            data-testid="borrower-name"
                         />
                     </FormRow>
 

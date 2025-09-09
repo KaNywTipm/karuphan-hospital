@@ -1,191 +1,109 @@
-import { auth } from "@/lib/auth";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { auth } from "@/lib/auth";
+
 export const dynamic = "force-dynamic";
 
-export async function POST(req: Request) {
-    const me = await auth();
-    if (!me || !me.user)
-        return NextResponse.json(
-            { ok: false, error: "unauthorized" },
-            { status: 401 }
-        );
+/** Helper: include เดียวกันทั้ง GET/PATCH */
+const borrowInclude = {
+    requester: { select: { id: true, fullName: true, phone: true, department: { select: { name: true } } } },
+    approvedBy: { select: { id: true, fullName: true } },
+    receivedBy: { select: { id: true, fullName: true } },
+    items: {
+        include: {
+            equipment: { select: { number: true, code: true, name: true, status: true } },
+        },
+    },
+} as const;
+
+/** GET /api/borrow/:id → รายละเอียดคำขอ */
+export async function GET(_: Request, { params }: { params: { id: string } }) {
+    const id = Number(params.id);
+    if (!Number.isFinite(id)) {
+        return NextResponse.json({ ok: false, error: "invalid-id" }, { status: 400 });
+    }
 
     try {
-        const body = await req.json();
-        const { borrowerType, returnDue, reason, external, items } = body as {
-            borrowerType: "INTERNAL" | "EXTERNAL";
-            returnDue: string;
-            reason?: string;
-            external?: { name?: string; dept?: string; phone?: string } | null;
-            items: { equipmentId: number; quantity?: number }[];
-        };
-
-        if (!Array.isArray(items) || items.length === 0) {
-            return NextResponse.json(
-                { ok: false, error: "no-items" },
-                { status: 400 }
-            );
-        }
-
-        // ตรวจว่ามีชิ้นไหนไม่ว่างอยู่แล้ว
-        const eqs = await prisma.equipment.findMany({
-            where: { number: { in: items.map((i) => i.equipmentId) } },
-            select: { number: true, status: true },
+        const row = await prisma.borrowRequest.findUnique({
+            where: { id },
+            include: borrowInclude,
         });
-        const busy = eqs.filter((e) => e.status === "IN_USE");
-        if (busy.length) {
-            return NextResponse.json(
-                {
-                    ok: false,
-                    error: `อุปกรณ์เลข: ${busy
-                        .map((b) => b.number)
-                        .join(", ")} กำลังถูกยืม`,
-                },
-                { status: 409 }
-            );
-        }
+        if (!row) return NextResponse.json({ ok: false, error: "not-found" }, { status: 404 });
 
-        const isInternal = borrowerType === "INTERNAL";
-        const isExternal = borrowerType === "EXTERNAL";
+        // คำนวณ OVERDUE แบบไดนามิก
+        const overdue =
+            row.status === "APPROVED" &&
+            row.returnDue &&
+            new Date(row.returnDue).getTime() < Date.now() &&
+            !row.actualReturnDate;
 
-        const created = await prisma.$transaction(async (tx) => {
-            const request = await tx.borrowRequest.create({
-                data: {
-                    borrowerType,
-                    requesterId: me.user.role === "EXTERNAL" ? null : Number(me.user.id),
-                    externalName: external?.name ?? null,
-                    externalDept: external?.dept ?? null,
-                    externalPhone: external?.phone ?? null,
-                    status: isInternal ? "APPROVED" : "PENDING",
-                    borrowDate: isInternal ? new Date() : null,
-                    returnDue: new Date(returnDue),
-                    reason: reason ?? null,
-                    items: {
-                        create: items.map((it) => ({
-                            equipmentId: it.equipmentId,
-                            quantity: it.quantity ?? 1,
-                        })),
-                    },
-                    approvedById: isInternal ? Number(me.user.id) : null,
-                    approvedAt: isInternal ? new Date() : null,
-                },
-                include: { items: true },
-            });
-
-            const ids = items.map((i: any) => i.equipmentId);
-            await tx.equipment.updateMany({
-                where: { number: { in: ids } },
-                data: {
-                    status: isExternal ? "RESERVED" : "IN_USE",
-                    currentRequestId: request.id,
-                    statusChangedAt: new Date(),
-                },
-            });
-
-            return request;
-        });
-
-        return NextResponse.json({ ok: true, id: created.id }, { status: 201 });
-    } catch (e: any) {
-        console.error("[POST /api/borrow] ", e);
-        return NextResponse.json(
-            { ok: false, error: e?.message || "internal-error" },
-            { status: 500 }
-        );
+        const data = overdue ? { ...row, status: "OVERDUE" as const } : row;
+        return NextResponse.json({ ok: true, data }, { status: 200 });
+    } catch (e) {
+        console.error("[GET /api/borrow/:id] error:", e);
+        return NextResponse.json({ ok: false, error: "server-error" }, { status: 500 });
     }
 }
 
-const asStatus = (v: string | null) =>
-    v && ["PENDING", "APPROVED", "RETURNED", "REJECTED", "OVERDUE"].includes(v)
-        ? (v as any)
-        : undefined;
-const asBorrower = (v: string | null) =>
-    v && ["INTERNAL", "EXTERNAL"].includes(v) ? (v as any) : undefined;
+/**
+ * PATCH /api/borrow/:id
+ * อนุญาตแก้แค่: returnDue, reason, notes
+ * (approve/reject/return แยกอยู่ที่ /approve, /reject, /return)
+ */
+export async function PATCH(req: Request, { params }: { params: { id: string } }) {
+    const session: any = await auth();
+    if (!session) return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
 
-type Params = { params: { id: string } };
+    const role = String(session.role ?? session.user?.role ?? "").toUpperCase();
+    if (role !== "ADMIN") return NextResponse.json({ ok: false, error: "forbidden" }, { status: 403 });
 
-// GET by id
-export async function GET(_req: Request, { params }: Params) {
     const id = Number(params.id);
-    const row = await prisma.borrowRequest.findUnique({
-        where: { id },
-        include: {
-            requester: {
-                select: {
-                    id: true,
-                    fullName: true,
-                    department: { select: { name: true } },
-                },
-            },
-            approvedBy: { select: { id: true, fullName: true } },
-            receivedBy: { select: { id: true, fullName: true } },
-            items: {
-                include: {
-                    equipment: {
-                        select: { number: true, code: true, name: true, status: true },
-                    },
-                },
-            },
-        },
-    });
-    if (!row)
-        return NextResponse.json(
-            { ok: false, error: "not-found" },
-            { status: 404 }
-        );
-    return NextResponse.json({ ok: true, data: row });
-}
+    if (!Number.isFinite(id)) {
+        return NextResponse.json({ ok: false, error: "invalid-id" }, { status: 400 });
+    }
 
-// GET collection (for /api/borrow)
-export async function GET_COLLECTION(req: Request) {
+    let body: any = {};
     try {
-        const { searchParams } = new URL(req.url);
-        const status = asStatus(searchParams.get("status"));
-        const borrowerType = asBorrower(searchParams.get("borrowerType"));
+        body = await req.json();
+    } catch {
+        return NextResponse.json({ ok: false, error: "invalid-json" }, { status: 400 });
+    }
 
-        const where: any = {};
-        if (status) where.status = status;
-        if (borrowerType) where.borrowerType = borrowerType;
+    // เตรียมฟิลด์ที่อนุญาตให้แก้
+    const data: any = {};
+    if (body.returnDue != null) data.returnDue = new Date(body.returnDue);
+    if (body.reason != null) data.reason = String(body.reason);
+    if (body.notes != null) data.notes = String(body.notes);
 
-        const page = Math.max(1, Number(searchParams.get("page") || "1"));
-        const pageSize = Math.min(
-            100,
-            Math.max(1, Number(searchParams.get("pageSize") || "20"))
-        );
+    if (Object.keys(data).length === 0) {
+        return NextResponse.json({ ok: false, error: "no-updates" }, { status: 400 });
+    }
 
-        const [total, rows] = await prisma.$transaction([
-            prisma.borrowRequest.count({ where }),
-            prisma.borrowRequest.findMany({
-                where,
-                include: {
-                    requester: {
-                        select: {
-                            id: true,
-                            fullName: true,
-                            department: { select: { name: true } },
-                        },
-                    },
-                    approvedBy: { select: { id: true, fullName: true } },
-                    receivedBy: { select: { id: true, fullName: true } },
-                    items: {
-                        include: {
-                            equipment: { select: { number: true, code: true, name: true } },
-                        },
-                    },
-                },
-                orderBy: [{ createdAt: "desc" }],
-                skip: (page - 1) * pageSize,
-                take: pageSize,
-            }),
-        ]);
+    try {
+        // ป้องกันแก้ไขหลังปิดเคสแล้ว
+        const current = await prisma.borrowRequest.findUnique({ where: { id }, select: { status: true } });
+        if (!current) return NextResponse.json({ ok: false, error: "not-found" }, { status: 404 });
+        if (current.status === "RETURNED" || current.status === "REJECTED") {
+            return NextResponse.json({ ok: false, error: "closed-request" }, { status: 409 });
+        }
 
-        return NextResponse.json({ ok: true, total, page, pageSize, data: rows });
-    } catch (e: any) {
-        console.error("[GET /api/borrow] ", e);
-        return NextResponse.json(
-            { ok: false, error: e?.message || "internal-error" },
-            { status: 500 }
-        );
+        const updated = await prisma.borrowRequest.update({
+            where: { id },
+            data,
+            include: borrowInclude,
+        });
+
+        // คำนวณ OVERDUE ให้ผลลัพธ์
+        const overdue =
+            updated.status === "APPROVED" &&
+            updated.returnDue &&
+            new Date(updated.returnDue).getTime() < Date.now() &&
+            !updated.actualReturnDate;
+
+        const resp = overdue ? { ...updated, status: "OVERDUE" as const } : updated;
+        return NextResponse.json({ ok: true, data: resp }, { status: 200 });
+    } catch (e) {
+        console.error("[PATCH /api/borrow/:id] error:", e);
+        return NextResponse.json({ ok: false, error: "server-error" }, { status: 500 });
     }
 }

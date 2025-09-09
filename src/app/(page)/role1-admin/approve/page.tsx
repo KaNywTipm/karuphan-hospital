@@ -25,8 +25,18 @@ export default function ApprovePage() {
             try {
                 const r = await fetch(`/api/borrow/${id}`, { cache: "no-store" });
                 const j = await r.json().catch(() => ({}));
-                if (r.ok && j?.ok) setRow(j.data);
-                else alert(j?.error ?? "โหลดคำขอไม่สำเร็จ");
+                if (r.ok && j?.ok) {
+                    const d = j.data;
+                    const shaped = {
+                        ...d,
+                        borrowerName: d.borrowerType === "INTERNAL"
+                            ? (d.requester?.fullName ?? "-")
+                            : (d.externalName || d.requester?.fullName || "-"),
+                        department: d.borrowerType === "INTERNAL" ? (d.requester?.department?.name ?? "-") : (d.externalDept ?? "ภายนอกกลุ่มงาน"),
+                        items: (d.items ?? []).map((it: any) => it.equipment).filter(Boolean),
+                    };
+                    setRow(shaped);
+                } else alert(j?.error ?? "โหลดคำขอไม่สำเร็จ");
             } catch {
                 alert("โหลดคำขอไม่สำเร็จ");
             } finally {
@@ -88,7 +98,7 @@ export default function ApprovePage() {
                             <div className="space-y-4">
                                 <div><span className="font-medium">ผู้ขอ:</span> {row.borrowerName}</div>
                                 <div><span className="font-medium">หน่วยงาน:</span> {row.department}</div>
-                                <div><span className="font-medium">ครุภัณฑ์:</span> {row.items.map((i: any) => i.name).join(", ")}</div>
+                                <div><span className="font-medium">ครุภัณฑ์:</span> {row.items.map((i: any) => i?.name).join(", ")}</div>
                                 <div><span className="font-medium">เหตุผลการยืม:</span> {row.reason || "-"}</div>
                             </div>
                             <div className="space-y-4">
@@ -111,7 +121,7 @@ export default function ApprovePage() {
                                 placeholder="เหตุผลไม่อนุมัติ"
                                 className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                             />
-                            
+
                         </div>
                     </div>
                 </div>

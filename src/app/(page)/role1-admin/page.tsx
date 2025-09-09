@@ -19,6 +19,7 @@ type Row = {
     reason?: string | null;
     receivedBy?: string | null;         // ถ้ามีใน API
     returnCondition?: string | null;    // ถ้ามีใน API
+    adminName?: string | null;          // ชื่อแอดมินผู้รับคืน
 };
 
 // ---------- Helpers ----------
@@ -67,7 +68,38 @@ export default function AdminPage() {
             setLoading(true);
             const res = await fetch("/api/borrow", { cache: "no-store", signal });
             const json = await res.json();
-            setRows(Array.isArray(json?.data) ? json.data : []);
+            const raw = Array.isArray(json?.data) ? json.data : [];
+            const shaped = raw.map((r: any) => ({
+                id: r.id,
+                status: r.status,
+                borrowerType: r.borrowerType,
+                // กรณี INTERNAL ใช้ requester.fullName, กรณี EXTERNAL ใช้ externalName
+                borrowerName:
+                    r.borrowerType === "INTERNAL"
+                        ? (r.requester?.fullName ?? "-")
+                        : (r.externalName || r.requester?.fullName || "-")
+                ,
+                // ชื่อแอดมินผู้รับคืน (เหมือน return page)
+                adminName:
+                    r.receivedBy?.fullName ??
+                    r.approvedBy?.fullName ??
+                    "-",
+                department:
+                    r.borrowerType === "INTERNAL"
+                        ? (r.requester?.department?.name ?? "-")
+                        : (r.externalDept ?? "ภายนอกกลุ่มงาน")
+                ,
+                equipmentCode: (r.items ?? []).map((it: any) => it?.equipment?.code).filter(Boolean).join(", "),
+                equipmentName: (r.items ?? []).map((it: any) => it?.equipment?.name).filter(Boolean).join(", "),
+                borrowDate: r.borrowDate ?? null,
+                returnDue: r.returnDue ?? null,
+                actualReturnDate: r.actualReturnDate ?? null,
+                reason: r.reason ?? null,
+                // กรณี INTERNAL ใช้ requester.fullName, กรณี EXTERNAL ใช้ externalName เช่นกัน (ถ้าต้องการโชว์ผู้ยืมในคอลัมน์อื่น)
+                receivedBy: r.receivedBy?.fullName ?? null,
+                returnCondition: r.returnCondition ?? null,
+            }));
+            setRows(shaped);
         } catch {
             setRows([]); // กันล่ม
         } finally {
@@ -257,10 +289,10 @@ export default function AdminPage() {
                                         : item.department || "ภายนอกกลุ่มงาน";
 
                                 const returnDue = item.returnDue
-                                    ? new Date(item.returnDue).toLocaleDateString()
+                                    ? new Date(item.returnDue).toLocaleDateString("th-TH")
                                     : "-";
                                 const returnedAt = item.actualReturnDate
-                                    ? new Date(item.actualReturnDate).toLocaleDateString()
+                                    ? new Date(item.actualReturnDate).toLocaleDateString("th-TH")
                                     : returnDue;
 
                                 const thaiStatus = toThaiStatus(item.status);
@@ -275,34 +307,32 @@ export default function AdminPage() {
                                         <td className="border border-gray-300 px-4 py-3 text-center">{returnDue}</td>
 
                                         {activeTab === "อนุมัติแล้ว/รอคืน" && (
-                                            <td className="border border-gray-300 px-4 py-3 text-center">{item.receivedBy || "-"}</td>
+                                            <td className="border border-gray-300 px-4 py-3 text-center">{item.adminName}</td>
                                         )}
                                         {activeTab === "คืนแล้ว" && (
                                             <>
-                                                <td className="border border-gray-300 px-4 py-3 text-center">{item.receivedBy || "-"}</td>
+                                                <td className="border border-gray-300 px-4 py-3 text-center">{item.adminName}</td>
                                                 <td className="border border-gray-300 px-4 py-3 text-center">
-                                                    <span className={`px-2 py-1 rounded text-xs font-medium ${item.returnCondition === "NORMAL" ? "bg-green-100 text-green-800" :
+                                                    <span className={`px-2 py-1 rounded text-xs font-medium ${!item.returnCondition || item.returnCondition === "NORMAL" ? "bg-green-100 text-green-800" :
                                                         item.returnCondition === "BROKEN" ? "bg-red-100 text-red-800" :
                                                             item.returnCondition === "LOST" ? "bg-gray-100 text-gray-800" :
                                                                 item.returnCondition === "WAIT_DISPOSE" ? "bg-yellow-100 text-yellow-800" :
                                                                     item.returnCondition === "DISPOSED" ? "bg-purple-100 text-purple-800" :
                                                                         "bg-gray-100 text-gray-800"
                                                         }`}>
-                                                        {item.returnCondition
-                                                            ? (
-                                                                item.returnCondition === "NORMAL" ? "ปกติ" :
-                                                                    item.returnCondition === "BROKEN" ? "ชำรุด" :
-                                                                        item.returnCondition === "LOST" ? "สูญหาย" :
-                                                                            item.returnCondition === "WAIT_DISPOSE" ? "รอจำหน่าย" :
-                                                                                item.returnCondition === "DISPOSED" ? "จำหน่ายแล้ว" : "ไม่ระบุ"
-                                                            )
-                                                            : "ไม่ระบุ"}
+                                                        {!item.returnCondition || item.returnCondition === "NORMAL"
+                                                            ? "ปกติ"
+                                                            : item.returnCondition === "BROKEN" ? "ชำรุด"
+                                                                : item.returnCondition === "LOST" ? "สูญหาย"
+                                                                    : item.returnCondition === "WAIT_DISPOSE" ? "รอจำหน่าย"
+                                                                        : item.returnCondition === "DISPOSED" ? "จำหน่ายแล้ว"
+                                                                            : "ปกติ"}
                                                     </span>
                                                 </td>
                                             </>
                                         )}
                                         {activeTab === "ไม่อนุมัติ/ยกเลิก" && (
-                                            <td className="border border-gray-300 px-4 py-3 text-center">{item.receivedBy || "-"}</td>
+                                            <td className="border border-gray-300 px-4 py-3 text-center">{item.adminName}</td>
                                         )}
 
                                         <td className="border border-gray-300 px-4 py-3 text-center">{item.reason || "-"}</td>

@@ -23,30 +23,40 @@ function pickBorrower(v: string | null | undefined) {
     return ALLOWED_BORROWER.has(s) ? (s as any) : undefined;
 }
 
+/**
+ * GET /api/borrow
+ * query:
+ *  - status: PENDING|APPROVED|RETURNED|REJECTED|OVERDUE (optional)
+ *  - page=1&pageSize=20
+ */
 export async function GET(req: Request) {
     try {
-        const { searchParams } = new URL(req.url);
-        const status = pickStatus(searchParams.get("status"));
-        const borrowerType = pickBorrower(searchParams.get("borrowerType"));
-
-        const page = Math.max(1, Number(searchParams.get("page") || "1"));
+        const sp = new URL(req.url).searchParams;
+        const status = sp.get("status")?.toUpperCase() || undefined;
+        const page = Math.max(1, Number(sp.get("page") || "1"));
         const pageSize = Math.min(
             100,
-            Math.max(1, Number(searchParams.get("pageSize") || "20"))
+            Math.max(1, Number(sp.get("pageSize") || "20"))
         );
 
-        // ✅ สร้าง where แบบไม่ยัด null/undefined
-        const where = {
-            ...(status ? { status } : {}),
-            ...(borrowerType ? { borrowerType } : {}),
-        };
+        const where: any = {};
+        if (status) where.status = status;
 
-        // ✅ count แบบตรงๆ ไม่ใช้ select/_count
         const [total, rows] = await prisma.$transaction([
             prisma.borrowRequest.count({ where }),
             prisma.borrowRequest.findMany({
                 where,
-                include: {
+                orderBy: [{ createdAt: "desc" }],
+                select: {
+                    id: true,
+                    status: true,
+                    borrowerType: true,
+                    returnDue: true,
+                    actualReturnDate: true,
+                    reason: true,
+                    externalName: true,
+                    externalDept: true,
+                    externalPhone: true,
                     requester: {
                         select: {
                             id: true,
@@ -62,17 +72,30 @@ export async function GET(req: Request) {
                         },
                     },
                 },
-                orderBy: [{ createdAt: "desc" }],
                 skip: (page - 1) * pageSize,
                 take: pageSize,
             }),
         ]);
 
-        return NextResponse.json({ ok: true, total, page, pageSize, data: rows });
-    } catch (e: any) {
-        console.error("[GET /api/borrow] ", e);
+        // คำนวณ OVERDUE ให้ด้วย (ถ้าเลือก status=APPROVED เฉยๆ)
+        const now = new Date().getTime();
+        const data = rows.map((r) => {
+            const isOverdue =
+                r.status === "APPROVED" &&
+                r.returnDue &&
+                new Date(r.returnDue).getTime() < now &&
+                !r.actualReturnDate;
+            return isOverdue ? { ...r, status: "OVERDUE" as const } : r;
+        });
+
         return NextResponse.json(
-            { ok: false, error: e?.message || "internal-error" },
+            { ok: true, page, pageSize, total, data },
+            { status: 200 }
+        );
+    } catch (e) {
+        console.error("[GET /api/borrow] error:", e);
+        return NextResponse.json(
+            { ok: false, error: "server-error" },
             { status: 500 }
         );
     }
@@ -87,13 +110,7 @@ export async function POST(req: Request) {
         );
 
     const body = await req.json();
-    const { borrowerType, returnDue, reason, external, items } = body as {
-        borrowerType: "INTERNAL" | "EXTERNAL";
-        returnDue: string; // YYYY-MM-DD (CE)
-        reason?: string;
-        external?: { name?: string; dept?: string; phone?: string } | null;
-        items: { equipmentId: number; quantity?: number }[];
-    };
+    const { borrowerType, returnDue, reason, external, items } = body as any;
 
     if (!items?.length)
         return NextResponse.json({ ok: false, error: "no-items" }, { status: 400 });
@@ -103,7 +120,7 @@ export async function POST(req: Request) {
 
     // ตรวจของซ้ำ/ไม่ว่าง
     const eqs = await prisma.equipment.findMany({
-        where: { number: { in: items.map((i) => i.equipmentId) } },
+        where: { number: { in: items.map((i: { equipmentId: any; }) => i.equipmentId) } },
         select: { number: true, status: true },
     });
     const busy = eqs.filter((e) => e.status === "IN_USE");
@@ -120,6 +137,15 @@ export async function POST(req: Request) {
     }
 
     const created = await prisma.$transaction(async (tx) => {
+        // For EXTERNAL, support both body.external and top-level externalName/externalDept/externalPhone
+        let externalName = null,
+            externalDept = null,
+            externalPhone = null;
+        if (isExternal) {
+            externalName = body.externalName ?? external?.name ?? null;
+            externalDept = body.externalDept ?? external?.dept ?? null;
+            externalPhone = body.externalPhone ?? external?.phone ?? null;
+        }
         const reqRow = await tx.borrowRequest.create({
             data: {
                 borrowerType,
@@ -129,15 +155,15 @@ export async function POST(req: Request) {
                         : typeof me.user?.id === "number"
                             ? me.user.id
                             : Number(me.user?.id) || null,
-                externalName: external?.name ?? null,
-                externalDept: external?.dept ?? null,
-                externalPhone: external?.phone ?? null,
+                externalName,
+                externalDept,
+                externalPhone,
                 status: isInternal ? "APPROVED" : "PENDING",
                 borrowDate: isInternal ? new Date() : null,
                 returnDue: new Date(returnDue),
                 reason: reason ?? null,
                 items: {
-                    create: items.map((it) => ({
+                    create: items.map((it: any) => ({
                         equipmentId: it.equipmentId,
                         quantity: it.quantity ?? 1,
                     })),

@@ -273,7 +273,7 @@ export default function InternalBorrowPage() {
                                                 />
                                             </th>
                                             <th className="border px-4 py-3 text-center w-[80px]">ลำดับ</th>
-                                            <th className="border px-4 py-3 text-center w-[150px]">เลขครุภัณฑ์</th>
+                                            <th className="border px-4 py-3 text-center w-[180px]">เลขครุภัณฑ์</th>
                                             <th className="border px-4 py-3 text-center">ชื่อครุภัณฑ์</th>
                                             <th className="border px-4 py-3 text-center w-[200px]">รายละเอียด</th>
                                             <th className="border px-4 py-3 text-center w-[130px]">สถานะ</th>
