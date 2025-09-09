@@ -120,7 +120,9 @@ export async function POST(req: Request) {
 
     // ตรวจของซ้ำ/ไม่ว่าง
     const eqs = await prisma.equipment.findMany({
-        where: { number: { in: items.map((i: { equipmentId: any; }) => i.equipmentId) } },
+        where: {
+            number: { in: items.map((i: { equipmentId: any }) => i.equipmentId) },
+        },
         select: { number: true, status: true },
     });
     const busy = eqs.filter((e) => e.status === "IN_USE");
@@ -146,6 +148,8 @@ export async function POST(req: Request) {
             externalDept = body.externalDept ?? external?.dept ?? null;
             externalPhone = body.externalPhone ?? external?.phone ?? null;
         }
+        // Always use admin id 1 for approvedById and receivedById (INTERNAL)
+        const adminId = 1;
         const reqRow = await tx.borrowRequest.create({
             data: {
                 borrowerType,
@@ -168,11 +172,8 @@ export async function POST(req: Request) {
                         quantity: it.quantity ?? 1,
                     })),
                 },
-                approvedById: isInternal
-                    ? typeof me.user?.id === "number"
-                        ? me.user.id
-                        : Number(me.user?.id) || null
-                    : null,
+                approvedById: isInternal ? adminId : null,
+                receivedById: isInternal ? adminId : null,
                 approvedAt: isInternal ? new Date() : null,
             },
             include: { items: true },
