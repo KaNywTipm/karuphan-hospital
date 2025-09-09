@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import Image from "next/image";
 
 // ใช้สำหรับ default value ให้ input type="date"
@@ -23,9 +24,7 @@ interface CartItem {
     name: string;
     category: string;
     quantity: number;
-}
 
-interface BorrowKaruphanProps {
     onClose?: () => void;
     onBorrow?: (borrowData: {
         returnDue: string;   // ควรเป็น YYYY-MM-DD
@@ -33,6 +32,7 @@ interface BorrowKaruphanProps {
         borrowerName?: string;
         department?: string | null;
     }) => void;
+    onSuccess?: () => void;
     selectedEquipment?: {
         id: number;
         code: string;
@@ -42,12 +42,32 @@ interface BorrowKaruphanProps {
     cartItems?: CartItem[];
 }
 
-const BorrowKaruphan = ({ onClose, onBorrow, selectedEquipment, cartItems }: BorrowKaruphanProps) => {
 
+type BorrowKaruphanProps = {
+    onClose?: () => void;
+    onBorrow?: (borrowData: {
+        returnDue: string;
+        reason: string;
+        borrowerName?: string;
+        department?: string | null;
+    }) => void;
+    onSuccess?: () => void;
+    selectedEquipment?: {
+        id: number;
+        code: string;
+        name: string;
+        category: string;
+    } | null;
+    cartItems?: CartItem[];
+};
+
+const BorrowKaruphan = ({ onClose, onBorrow, onSuccess, selectedEquipment, cartItems }: BorrowKaruphanProps) => {
+    const router = useRouter();
     const [me, setMe] = useState<Me | null>(null);
     const [borrowDate] = useState<string>(toInputDate(new Date()));
     const [returnDate, setReturnDate] = useState<string>("");
     const [reason, setReason] = useState<string>("");
+    const [submitting, setSubmitting] = useState(false);
 
     async function fetchMe() {
         try {
@@ -80,13 +100,15 @@ const BorrowKaruphan = ({ onClose, onBorrow, selectedEquipment, cartItems }: Bor
             equipmentId: ci.id,
             quantity: Number(ci.quantity ?? 1),
         }));
+        const borrowerType: "INTERNAL" | "EXTERNAL" = me?.role === "EXTERNAL" ? "EXTERNAL" : "INTERNAL";
         const body = {
-            borrowerType: "INTERNAL",
+            borrowerType,           // ใช้ค่าจริงจากผู้ใช้
             returnDue,
             reason: reason?.trim() || null,
             items,
         };
         try {
+            setSubmitting(true);
             const res = await fetch("/api/borrow", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -94,13 +116,20 @@ const BorrowKaruphan = ({ onClose, onBorrow, selectedEquipment, cartItems }: Bor
             });
             const j = await res.json().catch(() => ({}));
             if (!res.ok || !j?.ok) {
-                alert(typeof j?.error === "string" ? j.error : JSON.stringify(j?.error ?? j, null, 2));
+                alert(typeof j?.error === "string" ? j.error : "บันทึกไม่สำเร็จ");
+                setSubmitting(false);
                 return;
             }
-            alert("บันทึกคำขอยืมสำเร็จ");
-            // TODO: เคลียร์ตะกร้า/รีเฟรชตามเหมาะสม...
-        } catch (err) {
+
+            // 👉 สำเร็จ: ปิดโมดอล + เคลียร์ตะกร้า (ให้ parent ทำ) + รีเฟรชหน้า
+            window.dispatchEvent(new Event("cart:clear")); // ถ้า parent ฟัง event นี้อยู่
+            onSuccess?.();
+            onClose?.();
+            router.refresh();
+        } catch {
             alert("เกิดข้อผิดพลาดในการส่งคำขอยืม");
+        } finally {
+            setSubmitting(false);
         }
     }
 
@@ -137,7 +166,7 @@ const BorrowKaruphan = ({ onClose, onBorrow, selectedEquipment, cartItems }: Bor
                         </thead>
                         <tbody>
                             {cartItems && cartItems.length > 0 ? (
-                                cartItems.map((item, index) => (
+                                cartItems.map((item: CartItem, index: number) => (
                                     <tr key={item.id}>
                                         <td className="border border-gray-300 px-4 py-2 text-center">{index + 1}</td>
                                         <td className="border border-gray-300 px-4 py-2 text-center">{item.name}</td>
@@ -212,9 +241,10 @@ const BorrowKaruphan = ({ onClose, onBorrow, selectedEquipment, cartItems }: Bor
                     <div className="flex justify-center gap-4 mt-6">
                         <button
                             type="submit"
-                            className="bg-BlueLight hover:bg-Green text-white px-6 py-2 rounded-md font-medium transition-colors"
+                            disabled={submitting}
+                            className="bg-BlueLight hover:bg-Green disabled:opacity-50 text-white px-6 py-2 rounded-md font-medium"
                         >
-                            บันทึก
+                            {submitting ? "กำลังบันทึก..." : "บันทึก"}
                         </button>
                         <button
                             type="button"

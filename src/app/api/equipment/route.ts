@@ -1,66 +1,66 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { Prisma } from "@prisma/client";
 import { EquipmentCreateSchema } from "@/lib/validators/equipment";
+export const dynamic = "force-dynamic";
 
-// helper: แปลง Date → "YYYY-MM-DD"
-const toYmd = (d: Date) => d.toISOString().slice(0, 10);
-
-// GET /api/equipment?search=&page=1&pageSize=20&sort=receivedDate:desc&status=&categoryId=
 export async function GET(req: Request) {
     const { searchParams } = new URL(req.url);
-    const q = searchParams.get("search")?.trim() || "";
-    const page = Math.max(parseInt(searchParams.get("page") || "1", 10), 1);
+    const q = searchParams.get("q")?.trim();
+    const categoryId = Number(searchParams.get("categoryId")) || undefined;
+    const status = searchParams.get("status") as
+        | "NORMAL"
+        | "IN_USE"
+        | "BROKEN"
+        | "LOST"
+        | "WAIT_DISPOSE"
+        | "DISPOSED"
+        | undefined;
+    const page = Math.max(1, Number(searchParams.get("page") || "1"));
     const pageSize = Math.min(
-        Math.max(parseInt(searchParams.get("pageSize") || "20", 10), 1),
-        100
+        100,
+        Math.max(1, Number(searchParams.get("pageSize") || "20"))
     );
-    const sort = (searchParams.get("sort") || "receivedDate:desc").split(":");
-    const status = searchParams.get("status") || undefined;
-    const categoryId = searchParams.get("categoryId");
 
-    const orderBy = {
-        [sort[0] || "receivedDate"]: (sort[1] === "asc" ? "asc" : "desc") as
-            | "asc"
-            | "desc",
+    const where: Prisma.EquipmentWhereInput = {
+        categoryId,
+        status,
+        OR: q
+            ? [
+                { name: { contains: q, mode: "insensitive" as Prisma.QueryMode } },
+                { code: { contains: q, mode: "insensitive" as Prisma.QueryMode } },
+                { idnum: { contains: q, mode: "insensitive" as Prisma.QueryMode } },
+            ]
+            : undefined,
     };
 
-    const where: any = {};
-    if (q) {
-        where.OR = [
-            { code: { contains: q, mode: "insensitive" } },
-            { name: { contains: q, mode: "insensitive" } },
-            { description: { contains: q, mode: "insensitive" } },
-            { category: { name: { contains: q, mode: "insensitive" } } },
-        ];
-    }
-    if (status) where.status = status;
-    if (categoryId) where.categoryId = Number(categoryId);
-
-    const [total, rows] = await Promise.all([
+    const [total, rows] = await prisma.$transaction([
         prisma.equipment.count({ where }),
         prisma.equipment.findMany({
             where,
-            include: { category: true },
-            orderBy,
+            select: {
+                number: true,
+                code: true,
+                idnum: true,
+                name: true,
+                status: true,
+                currentRequestId: true,
+                category: { select: { id: true, name: true } },
+            },
+            orderBy: [{ status: "asc" }, { name: "asc" }],
             skip: (page - 1) * pageSize,
             take: pageSize,
         }),
     ]);
 
-    // จัดรูปให้ UI ใช้ง่าย (ส่งวันที่เป็น "YYYY-MM-DD")
-    const data = rows.map((r) => ({
-        number: r.number,
-        code: r.code,
-        idnum: r.idnum,
-        name: r.name,
-        description: r.description,
-        price: r.price,
-        receivedDate: toYmd(r.receivedDate),
-        status: r.status,
-        category: { id: r.categoryId, name: r.category.name },
+    // enrich
+    const data = rows.map((e) => ({
+        ...e,
+        isBusy: e.status === "IN_USE",
+        canBorrow: e.status === "NORMAL",
     }));
 
-    return NextResponse.json({ data, page, pageSize, total });
+    return NextResponse.json({ ok: true, page, pageSize, total, data });
 }
 
 // POST /api/equipment
@@ -81,7 +81,7 @@ export async function POST(req: Request) {
                 code: parsed.code.trim(),
                 idnum: parsed.idnum?.trim() || null,
                 name: parsed.name.trim(),
-                description: parsed.description || null,
+                // description: parsed.description || null,
                 price: parsed.price ?? null,
                 receivedDate: new Date(parsed.receivedDate), // ค.ศ.
                 status: parsed.status || "NORMAL",

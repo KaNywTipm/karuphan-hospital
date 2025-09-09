@@ -6,7 +6,14 @@ export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 export async function GET() {
-  const rows = await prisma.category.findMany({ orderBy: { id: "asc" } });
+  const rows = await prisma.category.findMany({
+    where: { isActive: true },
+    select: {
+      id: true, name: true, description: true,
+      _count: { select: { equipments: true } },
+    },
+    orderBy: { name: "asc" },
+  });
   return NextResponse.json({ ok: true, data: rows });
 }
 

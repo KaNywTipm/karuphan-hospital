@@ -76,21 +76,18 @@ model User {
     role         Role
     isActive     Boolean @default(true)
 
-    // สังกัด (เลือกได้ หรือเป็น null สำหรับผู้ใช้นอกกลุ่มงาน)
     departmentId Int?
     department   Department? @relation(fields: [departmentId], references: [id], onUpdate: Cascade, onDelete: SetNull)
 
-    // ความสัมพันธ์กับคำขอยืม
-
+    // ❗ ฝั่งตรงข้ามของ BorrowRequest ต้องมี @relation ชื่อเดียวกัน
     requests       BorrowRequest[] @relation("Requester")
     returnReceipts BorrowRequest[] @relation("Receiver")
     approvals      BorrowRequest[] @relation("Approver")
-    rejected       BorrowRequest[] @relation("Rejector") // เพิ่มความสัมพันธ์กับผู้ไม่อนุมัติ
-    auditLogs      AuditLog[]
+    rejected       BorrowRequest[] @relation("Rejector")
 
-    createdAt     DateTime        @default(now())
-    updatedAt     DateTime        @updatedAt
-    BorrowRequest BorrowRequest[]
+    auditLogs AuditLog[]
+    createdAt DateTime   @default(now())
+    updatedAt DateTime   @updatedAt
 
     @@index([role])
     @@index([isActive])
@@ -114,20 +111,24 @@ model Category {
 
 // ข้อมูลครุภัณฑ์
 model Equipment {
-    number       Int             @id @default(autoincrement()) // ลำดับภายใน
-    idnum        String?   // หมายเลขID
-    code         String          @unique // รหัสครุภัณฑ์หลัก เช่น "6530-008-0711/3"
+    number       Int      @id @default(autoincrement())
+    idnum        String?
+    code         String   @unique
     name         String
     receivedDate DateTime
-    price        Decimal?        @db.Decimal(12, 2)
-    status       EquipmentStatus @default(NORMAL)
-    description  String?
+    price        Decimal? @db.Decimal(12, 2)
 
-    // หมวดหมู่
+    status          EquipmentStatus @default(NORMAL)
+    statusNote      String?
+    statusChangedAt DateTime        @default(now())
+
+    // ✅ ใช้ชื่อ relation ชัดเจน และทำให้เป็น optional
+    currentRequestId Int?
+    currentRequest   BorrowRequest? @relation("CurrentEquipmentRequest", fields: [currentRequestId], references: [id], onUpdate: Cascade, onDelete: SetNull)
+
     categoryId Int
     category   Category @relation(fields: [categoryId], references: [id], onUpdate: Cascade, onDelete: Restrict)
 
-    // ความสัมพันธ์รายการยืม
     borrowItems BorrowItem[]
 
     createdAt DateTime @default(now())
@@ -138,60 +139,49 @@ model Equipment {
     @@index([categoryId])
     @@index([code])
     @@index([name])
+    @@index([currentRequestId])
 }
 
-// คำขอยืม (1 คำขอ มีได้หลายรายการครุภัณฑ์)
 model BorrowRequest {
-    id Int @id @default(autoincrement())
-
-    // ผู้ยื่นคำขอ
+    id           Int          @id @default(autoincrement())
     borrowerType BorrowerType
 
-    // ถ้าเป็น INTERNAL → มี requesterId (User)
     requesterId Int?
     requester   User? @relation("Requester", fields: [requesterId], references: [id], onUpdate: Cascade, onDelete: SetNull)
 
-    // กรณี EXTERNAL → เก็บข้อมูลติดต่อไว้ (บังคับที่เลเยอร์แอป)
     externalName  String?
     externalDept  String?
     externalPhone String?
 
-    status BorrowStatus @default(PENDING)
+    status           BorrowStatus     @default(PENDING)
+    borrowDate       DateTime?
+    returnDue        DateTime
+    actualReturnDate DateTime?
+    returnCondition  ReturnCondition?
+    returnNotes      String?
 
-    borrowDate       DateTime? // วันที่ยืม (มักเป็นวันอนุมัติ)
-    returnDue        DateTime // กำหนดคืน
-    actualReturnDate DateTime? // วันที่คืนจริง
-
-    // สภาพตอนคืน
-    returnCondition ReturnCondition?
-    returnNotes     String?
-
-    // ผู้รับคืน (Admin)
     receivedById Int?
     receivedBy   User? @relation("Receiver", fields: [receivedById], references: [id], onUpdate: Cascade, onDelete: SetNull)
 
-    // ผู้อนุมัติ (Admin)
     approvedById Int?
     approvedBy   User?     @relation("Approver", fields: [approvedById], references: [id], onUpdate: Cascade, onDelete: SetNull)
     approvedAt   DateTime?
 
-    // ผู้ไม่อนุมัติ (Admin)
     rejectedById Int?
     rejectedBy   User?     @relation("Rejector", fields: [rejectedById], references: [id], onUpdate: Cascade, onDelete: SetNull)
     rejectedAt   DateTime?
 
-    // เหตุผลต่าง ๆ
-    reason       String? // เหตุผลที่ยืม
-    notes        String? // หมายเหตุเพิ่มเติม
-    rejectReason String? // เหตุผลที่ไม่อนุมัติ
+    reason       String?
+    notes        String?
+    rejectReason String?
 
-    // รายการครุภัณฑ์ในคำขอ
     items BorrowItem[]
+
+    // ✅ ฝั่งกลับของอุปกรณ์ที่ “ถือครองอยู่ตอนนี้”
+    currentEquipments Equipment[] @relation("CurrentEquipmentRequest")
 
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
-    User      User?    @relation(fields: [userId], references: [id])
-    userId    Int?
 
     @@index([status])
     @@index([borrowerType])

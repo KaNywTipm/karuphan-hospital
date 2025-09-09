@@ -270,7 +270,7 @@ export default function AdminPage() {
                                         <td className="border border-gray-300 px-4 py-3 text-center">{rowNo}</td>
                                         <td className="border border-gray-300 px-4 py-3 text-center">{item.borrowerName || "-"}</td>
                                         <td className="border border-gray-300 px-4 py-3 text-center">{personnel}</td>
-                                        <td className="border border-gray-300 px-4 py-3 text-center">{item.equipmentCode || "-"}</td>
+                                        <td className="border border-gray-300 px-4 py-3 text-center">{item.equipmentCode ?? "-"}</td>
                                         <td className="border border-gray-300 px-4 py-3 text-center">{item.equipmentName || "-"}</td>
                                         <td className="border border-gray-300 px-4 py-3 text-center">{returnDue}</td>
 
@@ -282,11 +282,11 @@ export default function AdminPage() {
                                                 <td className="border border-gray-300 px-4 py-3 text-center">{item.receivedBy || "-"}</td>
                                                 <td className="border border-gray-300 px-4 py-3 text-center">
                                                     <span className={`px-2 py-1 rounded text-xs font-medium ${item.returnCondition === "NORMAL" ? "bg-green-100 text-green-800" :
-                                                            item.returnCondition === "BROKEN" ? "bg-red-100 text-red-800" :
-                                                                item.returnCondition === "LOST" ? "bg-gray-100 text-gray-800" :
-                                                                    item.returnCondition === "WAIT_DISPOSE" ? "bg-yellow-100 text-yellow-800" :
-                                                                        item.returnCondition === "DISPOSED" ? "bg-purple-100 text-purple-800" :
-                                                                            "bg-gray-100 text-gray-800"
+                                                        item.returnCondition === "BROKEN" ? "bg-red-100 text-red-800" :
+                                                            item.returnCondition === "LOST" ? "bg-gray-100 text-gray-800" :
+                                                                item.returnCondition === "WAIT_DISPOSE" ? "bg-yellow-100 text-yellow-800" :
+                                                                    item.returnCondition === "DISPOSED" ? "bg-purple-100 text-purple-800" :
+                                                                        "bg-gray-100 text-gray-800"
                                                         }`}>
                                                         {item.returnCondition
                                                             ? (

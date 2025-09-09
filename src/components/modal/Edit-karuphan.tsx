@@ -59,9 +59,16 @@ export default function Editkaruphan({
 
     useEffect(() => {
         (async () => {
-            const res = await fetch("/api/categories", { cache: "no-store" });
-            const list = await res.json();
-            setCategories(list || []);
+            try {
+                const res = await fetch("/api/categories", { cache: "no-store" });
+                const j = await res.json().catch(() => ({}));
+                // Support both { data: [...] } and { categories: [...] } and fallback to []
+                const list = Array.isArray(j?.data) ? j.data : (Array.isArray(j?.categories) ? j.categories : []);
+                setCategories(list);
+            } catch (e) {
+                console.error("load categories failed", e);
+                setCategories([]);
+            }
         })();
     }, []);
 
@@ -119,14 +126,14 @@ export default function Editkaruphan({
                     </FormRow>
 
                     <FormRow label="เลขครุภัณฑ์">
-                            <input
-                                placeholder="0000-000-0000/0"
-                                value={form.code}
-                                onChange={(e) => setForm(s => ({ ...s, code: e.target.value }))}
-                                className="form-input border border-gray-300 rounded px-2 py-1 w-full"
-                                required
-                            />
-                        </FormRow>
+                        <input
+                            placeholder="0000-000-0000/0"
+                            value={form.code}
+                            onChange={(e) => setForm(s => ({ ...s, code: e.target.value }))}
+                            className="form-input border border-gray-300 rounded px-2 py-1 w-full"
+                            required
+                        />
+                    </FormRow>
 
                     <FormRow label="เลขที่ ID">
                         <input
@@ -164,17 +171,17 @@ export default function Editkaruphan({
                     </FormRow>
 
                     <FormRow label="วันที่ได้รับ (พ.ศ.)">
-                            <div className="relative w-full flex items-center">
-                                <input
-                                    type="date"
-                                    value={form.receivedDateBE}
-                                    onChange={(e) => setForm(s => ({ ...s, receivedDateBE: e.target.value }))}
-                                    placeholder="2568-01-01"
-                                    className="form-input border border-gray-300 rounded px-2 py-1 w-full "
-                                    required
-                                />
-                            </div>
-                        </FormRow>
+                        <div className="relative w-full flex items-center">
+                            <input
+                                type="date"
+                                value={form.receivedDateBE}
+                                onChange={(e) => setForm(s => ({ ...s, receivedDateBE: e.target.value }))}
+                                placeholder="2568-01-01"
+                                className="form-input border border-gray-300 rounded px-2 py-1 w-full "
+                                required
+                            />
+                        </div>
+                    </FormRow>
 
                     <FormRow label="สถานะ">
                         <select

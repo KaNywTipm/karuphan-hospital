@@ -14,6 +14,8 @@ type EquipFromApi = {
     receivedDate: string;      // "YYYY-MM-DD"
     status: "NORMAL" | "IN_USE" | "BROKEN" | "LOST" | "WAIT_DISPOSE" | "DISPOSED";
     category?: { id: number; name: string } | null;
+    busy?: boolean;
+    available?: number;
 };
 
 type RowUI = {
@@ -25,6 +27,8 @@ type RowUI = {
     details?: string;
     receivedDate: string;
     status: EquipFromApi["status"];
+    busy?: boolean;
+    available?: number;
 };
 
 type CartItem = {
@@ -60,6 +64,8 @@ export default function InternalBorrowPage() {
         details: r.description ?? "",
         receivedDate: r.receivedDate,
         status: r.status,
+        busy: r.busy ?? false,
+        available: typeof r.available === "number" ? r.available : 1,
     });
 
     const load = useCallback(async () => {
@@ -245,29 +251,39 @@ export default function InternalBorrowPage() {
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-gray-200">
-                                        {currentItems.map((item, index) => (
-                                            <tr key={item.id} className="hover:bg-gray-50">
-                                                <td className="border px-4 py-3 text-center">
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={selectedIds.includes(item.id)}
-                                                        onChange={() => handleSelectItem(item.id)}
-                                                    />
-                                                </td>
-                                                <td className="border px-4 py-3 text-center">{startIndex + index + 1}</td>
-                                                <td className="border px-4 py-3 text-center">{item.code}</td>
-                                                <td className="border px-4 py-3 text-center">{item.name}</td>
-                                                <td className="border px-4 py-3 text-center">{item.details || item.category}</td>
-                                                <td className="border px-4 py-3 text-center">
-                                                    <button
-                                                        onClick={() => handleAddToCart(item)}
-                                                        className="px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 hover:bg-green-200"
-                                                    >
-                                                        เพิ่มลงรายการ
-                                                    </button>
-                                                </td>
-                                            </tr>
-                                        ))}
+                                        {currentItems.map((item, index) => {
+                                            const isBusy = item.busy || item.available === 0;
+                                            return (
+                                                <tr key={item.id} className="hover:bg-gray-50">
+                                                    <td className="border px-4 py-3 text-center">
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={selectedIds.includes(item.id)}
+                                                            onChange={() => handleSelectItem(item.id)}
+                                                            disabled={isBusy}
+                                                        />
+                                                    </td>
+                                                    <td className="border px-4 py-3 text-center">{startIndex + index + 1}</td>
+                                                    <td className="border px-4 py-3 text-center">{item.code}</td>
+                                                    <td className="border px-4 py-3 text-center flex items-center gap-2 justify-center">
+                                                        {item.name}
+                                                        {isBusy && (
+                                                            <span className="ml-2 text-xs px-2 py-0.5 rounded-full bg-amber-100 text-amber-800">กำลังถูกยืม</span>
+                                                        )}
+                                                    </td>
+                                                    <td className="border px-4 py-3 text-center">{item.details || item.category}</td>
+                                                    <td className="border px-4 py-3 text-center">
+                                                        <button
+                                                            onClick={() => handleAddToCart(item)}
+                                                            className="px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 hover:bg-green-200 disabled:opacity-50"
+                                                            disabled={isBusy}
+                                                        >
+                                                            เพิ่มลงรายการ
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })}
                                         {!currentItems.length && (
                                             <tr><td colSpan={6} className="border px-4 py-6 text-center text-gray-500">ไม่พบครุภัณฑ์ที่ว่าง</td></tr>
                                         )}

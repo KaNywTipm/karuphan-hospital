@@ -5,7 +5,7 @@ import Image from "next/image";
 import Addkaruphan from "@/components/modal/Add-karuphan";
 import Editkaruphan from "@/components/modal/Edit-karuphan";
 
-const itemsPerPage = 5;
+const itemsPerPage = 10;
 
 type Row = {
     number: number;
@@ -23,6 +23,8 @@ type Row = {
     | "WAIT_DISPOSE"
     | "DISPOSED";
     category?: { id: number; name: string } | null;
+    busy?: boolean;
+    available?: number;
 };
 
 type Category = { id: number; name: string };
@@ -63,17 +65,38 @@ export default function ListKaruphan() {
     const [showEditModal, setShowEditModal] = useState(false);
     const [selectedItem, setSelectedItem] = useState<Row | null>(null);
 
+
     const load = useCallback(async () => {
         setLoading(true);
-        const res = await fetch(
-            `/api/equipment?sort=receivedDate:${sortOrder === "newest" ? "desc" : "asc"
-            }&page=1&pageSize=500`,
-            { cache: "no-store" }
-        );
-        const json = await res.json();
-        setItems(json?.data ?? []);
-        setLoading(false);
-        setCurrentPage(1);
+        const url = `/api/equipment?sort=receivedDate:${sortOrder === "newest" ? "desc" : "asc"}&page=1&pageSize=500`;
+        const res = await fetch(url, {
+            method: "GET",
+            cache: "no-store",
+            headers: { Accept: "application/json" },
+        });
+
+        try {
+            if (!res.ok) {
+                // อ่านข้อความดิบไว้ debug กรณี API คืน HTML / ว่าง
+                const raw = await res.text();
+                throw new Error(`HTTP ${res.status} ${res.statusText} :: ${raw?.slice(0, 200) || "no-body"}`);
+            }
+
+            // กันกรณี 204/304 หรือ content-type ไม่ใช่ JSON
+            const ct = res.headers.get("content-type") || "";
+            if (res.status === 204 || res.status === 304 || !ct.includes("application/json")) {
+                setItems([]);
+            } else {
+                const json = await res.json();
+                setItems(json?.data ?? json ?? []);
+            }
+        } catch (err) {
+            console.error("[equipment] fetch failed:", err);
+            setItems([]); // fallback ว่าง
+        } finally {
+            setLoading(false);
+            setCurrentPage(1);
+        }
     }, [sortOrder]);
 
     // โหลดรายการครุภัณฑ์
@@ -255,53 +278,44 @@ export default function ListKaruphan() {
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-200">
-                                    {currentItems.map((item, index) => (
-                                        <tr key={item.number} className="hover:bg-gray-50">
-                                            <td className="border px-4 py-3 text-center">
-                                                {startIndex + index + 1}
-                                            </td>
-                                            <td className="border px-4 py-3 text-center">
-                                                {item.idnum}
-                                            </td>
-                                            <td className="border px-4 py-3 text-center">
-                                                {item.code}
-                                            </td>
-                                            <td className="border px-4 py-3 text-center">
-                                                {item.name}
-                                            </td>
-                                            <td className="border px-4 py-3 text-center">
-                                                {item.description || item.category?.name || "-"}
-                                            </td>
-                                            <td className="border px-4 py-3 text-center">
-                                                {formatPrice(item.price)}
-                                            </td>
-                                            <td className="border px-4 py-3 text-center">
-                                                {formatDate(item.receivedDate)}
-                                            </td>
-                                            <td className="border px-4 py-3 text-center">
-                                                <span
-                                                    className={`px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap ${statusColor(
-                                                        item.status
-                                                    )}`}
-                                                >
-                                                    {statusLabelTH(item.status)}
-                                                </span>
-                                            </td>
-                                            <td className="border px-2 py-3 text-center">
-                                                <button
-                                                    onClick={() => handleEditClick(item)}
-                                                    className="bg-Yellow text-White px-3 py-1 rounded text-sm hover:bg-yellow-600"
-                                                >
-                                                    <Image
-                                                        src="/edit.png"
-                                                        alt="edit"
-                                                        width={20}
-                                                        height={20}
-                                                    />
-                                                </button>
-                                            </td>
-                                        </tr>
-                                    ))}
+                                    {currentItems.map((item, index) => {
+                                        const isBusy = item.busy || item.available === 0;
+                                        return (
+                                            <tr key={item.number} className="hover:bg-gray-50">
+                                                <td className="border px-4 py-3 text-center">{startIndex + index + 1}</td>
+                                                <td className="border px-4 py-3 text-center">{item.idnum}</td>
+                                                <td className="border px-4 py-3 text-center">{item.code}</td>
+                                                <td className="border px-4 py-3 text-center flex items-center gap-2 justify-center">
+                                                    {item.name}
+                                                    {isBusy && (
+                                                        <span className="ml-2 text-xs px-2 py-0.5 rounded-full bg-amber-100 text-amber-800">กำลังถูกยืม</span>
+                                                    )}
+                                                </td>
+                                                <td className="border px-4 py-3 text-center">{item.description || item.category?.name || "-"}</td>
+                                                <td className="border px-4 py-3 text-center">{formatPrice(item.price)}</td>
+                                                <td className="border px-4 py-3 text-center">{formatDate(item.receivedDate)}</td>
+                                                <td className="border px-4 py-3 text-center">
+                                                    <span className={`px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap ${statusColor(item.status)}`}>
+                                                        {statusLabelTH(item.status)}
+                                                    </span>
+                                                </td>
+                                                <td className="border px-2 py-3 text-center">
+                                                    <button
+                                                        onClick={() => handleEditClick(item)}
+                                                        className="bg-Yellow text-White px-3 py-1 rounded text-sm hover:bg-yellow-600 disabled:opacity-50"
+                                                        disabled={isBusy}
+                                                    >
+                                                        <Image
+                                                            src="/edit.png"
+                                                            alt="edit"
+                                                            width={20}
+                                                            height={20}
+                                                        />
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
 
                                     {!currentItems.length && (
                                         <tr>
