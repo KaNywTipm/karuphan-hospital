@@ -3,9 +3,10 @@
 
 // --- Helper & Components ---
 const BORROWER_TYPE: "INTERNAL" | "EXTERNAL" = "EXTERNAL";
-type Status = "NORMAL" | "IN_USE" | "BROKEN" | "LOST" | "WAIT_DISPOSE" | "DISPOSED";
+type Status = "NORMAL" | "RESERVED" | "IN_USE" | "BROKEN" | "LOST" | "WAIT_DISPOSE" | "DISPOSED";
 const STATUS_MAP: Record<Status, { label: string; cls: string }> = {
     NORMAL: { label: "ปกติ", cls: "bg-emerald-100 text-emerald-800" },
+    RESERVED: { label: "รออนุมัติ", cls: "bg-blue-100 text-blue-800" },
     IN_USE: { label: "กำลังใช้งาน", cls: "bg-amber-100 text-amber-800" },
     BROKEN: { label: "ชำรุด", cls: "bg-red-100 text-red-800" },
     LOST: { label: "สูญหาย", cls: "bg-gray-100 text-gray-800" },
@@ -58,8 +59,15 @@ type EquipFromApi = {
     category?: { id: number; name: string } | null;
 };
 type RowUI = {
-    id: number; code: string; name: string; category: string; categoryId?: number;
-    details?: string; receivedDate: string; status: Status;
+    id: number;
+    code: string;
+    name: string;
+    category: string;
+    categoryId?: number;
+    details?: string;
+    receivedDate: string;
+    status: Status;
+    busy?: boolean;
 };
 type CartItem = { id: number; code: string; name: string; category: string; details?: string; quantity: number };
 const itemsPerPage = 5;
@@ -90,6 +98,7 @@ export default function ExternalBorrowPage() {
         details: r.description ?? "",
         receivedDate: r.receivedDate,
         status: r.status,
+        busy: r.status !== "NORMAL", // RESERVED และสถานะอื่น ๆ จะถูกปิดการยืม
     });
 
     const load = useCallback(async () => {

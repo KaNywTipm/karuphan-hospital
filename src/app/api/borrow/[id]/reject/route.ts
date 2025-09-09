@@ -44,10 +44,7 @@ export async function PATCH(req: Request, { params }: Params) {
         });
 
         await tx.equipment.updateMany({
-            where: {
-                number: { in: reqRow.items.map((i) => i.equipmentId) },
-                currentRequestId: id,
-            },
+            where: { currentRequestId: id },
             data: {
                 status: "NORMAL",
                 currentRequestId: null,

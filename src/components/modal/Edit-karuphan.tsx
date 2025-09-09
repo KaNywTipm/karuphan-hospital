@@ -22,12 +22,13 @@ type Item = {
     price?: number | null;
     description?: string | null;
     receivedDate: string; // ค.ศ.
-    status: "NORMAL" | "IN_USE" | "BROKEN" | "LOST" | "WAIT_DISPOSE" | "DISPOSED";
+    status: "NORMAL" | "RESERVED" | "IN_USE" | "BROKEN" | "LOST" | "WAIT_DISPOSE" | "DISPOSED";
     category?: { id: number; name: string } | null;
 };
 
 const statusOptions: { value: Item["status"]; label: string }[] = [
     { value: "NORMAL", label: "ปกติ" },
+    { value: "RESERVED", label: "รออนุมัติ" },
     { value: "IN_USE", label: "กำลังใช้งาน" },
     { value: "BROKEN", label: "ชำรุด" },
     { value: "LOST", label: "สูญหาย" },

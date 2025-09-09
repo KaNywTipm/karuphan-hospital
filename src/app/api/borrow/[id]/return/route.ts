@@ -45,6 +45,18 @@ export async function PATCH(req: Request, { params }: Params) {
             { status: 400 }
         );
 
+    // Determine equipment status based on returnCondition
+    const eqStatus =
+        returnCondition === "BROKEN"
+            ? "BROKEN"
+            : returnCondition === "LOST"
+                ? "LOST"
+                : returnCondition === "WAIT_DISPOSE"
+                    ? "WAIT_DISPOSE"
+                    : returnCondition === "DISPOSED"
+                        ? "DISPOSED"
+                        : "NORMAL";
+
     await prisma.$transaction(async (tx) => {
         await tx.borrowRequest.update({
             where: { id },
@@ -57,9 +69,9 @@ export async function PATCH(req: Request, { params }: Params) {
             },
         });
         await tx.equipment.updateMany({
-            where: { number: { in: row.items.map((i) => i.equipmentId) } },
+            where: { currentRequestId: id },
             data: {
-                status: mapStatus[returnCondition] ?? "NORMAL",
+                status: eqStatus,
                 currentRequestId: null,
                 statusChangedAt: new Date(),
                 statusNote: `Returned (${returnCondition})`,

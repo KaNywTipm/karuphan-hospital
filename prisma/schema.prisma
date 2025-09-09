@@ -36,6 +36,7 @@ enum BorrowStatus {
 enum EquipmentStatus {
     NORMAL // ปกติ (ว่าง)
     IN_USE // กำลังใช้งาน/ถูกยืม
+    RESERVED // จองไว้/รออนุมัติ
     BROKEN // ชำรุด
     LOST // สูญหาย
     WAIT_DISPOSE // รอจำหน่าย

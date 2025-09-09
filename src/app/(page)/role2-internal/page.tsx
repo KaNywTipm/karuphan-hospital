@@ -3,9 +3,10 @@
 
 // --- Helper & Components ---
 const BORROWER_TYPE: "INTERNAL" | "EXTERNAL" = "INTERNAL";
-type Status = "NORMAL" | "IN_USE" | "BROKEN" | "LOST" | "WAIT_DISPOSE" | "DISPOSED";
+type Status = "NORMAL" | "RESERVED" | "IN_USE" | "BROKEN" | "LOST" | "WAIT_DISPOSE" | "DISPOSED";
 const STATUS_MAP: Record<Status, { label: string; cls: string }> = {
     NORMAL: { label: "ปกติ", cls: "bg-emerald-100 text-emerald-800" },
+    RESERVED: { label: "รออนุมัติ", cls: "bg-blue-100 text-blue-800" },
     IN_USE: { label: "กำลังใช้งาน", cls: "bg-amber-100 text-amber-800" },
     BROKEN: { label: "ชำรุด", cls: "bg-red-100 text-red-800" },
     LOST: { label: "สูญหาย", cls: "bg-gray-100 text-gray-800" },
@@ -103,7 +104,7 @@ export default function InternalBorrowPage() {
         details: r.description ?? "",
         receivedDate: r.receivedDate,
         status: r.status,
-        busy: r.busy ?? false,
+        busy: r.status !== "NORMAL", // RESERVED และสถานะอื่น ๆ จะถูกปิดการยืม
         available: typeof r.available === "number" ? r.available : 1,
     });
 

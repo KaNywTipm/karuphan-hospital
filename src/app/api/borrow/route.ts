@@ -98,7 +98,8 @@ export async function POST(req: Request) {
     if (!items?.length)
         return NextResponse.json({ ok: false, error: "no-items" }, { status: 400 });
 
-    const autoApprove = borrowerType === "INTERNAL";
+    const isInternal = borrowerType === "INTERNAL";
+    const isExternal = borrowerType === "EXTERNAL";
 
     // ตรวจของซ้ำ/ไม่ว่าง
     const eqs = await prisma.equipment.findMany({
@@ -131,8 +132,8 @@ export async function POST(req: Request) {
                 externalName: external?.name ?? null,
                 externalDept: external?.dept ?? null,
                 externalPhone: external?.phone ?? null,
-                status: autoApprove ? "APPROVED" : "PENDING",
-                borrowDate: autoApprove ? new Date() : null,
+                status: isInternal ? "APPROVED" : "PENDING",
+                borrowDate: isInternal ? new Date() : null,
                 returnDue: new Date(returnDue),
                 reason: reason ?? null,
                 items: {
@@ -141,29 +142,27 @@ export async function POST(req: Request) {
                         quantity: it.quantity ?? 1,
                     })),
                 },
-                approvedById: autoApprove
+                approvedById: isInternal
                     ? typeof me.user?.id === "number"
                         ? me.user.id
                         : Number(me.user?.id) || null
                     : null,
-                approvedAt: autoApprove ? new Date() : null,
+                approvedAt: isInternal ? new Date() : null,
             },
             include: { items: true },
         });
 
-        if (autoApprove && Array.isArray((reqRow as any).items)) {
-            await tx.equipment.updateMany({
-                where: {
-                    number: { in: (reqRow as any).items.map((i: any) => i.equipmentId) },
-                },
-                data: {
-                    status: "IN_USE",
-                    currentRequestId: reqRow.id,
-                    statusChangedAt: new Date(),
-                    // statusNote: `Borrowed by ${me.user?.fullName ?? ""}`,
-                },
-            });
-        }
+        // Update equipment status and currentRequestId for both INTERNAL and EXTERNAL
+        await tx.equipment.updateMany({
+            where: {
+                number: { in: (reqRow as any).items.map((i: any) => i.equipmentId) },
+            },
+            data: {
+                status: isExternal ? "RESERVED" : "IN_USE",
+                currentRequestId: reqRow.id,
+                statusChangedAt: new Date(),
+            },
+        });
 
         return reqRow;
     });

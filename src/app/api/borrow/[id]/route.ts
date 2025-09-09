@@ -46,19 +46,19 @@ export async function POST(req: Request) {
             );
         }
 
-        const autoApprove = borrowerType === "INTERNAL";
-        const holdOnPending = borrowerType === "EXTERNAL"; // ✅ ระหว่างรออนุมัติ ให้ถือว่าไม่ว่าง
+        const isInternal = borrowerType === "INTERNAL";
+        const isExternal = borrowerType === "EXTERNAL";
 
         const created = await prisma.$transaction(async (tx) => {
-            const reqRow = await tx.borrowRequest.create({
+            const request = await tx.borrowRequest.create({
                 data: {
                     borrowerType,
                     requesterId: me.user.role === "EXTERNAL" ? null : Number(me.user.id),
                     externalName: external?.name ?? null,
                     externalDept: external?.dept ?? null,
                     externalPhone: external?.phone ?? null,
-                    status: autoApprove ? "APPROVED" : "PENDING",
-                    borrowDate: autoApprove ? new Date() : null,
+                    status: isInternal ? "APPROVED" : "PENDING",
+                    borrowDate: isInternal ? new Date() : null,
                     returnDue: new Date(returnDue),
                     reason: reason ?? null,
                     items: {
@@ -67,29 +67,23 @@ export async function POST(req: Request) {
                             quantity: it.quantity ?? 1,
                         })),
                     },
-                    approvedById: autoApprove ? Number(me.user.id) : null,
-                    approvedAt: autoApprove ? new Date() : null,
+                    approvedById: isInternal ? Number(me.user.id) : null,
+                    approvedAt: isInternal ? new Date() : null,
                 },
                 include: { items: true },
             });
 
-            if (autoApprove || holdOnPending) {
-                await tx.equipment.updateMany({
-                    where: {
-                        number: { in: reqRow.items.map((i: any) => i.equipmentId) },
-                    },
-                    data: {
-                        status: "IN_USE",
-                        currentRequestId: reqRow.id,
-                        statusChangedAt: new Date(),
-                        statusNote: autoApprove
-                            ? `Borrowed by ${me.user.name ?? me.user.id}`
-                            : `Pending approval by ${me.user.name ?? me.user.id}`,
-                    },
-                });
-            }
+            const ids = items.map((i: any) => i.equipmentId);
+            await tx.equipment.updateMany({
+                where: { number: { in: ids } },
+                data: {
+                    status: isExternal ? "RESERVED" : "IN_USE",
+                    currentRequestId: request.id,
+                    statusChangedAt: new Date(),
+                },
+            });
 
-            return reqRow;
+            return request;
         });
 
         return NextResponse.json({ ok: true, id: created.id }, { status: 201 });

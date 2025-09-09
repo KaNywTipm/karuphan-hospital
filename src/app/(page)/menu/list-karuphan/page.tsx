@@ -15,7 +15,7 @@ type Row = {
     description?: string | null;
     price?: number | null;
     receivedDate: string; // ISO date string
-    status: "NORMAL" | "IN_USE" | "BROKEN" | "LOST" | "WAIT_DISPOSE" | "DISPOSED";
+    status: "NORMAL" | "RESERVED" | "IN_USE" | "BROKEN" | "LOST" | "WAIT_DISPOSE" | "DISPOSED";
     category?: { id: number; name: string } | null;
     busy?: boolean;
     available?: number;
@@ -26,6 +26,7 @@ type Category = { id: number; name: string };
 const statusLabelTH = (s: Row["status"]) =>
 ({
     NORMAL: "ปกติ",
+    RESERVED: "รออนุมัติ",
     IN_USE: "กำลังใช้งาน",
     BROKEN: "ชำรุด",
     LOST: "สูญหาย",
@@ -36,6 +37,7 @@ const statusLabelTH = (s: Row["status"]) =>
 const statusColor = (s: Row["status"]) =>
 ({
     NORMAL: "bg-green-100 text-green-800",
+    RESERVED: "bg-blue-100 text-blue-800",
     IN_USE: "bg-orange-100 text-orange-800",
     BROKEN: "bg-red-100 text-red-800",
     LOST: "bg-gray-100 text-gray-800",
@@ -43,7 +45,7 @@ const statusColor = (s: Row["status"]) =>
     DISPOSED: "bg-purple-100 text-purple-800",
 }[s]);
 
-// ✅ ฟอร์แมตวันไทย (พุทธศักราช)
+// วันไทย
 function formatThaiDate(input?: string) {
     if (!input) return "-";
     const d = new Date(input);
@@ -55,7 +57,7 @@ function formatThaiDate(input?: string) {
     }).format(d);
 }
 
-// ✅ ราคาสวยๆ ไทย
+// ราคา
 const formatPrice = (n?: number | null) =>
     n == null ? "-" : Number(n).toLocaleString("th-TH", { maximumFractionDigits: 2 });
 
@@ -267,7 +269,8 @@ export default function ListKaruphan() {
                                 </thead>
                                 <tbody className="divide-y divide-gray-200">
                                     {currentItems.map((item, index) => {
-                                        const isBusy = item.busy || item.available === 0 || item.status !== "NORMAL";
+                                        // ปุ่มแก้ไขควรกดได้ทุกสถานะ (ยกเว้นถ้าต้องการบล็อกเฉพาะ IN_USE ให้แก้เป็น item.status === "IN_USE")
+                                        const isBusy = false;
                                         return (
                                             <tr key={item.number} className="hover:bg-gray-50">
                                                 <td className="border px-4 py-3 text-center">{startIndex + index + 1}</td>
@@ -300,9 +303,8 @@ export default function ListKaruphan() {
                                                 <td className="border px-2 py-3 text-center">
                                                     <button
                                                         onClick={() => handleEditClick(item)}
-                                                        className="bg-Yellow text-White px-3 py-1 rounded text-sm hover:bg-yellow-600 disabled:opacity-50"
-                                                        disabled={isBusy}
-                                                        title={isBusy ? "กำลังถูกยืมอยู่" : "แก้ไขครุภัณฑ์"}
+                                                        className="bg-Yellow text-White px-3 py-1 rounded text-sm hover:bg-yellow-600"
+                                                        title="แก้ไขครุภัณฑ์"
                                                     >
                                                         <Image src="/edit.png" alt="edit" width={20} height={20} />
                                                     </button>
