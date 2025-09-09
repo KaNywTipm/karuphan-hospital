@@ -32,6 +32,7 @@ export default function BorrowReturnReport() {
     const [rows, setRows] = useState<Row[]>([]);
     const [cats, setCats] = useState<Category[]>([]);
     const [loading, setLoading] = useState(true);
+    const [sort, setSort] = useState<"newest" | "oldest">("newest");
 
     useEffect(() => {
         let alive = true;
@@ -69,8 +70,13 @@ export default function BorrowReturnReport() {
                     ? r.categoryNames
                     : (typeof r.categoryNames === "string" ? r.categoryNames.split(",").map(s => s.trim()) : []);
                 return names.some(n => n === cat);
+            })
+            .sort((a, b) => {
+                const da = new Date(a.borrowDate || "").getTime();
+                const db = new Date(b.borrowDate || "").getTime();
+                return sort === "newest" ? db - da : da - db;
             });
-    }, [rows, search, cat]);
+    }, [rows, search, cat, sort]);
 
     function toDate(s?: string | null) {
         return s ? new Date(s).toLocaleDateString("th-TH") : "-";
@@ -132,17 +138,22 @@ export default function BorrowReturnReport() {
                     </select>
                 </div>
 
-                <div className="relative w-80">
-                    <input
-                        type="text"
-                        placeholder="Search"
-                        value={search}
-                        onChange={(e) => setSearch(e.target.value)}
-                        className="w-full px-4 py-2 border border-Grey rounded-lg focus:outline-none focus:ring-2 focus:ring-Blue"
-                    />
-                    <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                        <Image src="/search.png" alt="search" width={20} height={20} className="opacity-50" />
+                <div className="flex items-center gap-4">
+                    <div className="relative w-80">
+                        <input
+                            type="text"
+                            placeholder="Search"
+                            value={search}
+                            onChange={(e) => setSearch(e.target.value)}
+                            className="w-full px-4 py-2 border border-Grey rounded-lg focus:outline-none focus:ring-2 focus:ring-Blue"
+                        />
+                        <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                            <Image src="/search.png" alt="search" width={20} height={20} className="opacity-50" />
+                        </div>
                     </div>
+                    <button onClick={() => setSort(s => s === "newest" ? "oldest" : "newest")} className="p-2 border border-Grey rounded-lg hover:bg-gray-100">
+                        <Image src="/HamBmenu.png" alt="sort" width={20} height={20} />
+                    </button>
                 </div>
             </div>
 
@@ -178,8 +189,8 @@ export default function BorrowReturnReport() {
                                 <td className="border px-4 py-3 text-center">{r.reason ?? "-"}</td>
                                 <td className="border px-4 py-3 text-center">
                                     <span className={`px-2 py-1 rounded-full text-xs ${r.status === "RETURNED" ? "bg-Green text-White" :
-                                            r.status === "APPROVED" ? "bg-Yellow text-White" :
-                                                r.status === "PENDING" ? "bg-Grey text-White" : "bg-RedLight text-White"
+                                        r.status === "APPROVED" ? "bg-Yellow text-White" :
+                                            r.status === "PENDING" ? "bg-Grey text-White" : "bg-RedLight text-White"
                                         }`}>
                                         {statusTH(r.status)}
                                     </span>

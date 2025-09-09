@@ -115,6 +115,7 @@ model Equipment {
     idnum        String?
     code         String   @unique
     name         String
+    description  String?
     receivedDate DateTime
     price        Decimal? @db.Decimal(12, 2)
 
@@ -122,7 +123,6 @@ model Equipment {
     statusNote      String?
     statusChangedAt DateTime        @default(now())
 
-    // ✅ ใช้ชื่อ relation ชัดเจน และทำให้เป็น optional
     currentRequestId Int?
     currentRequest   BorrowRequest? @relation("CurrentEquipmentRequest", fields: [currentRequestId], references: [id], onUpdate: Cascade, onDelete: SetNull)
 

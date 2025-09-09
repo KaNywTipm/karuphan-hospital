@@ -19,7 +19,7 @@ interface BorrowCartProps {
     onRemoveItem: (id: number) => void;
     onClearCart: () => void;
     borrowerType: "internal" | "external";
-    // แนะนำให้ onBorrowSubmit รองรับ async (return Promise)
+    /** ควรรองรับ payload รวบยอด (items ทั้งหมด) และคืน { ok:boolean } */
     onBorrowSubmit: (payload: any) => any | Promise<any>;
 }
 
@@ -120,32 +120,37 @@ const BorrowCart = ({
                         cartItems={cartItems}
                         onClose={() => setShowBorrowModal(false)}
                         onBorrow={async (borrowData) => {
-                            // borrowData: { returnDue, reason, ... } จากโมดัล
                             try {
                                 setIsSubmitting(true);
 
-                                const tasks = cartItems.map((item) =>
-                                    Promise.resolve(
-                                        onBorrowSubmit({
-                                            ...borrowData,
-                                            equipmentId: item.id,
-                                            equipmentCode: item.code,
-                                            quantity: item.quantity ?? 1,
-                                            borrowerType,
-                                        })
-                                    )
-                                );
+                                // ยิงครั้งเดียวรวบยอดตาม API ล่าสุด (items array)
+                                const payload = {
+                                    borrowerType: borrowerType === "internal" ? "INTERNAL" : "EXTERNAL",
+                                    returnDue: borrowData.returnDue, // "YYYY-MM-DD"
+                                    reason: borrowData.reason ?? null,
+                                    notes: borrowData.notes ?? null,
+                                    external: borrowData.external ?? null,
+                                    items: cartItems.map((it) => ({
+                                        equipmentId: it.id,
+                                        quantity: it.quantity ?? 1,
+                                    })),
+                                };
 
-                                const results = await Promise.allSettled(tasks);
-                                const hasError = results.some(r => r.status === "rejected");
+                                const res = await onBorrowSubmit(payload);
+                                const ok =
+                                    (typeof res === "object" && res && "ok" in res ? (res as any).ok : true) === true;
 
-                                if (hasError) {
-                                    alert("มีบางรายการยืมไม่สำเร็จ กรุณาตรวจสอบสถานะอีกครั้ง");
-                                } else {
-                                    // ทุกชิ้นสำเร็จ
-                                    onClearCart();
-                                    setShowBorrowModal(false);
+                                if (!ok) {
+                                    alert("ยืนยันการยืมไม่สำเร็จ");
+                                    return;
                                 }
+
+                                // ✅ สำเร็จ: เคลียร์ตะกร้า + ปิดโมดัล (จะไม่ค้างอีก)
+                                onClearCart();
+                                setShowBorrowModal(false);
+                            } catch (e) {
+                                console.error("borrow submit failed", e);
+                                alert("เกิดข้อผิดพลาดในการยืม");
                             } finally {
                                 setIsSubmitting(false);
                             }
