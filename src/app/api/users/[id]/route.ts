@@ -1,120 +1,118 @@
 import { NextResponse } from "next/server";
-import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { requireRole, Role } from "@/lib/require-role";
 import { auth } from "@/lib/auth";
 
-const UpdateUserSchema = z.object({
-    fullName: z.string().min(1),
-    phone: z.string().trim().optional().nullable(),
-    role: z.enum(["ADMIN", "INTERNAL", "EXTERNAL"]),
-    departmentId: z.number().int().positive().nullable().optional(),
-    changeNote: z.string().optional(),
-});
+export const dynamic = "force-dynamic";
 
-// PATCH /api/users/:id  (ADMIN เท่านั้น)
-export async function PATCH(req: Request, ctx: { params: { id: string } }) {
-    const guard = await requireRole(["ADMIN"]);
-    if (guard) return guard;
+const ADMIN_DEPT_NAME = "กลุ่มงานบริการด้านปฐมภูมิและองค์รวม";
+type Role = "ADMIN" | "INTERNAL" | "EXTERNAL";
 
-    const id = Number(ctx.params.id);
-    if (!Number.isFinite(id)) {
-        return NextResponse.json({ ok: false, error: "invalid_id" }, { status: 400 });
-    }
-
-    const parsed = UpdateUserSchema.safeParse(await req.json());
-    if (!parsed.success) {
-        return NextResponse.json({ ok: false, error: parsed.error.flatten().fieldErrors }, { status: 400 });
-    }
-    const body = parsed.data;
-
-    // INTERNAL เท่านั้นที่มี departmentId; role อื่น -> เคลียร์
-    const departmentId = body.role === "INTERNAL" ? (body.departmentId ?? null) : null;
-
-    const user = await prisma.user.update({
-        where: { id },
-        data: {
-            fullName: body.fullName,
-            phone: body.phone ?? null,
-            role: body.role as Role,
-            departmentId,
-        },
-        select: {
-            id: true,
-            fullName: true,
-            phone: true,
-            email: true,
-            role: true,
-            department: { select: { id: true, name: true } },
-        },
-    }).catch(() => null);
-
-    if (!user) return NextResponse.json({ ok: false, error: "not_found" }, { status: 404 });
-
-    // (ออปชัน) เขียน AuditLog
-    try {
-        const me = await auth();
-        await prisma.auditLog.create({
-            data: {
-                userId: Number((me?.user as any)?.id) || null,
-                action: "UPDATE",
-                tableName: "User",
-                recordId: id,
-                newValue: user,
-            },
-        });
-    } catch { }
-
-    return NextResponse.json({ ok: true, item: user });
+function normRole(v: any, fallback?: Role): Role {
+    const s = String(v ?? "").toUpperCase();
+    if (s === "ADMIN" || s === "INTERNAL" || s === "EXTERNAL") return s;
+    if (fallback) return fallback;
+    throw new Error("invalid-role");
+}
+function parseIdMaybe(v: any): number | null {
+    const n = Number(v);
+    return Number.isFinite(n) && n > 0 ? n : null;
+}
+async function ensureDepartmentIdByName(name: string) {
+    let dep =
+        (await prisma.department.findUnique({ where: { name } }).catch(() => null)) ||
+        (await prisma.department.findFirst({ where: { name } })) ||
+        (await prisma.department.create({ data: { name } }));
+    return dep.id;
 }
 
-// DELETE /api/users/:id  (ADMIN เท่านั้น)
-export async function DELETE(req: Request, ctx: { params: { id: string } }) {
-    const guard = await requireRole(["ADMIN"]);
-    if (guard) return guard;
+export async function PATCH(req: Request, { params }: { params: { id: string } }) {
+    const session: any = await auth();
+    if (!session) return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
+    const myRole = String(session.role ?? session.user?.role ?? "").toUpperCase();
+    if (myRole !== "ADMIN") return NextResponse.json({ ok: false, error: "forbidden" }, { status: 403 });
 
-    const id = Number(ctx.params.id);
-    if (!Number.isFinite(id)) {
-        return NextResponse.json({ ok: false, error: "invalid_id" }, { status: 400 });
-    }
+    const id = Number(params.id);
+    if (!Number.isFinite(id)) return NextResponse.json({ ok: false, error: "invalid-id" }, { status: 400 });
 
-    const me = await auth();
-    const myId = Number((me?.user as any)?.id);
-    if (id === myId) {
-        return NextResponse.json({ ok: false, error: "cannot_delete_self" }, { status: 400 });
-    }
+    const body = await req.json().catch(() => ({} as any));
+    const fullName: string | undefined = body.fullName?.trim();
+    const phone: string | null = body.phone ?? null;
 
-    const target = await prisma.user.findUnique({
+    const current = await prisma.user.findUnique({
         where: { id },
-        select: { role: true },
+        select: { id: true, role: true, departmentId: true, isActive: true },
     });
-    if (!target) {
-        return NextResponse.json({ ok: false, error: "not_found" }, { status: 404 });
-    }
+    if (!current) return NextResponse.json({ ok: false, error: "not-found" }, { status: 404 });
 
-    // กันลบ ADMIN คนสุดท้าย
-    if (target.role === "ADMIN") {
-        const adminCount = await prisma.user.count({
-            where: { role: "ADMIN", NOT: { id } },
+    // ไม่ auto เปลี่ยนเป็น INTERNAL อีกต่อไป
+    const roleInput = body.role;
+    let targetRole: Role = normRole(roleInput, current.role as Role);
+
+    // กันลดสิทธิ์แอดมินคนสุดท้าย
+    if (current.role === "ADMIN" && targetRole !== "ADMIN") {
+        const otherAdmins = await prisma.user.count({
+            where: { role: "ADMIN", isActive: true, id: { not: id } },
         });
-        if (adminCount === 0) {
-            return NextResponse.json({ ok: false, error: "last_admin" }, { status: 400 });
+        if (otherAdmins === 0) {
+            return NextResponse.json({ ok: false, error: "cannot-demote-last-admin" }, { status: 409 });
         }
     }
 
-    await prisma.user.delete({ where: { id } });
+    const data: any = {
+        fullName: fullName ?? undefined,
+        phone,
+        role: targetRole,
+    };
 
-    // (ออปชัน) AuditLog
+    const hasDepInPayload = Object.prototype.hasOwnProperty.call(body, "departmentId");
+    const depIdFromBody = parseIdMaybe(body.departmentId);
+
+    if (targetRole === "EXTERNAL") {
+        // ✅ ภายนอก: อนุญาตให้เลือกกลุ่มงานได้
+        if (hasDepInPayload) {
+            if (depIdFromBody) {
+                const dep = await prisma.department.findUnique({ where: { id: depIdFromBody } });
+                if (!dep) return NextResponse.json({ ok: false, error: "department-not-found" }, { status: 404 });
+                data.department = { connect: { id: depIdFromBody } };
+            } else {
+                // ส่ง null/"" มา = ล้างกลุ่มงาน
+                data.department = { disconnect: true };
+            }
+        }
+        // ถ้าไม่ส่ง departmentId มาเลย → ไม่แตะกลุ่มงาน
+    } else if (targetRole === "INTERNAL") {
+        // ✅ ภายใน: ต้องมี departmentId ที่ valid
+        if (!depIdFromBody) {
+            return NextResponse.json(
+                { ok: false, error: "department-required", message: "ผู้ใช้ภายในต้องเลือกกลุ่มงาน" },
+                { status: 400 }
+            );
+        }
+        const depExists = await prisma.department.findUnique({ where: { id: depIdFromBody } });
+        if (!depExists) return NextResponse.json({ ok: false, error: "department-not-found" }, { status: 404 });
+        data.department = { connect: { id: depIdFromBody } };
+    } else if (targetRole === "ADMIN") {
+        // ✅ แอดมิน: ผูกกับกลุ่มงานที่กำหนดไว้เสมอ
+        const depId = await ensureDepartmentIdByName(ADMIN_DEPT_NAME);
+        data.department = { connect: { id: depId } };
+    }
+
     try {
-        await prisma.auditLog.create({
-            data: {
-                userId: myId || null,
-                action: "DELETE",
-                tableName: "User",
-                recordId: id,
+        const updated = await prisma.user.update({
+            where: { id },
+            data,
+            select: {
+                id: true,
+                fullName: true,
+                phone: true,
+                email: true,
+                role: true,
+                department: { select: { id: true, name: true } },
             },
         });
-    } catch { }
-
-    return NextResponse.json({ ok: true });
+        return NextResponse.json({ ok: true, item: updated });
+    } catch (e: any) {
+        console.error("PATCH /api/users/[id] error:", e);
+        return NextResponse.json({ ok: false, error: "server-error" }, { status: 500 });
+    }
 }

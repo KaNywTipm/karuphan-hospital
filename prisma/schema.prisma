@@ -73,7 +73,7 @@ model User {
     phone        String?
     email        String  @unique
     passwordHash String
-    role         Role    @default(EXTERNAL)
+    role         Role
     isActive     Boolean @default(true)
 
     // สังกัด (เลือกได้ หรือเป็น null สำหรับผู้ใช้นอกกลุ่มงาน)

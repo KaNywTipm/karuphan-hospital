@@ -7,6 +7,7 @@ type Role = "ADMIN" | "INTERNAL" | "EXTERNAL";
 type Department = {
     id: number;
     name: string;
+    _count?: { users: number };
 };
 
 type UserForEdit = {
@@ -59,7 +60,7 @@ export default function EditPersonnel({ user, onClose, onSave }: Props) {
         changeNote: "",
     }));
 
-    // โหลดรายการกลุ่มงาน (ขึ้นให้ครบ) — รองรับทั้ง {items} และ {data}
+    // โหลดรายการกลุ่มงาน (ขึ้นให้ครบ) + นับจำนวนผู้ใช้ (withCount=1)
     useEffect(() => {
         let alive = true;
 
@@ -76,7 +77,7 @@ export default function EditPersonnel({ user, onClose, onSave }: Props) {
         (async () => {
             setLoadingDept(true);
             try {
-                const res = await fetch("/api/departments", { cache: "no-store" });
+                const res = await fetch("/api/departments?withCount=1", { cache: "no-store" });
                 const json = await safeJSON(res) as any;
 
                 if (!alive) return;
@@ -116,6 +117,12 @@ export default function EditPersonnel({ user, onClose, onSave }: Props) {
         e.preventDefault();
         if (!validate()) return;
 
+        // Custom validation: INTERNAL must have departmentId
+        if (form.role === "INTERNAL" && !form.departmentId) {
+            alert("กรุณาเลือกกลุ่มงานสำหรับผู้ใช้ภายใน");
+            return;
+        }
+
         setSaving(true);
         try {
             if (!user) return;
@@ -125,7 +132,7 @@ export default function EditPersonnel({ user, onClose, onSave }: Props) {
                 role: form.role,
                 phone: form.phone.trim() ? form.phone.trim() : null,
                 departmentId:
-                    form.departmentId === "" ? null : Number(form.departmentId),
+                    form.role === "EXTERNAL" ? null : (form.departmentId === "" ? null : Number(form.departmentId)),
                 changeNote: form.changeNote.trim() || undefined,
             });
         } finally {
@@ -218,10 +225,11 @@ export default function EditPersonnel({ user, onClose, onSave }: Props) {
                                     disabled={loadingDept}
                                     className="w-full rounded-md border border-gray-300 px-3 py-2 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100"
                                 >
-                                    <option value="">— ไม่สังกัด —</option>
+                                    <option value="">เลือกกลุ่มงาน</option>
                                     {deptOptions.map((d) => (
                                         <option key={d.id} value={d.id}>
                                             {d.name}
+                                            {typeof d._count?.users === "number" ? ` (${d._count.users})` : ""}
                                         </option>
                                     ))}
                                 </select>

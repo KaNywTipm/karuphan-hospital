@@ -76,7 +76,7 @@ export default function StatusKaruphanReport() {
     const toDate = (s?: string | null) => (s ? new Date(s).toLocaleDateString("th-TH") : "-");
 
     const handleExcelExport = () => {
-        const headers = ["ลำดับ", "เลขครุภัณฑ์", "ชื่อครุภัณฑ์", "วันที่คืน", "ราคาที่ได้รับ", "สถานะ"];
+        const headers = ["ลำดับ", "เลขครุภัณฑ์", "ชื่อครุภัณฑ์", "วันที่คืน", "ผลสรุป", "สถานะ"];
         const lines = filtered.map((r, i) => {
             const remark =
                 r.returnCondition === "LOST" ? "รอดำเนินการ" :
@@ -156,7 +156,7 @@ export default function StatusKaruphanReport() {
                             <th className="border px-4 py-3 text-center font-medium">เลขครุภัณฑ์</th>
                             <th className="border px-4 py-3 text-center font-medium">ชื่อครุภัณฑ์</th>
                             <th className="border px-4 py-3 text-center font-medium">วันที่คืน</th>
-                            <th className="border px-4 py-3 text-center font-medium">ราคาที่ได้รับ</th>
+                            <th className="border px-4 py-3 text-center font-medium">ผลสรุป</th>
                             <th className="border px-4 py-3 text-center font-medium">สถานะ</th>
                         </tr>
                     </thead>
