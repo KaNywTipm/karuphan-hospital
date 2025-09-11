@@ -79,17 +79,15 @@ export default function SignUpPage() {
             : "ระบบจะกำหนดบทบาท: เจ้าหน้าที่นอกกลุ่มงาน (EXTERNAL)";
 
     return (
-        <div className="min-h-screen grid place-items-center bg-gray-50">
-            <form onSubmit={onSubmit} className="w-[420px] bg-white p-6 rounded-2xl shadow">
+        <div className="min-h-screen flex items-center justify-center bg-cover bg-center" style={{ backgroundImage: 'url(/hospital.png)' }}>
+            <form onSubmit={onSubmit} className="w-[420px] bg-white/90 p-6 rounded-2xl shadow relative z-10">
                 <h1 className="text-xl font-bold text-center mb-2">ระบบครุภัณฑ์</h1>
                 <p className="text-center text-sm text-gray-500 mb-6">สมัครบัญชีของคุณ</p>
-
                 {msg && (
                     <div className="mb-4 text-sm text-red-600 bg-red-50 border border-red-200 rounded px-3 py-2">
                         {msg}
                     </div>
                 )}
-
                 {/* หน่วยงาน */}
                 <label className="text-sm flex items-center gap-2 mb-1">
                     <Image src="/icons/people.png" alt="" width={18} height={18} />
@@ -107,7 +105,6 @@ export default function SignUpPage() {
                     ))}
                 </select>
                 <p className="text-xs text-gray-500 mb-3">{roleHint}</p>
-
                 {/* ชื่อ - นามสกุล */}
                 <label className="text-sm flex items-center gap-2 mb-1">
                     <Image src="/icons/pencil.png" alt="" width={18} height={18} />
@@ -119,7 +116,6 @@ export default function SignUpPage() {
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
                 />
-
                 {/* เบอร์โทร */}
                 <label className="text-sm flex items-center gap-2 mb-1">
                     <Image src="/icons/tel.png" alt="" width={18} height={18} />
@@ -131,7 +127,6 @@ export default function SignUpPage() {
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
                 />
-
                 {/* อีเมล */}
                 <label className="text-sm flex items-center gap-2 mb-1">
                     <Image src="/icons/mail.png" alt="" width={18} height={18} />
@@ -143,7 +138,6 @@ export default function SignUpPage() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                 />
-
                 {/* รหัสผ่าน */}
                 <label className="text-sm flex items-center gap-2 mb-1">
                     <Image src="/icons/key.png" alt="" width={18} height={18} />
@@ -167,7 +161,6 @@ export default function SignUpPage() {
                         <Image src={`/icons/${showPw ? "openEye" : "closeEye"}.png`} alt="" width={18} height={18} />
                     </button>
                 </div>
-
                 {/* ยืนยันรหัสผ่าน */}
                 <label className="text-sm flex items-center gap-2 mb-1">
                     <Image src="/icons/key.png" alt="" width={18} height={18} />
@@ -191,17 +184,16 @@ export default function SignUpPage() {
                         <Image src={`/icons/${showConfirm ? "openEye" : "closeEye"}.png`} alt="" width={18} height={18} />
                     </button>
                 </div>
-
                 <button disabled={loading} className="w-full bg-gray-200 hover:bg-gray-300 rounded py-2">
                     {loading ? "กำลังสมัคร..." : "สมัคร"}
                 </button>
-
                 <div className="text-xs text-right mt-3">
                     <Link href="/sign-in" className="text-gray-600 hover:underline">
                         เข้าสู่ระบบ
                     </Link>
                 </div>
             </form>
+            <div className="absolute inset-0 bg-white/60 z-0" />
         </div>
     );
 }

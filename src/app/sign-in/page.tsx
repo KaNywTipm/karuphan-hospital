@@ -29,7 +29,7 @@ export default function SignInPage() {
         const res = await signIn("credentials", {
             email,
             password,
-            redirect: false,   // ✅ อยู่หน้าปัจจุบัน
+            redirect: false,   // อยู่หน้าปัจจุบัน
         });
         setLoading(false);
         if (res?.error) {
@@ -42,8 +42,8 @@ export default function SignInPage() {
 
 
     return (
-        <div className="min-h-screen grid place-items-center bg-gray-50">
-            <form onSubmit={onSubmit} className="w-[360px] bg-white p-6 rounded-2xl shadow">
+        <div className="min-h-screen flex items-center justify-center bg-cover bg-center" style={{ backgroundImage: 'url(/hospital.png)' }}>
+            <form onSubmit={onSubmit} className="w-[360px] bg-white/90 p-6 rounded-2xl shadow relative z-10">
                 <h1 className="text-xl font-bold text-center mb-2">ระบบครุภัณฑ์</h1>
                 <p className="text-center text-sm text-gray-500 mb-6">เข้าสู่บัญชีของคุณ</p>
 
@@ -80,7 +80,17 @@ export default function SignInPage() {
                     <Link href="/sign-up" className="text-gray-600 hover:underline">สมัครสมาชิก</Link>
                     <Link href="/forgot-password" className="text-gray-600 hover:underline">ลืมรหัสผ่าน</Link>
                 </div>
+
+                {/* Demo credentials */}
+                <div className="mt-6 text-xs bg-gray-100 border border-gray-200 rounded p-3">
+                    <div className="font-bold text-gray-700 mb-1">บัญชีสำหรับเดโม่</div>
+                    <div className="mb-1"><span className="font-semibold">Admin</span>: admin@pcu.local / <span className="font-mono">Admin#1234</span></div>
+                    <div className="mb-1"><span className="font-semibold">Internal</span>: internal1@pcu.local / <span className="font-mono">Internal#1234</span></div>
+                    <div className="mb-1"><span className="font-semibold">External</span>: external1@pcu.local / <span className="font-mono">External#1234</span></div>
+                    <div className="text-gray-500">* สามารถใช้บัญชี Internal/External อื่นๆ ที่ขึ้นต้น internal/external ได้</div>
+                </div>
             </form>
+            <div className="absolute inset-0 bg-white/60 z-0" />
         </div>
     );
 }

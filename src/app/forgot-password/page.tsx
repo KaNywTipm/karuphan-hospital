@@ -28,11 +28,10 @@ export default function ForgotPasswordPage() {
     }
 
     return (
-        <div className="min-h-screen grid place-items-center bg-gray-50">
-            <div className="w-[420px] bg-white p-6 rounded-2xl shadow">
+        <div className="min-h-screen flex items-center justify-center bg-cover bg-center" style={{ backgroundImage: 'url(/hospital.png)' }}>
+            <div className="w-[420px] bg-white/90 p-6 rounded-2xl shadow relative z-10">
                 <h1 className="text-xl font-bold text-center mb-2">ระบบครุภัณฑ์</h1>
                 <p className="text-center text-sm text-gray-500 mb-6">ลืมรหัสผ่าน</p>
-
                 {step === 1 && (
                     <form onSubmit={requestCode}>
                         <label className="text-sm flex items-center gap-2 mb-1">
@@ -48,7 +47,6 @@ export default function ForgotPasswordPage() {
                         </div>
                     </form>
                 )}
-
                 {step === 2 && (
                     <form onSubmit={(e) => { e.preventDefault(); setStep(3); }}>
                         <p className="text-xs text-gray-500 mb-3">กรอกรหัส OTP 6 หลักที่ส่งไปยังอีเมล<br />{email}</p>
@@ -65,7 +63,6 @@ export default function ForgotPasswordPage() {
                         </div>
                     </form>
                 )}
-
                 {step === 3 && (
                     <form onSubmit={resetPassword}>
                         <label className="text-sm flex items-center gap-2 mb-1">
@@ -85,6 +82,7 @@ export default function ForgotPasswordPage() {
                     </form>
                 )}
             </div>
+            <div className="absolute inset-0 bg-white/60 z-0" />
         </div>
     );
 }
