@@ -46,7 +46,27 @@ export default function BorrowReturnReport() {
                 const bJson = await bRes.json().catch(() => ({ data: [] }));
                 const cJson = await cRes.json().catch(() => ({ data: [] }));
                 if (!alive) return;
-                setRows(Array.isArray(bJson?.data) ? bJson.data : []);
+                // Map ข้อมูลให้ครบทุกช่องเหมือนหน้า admin
+                const borrowRows = Array.isArray(bJson?.data) ? bJson.data.map((r: any) => ({
+                    id: r.id,
+                    borrowerName:
+                        r.borrowerType === "INTERNAL"
+                            ? (r.requester?.fullName ?? "-")
+                            : (r.externalName || r.requester?.fullName || "-"),
+                    department:
+                        r.borrowerType === "INTERNAL"
+                            ? (r.requester?.department?.name ?? "-")
+                            : (r.externalDept ?? "ภายนอกกลุ่มงาน"),
+                    equipmentCode: (r.items ?? []).map((it: any) => it?.equipment?.code).filter(Boolean).join(", "),
+                    equipmentName: (r.items ?? []).map((it: any) => it?.equipment?.name).filter(Boolean).join(", "),
+                    borrowDate: r.borrowDate ?? null,
+                    returnDue: r.returnDue ?? null,
+                    actualReturnDate: r.actualReturnDate ?? null,
+                    reason: r.reason ?? null,
+                    status: r.status,
+                    categoryNames: r.categoryNames,
+                })) : [];
+                setRows(borrowRows);
                 setCats(Array.isArray(cJson?.data) ? cJson.data : []);
             } finally {
                 if (alive) setLoading(false);

@@ -244,7 +244,9 @@ export default function AdminPage() {
                                 <th className="border border-gray-300 px-4 py-3 text-center text-sm font-medium">บุคลากร</th>
                                 <th className="border border-gray-300 px-4 py-3 text-center text-sm font-medium">เลขครุภัณฑ์</th>
                                 <th className="border border-gray-300 px-4 py-3 text-center text-sm font-medium">ชื่อครุภัณฑ์</th>
-                                <th className="border border-gray-300 px-4 py-3 text-center text-sm font-medium">วันที่ยืม</th>
+                                {activeTab !== "รออนุมัติ" && (
+                                    <th className="border border-gray-300 px-4 py-3 text-center text-sm font-medium">วันที่ยืม</th>
+                                )}
                                 <th className="border border-gray-300 px-4 py-3 text-center text-sm font-medium">กำหนดคืน</th>
 
                                 {activeTab === "อนุมัติแล้ว/รอคืน" && (
@@ -307,7 +309,9 @@ export default function AdminPage() {
                                         <td className="border border-gray-300 px-4 py-3 text-center">{personnel}</td>
                                         <td className="border border-gray-300 px-4 py-3 text-center">{item.equipmentCode ?? "-"}</td>
                                         <td className="border border-gray-300 px-4 py-3 text-center">{item.equipmentName || "-"}</td>
-                                        <td className="border border-gray-300 px-4 py-3 text-center">{item.borrowDate ? new Date(item.borrowDate).toLocaleDateString("th-TH") : "-"}</td>
+                                        {activeTab !== "รออนุมัติ" && (
+                                            <td className="border border-gray-300 px-4 py-3 text-center">{item.borrowDate ? new Date(item.borrowDate).toLocaleDateString("th-TH") : "-"}</td>
+                                        )}
                                         <td className="border border-gray-300 px-4 py-3 text-center">{returnDue}</td>
 
                                         {activeTab === "อนุมัติแล้ว/รอคืน" && (

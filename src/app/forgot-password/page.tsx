@@ -28,7 +28,7 @@ export default function ForgotPasswordPage() {
     }
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-cover bg-center" style={{ backgroundImage: 'url(/hospital.png)' }}>
+        <div className="min-h-screen flex items-center justify-center bg-cover bg-center">
             <div className="w-[420px] bg-white/90 p-6 rounded-2xl shadow relative z-10">
                 <h1 className="text-xl font-bold text-center mb-2">ระบบครุภัณฑ์</h1>
                 <p className="text-center text-sm text-gray-500 mb-6">ลืมรหัสผ่าน</p>

@@ -53,7 +53,7 @@ export default function UserExternalStatusBorrow() {
     const [searchTerm, setSearchTerm] = useState("");
     const [sortOrder, setSortOrder] = useState<"newest" | "oldest">("newest");
     const [currentPage, setCurrentPage] = useState(1);
-    const itemsPerPage = 5;
+    const itemsPerPage = 10;
 
     async function load() {
         setLoading(true);
@@ -75,19 +75,7 @@ export default function UserExternalStatusBorrow() {
         load();
     }, []);
 
-    // เลือก "คำขอล่าสุด" (เรียงตามวันที่/หรือ id ถ้าไม่มีวันที่)
-    const latest: BorrowRequest | null = useMemo(() => {
-        if (!all.length) return null;
-        const withKey = all.map((r) => {
-            const dateStr = r.requestedAt || r.createdAt || r.requestDate || null;
-            const key = dateStr ? new Date(dateStr).getTime() : r.id ?? 0;
-            return { r, key };
-        });
-        withKey.sort((a, b) => b.key - a.key); // ใหม่สุดก่อน
-        return withKey[0].r;
-    }, [all]);
-
-    // แปลงคำขอล่าสุดให้เป็น "หนึ่งอุปกรณ์ = หนึ่งแถว"
+    // แปลง borrow request ทั้งหมดให้เป็น "หนึ่งอุปกรณ์ = หนึ่งแถว" (เหมือนฝั่งแอดมิน)
     type Row = {
         id: number;
         borrowDateISO: string | null;
@@ -96,41 +84,53 @@ export default function UserExternalStatusBorrow() {
         equipmentName: string;
         status: string;
         reason: string;
+        notes?: string;
     };
     const flatRows: Row[] = useMemo(() => {
-        if (!latest) return [];
-        const borrowDateISO =
-            latest.requestedAt || latest.createdAt || latest.requestDate || null;
-        const returnDueISO = latest.returnDue ?? null;
-        const reason = latest.reason ?? latest.notes ?? "";
-        // หมายเหตุ: ถ้ายังไม่คืน จะยังไม่มีผู้รับคืน ก็แสดง "-"
-        const approverOrReceiver = latest.receivedBy?.fullName ?? "-";
-        const items = latest.items ?? [];
-        if (!items.length) {
-            return [
-                {
-                    id: latest.id,
+        if (!all.length) return [];
+        // เรียงใหม่สุดก่อน
+        const sorted = [...all].sort((a, b) => {
+            const da = new Date(a.requestedAt || a.createdAt || a.requestDate || 0).getTime();
+            const db = new Date(b.requestedAt || b.createdAt || b.requestDate || 0).getTime();
+            return db - da;
+        });
+        const rows: Row[] = [];
+        for (const req of sorted) {
+            const borrowDateISO = req.requestedAt || req.createdAt || req.requestDate || null;
+            const returnDueISO = req.returnDue ?? null;
+            const reason = req.reason ?? req.notes ?? "";
+            const approverOrReceiver = req.receivedBy?.fullName ?? "-";
+            const items = req.items ?? [];
+            if (!items.length) {
+                rows.push({
+                    id: req.id,
                     borrowDateISO,
                     returnDueISO,
                     approverOrReceiver,
                     equipmentName: "-",
-                    status: latest.status,
+                    status: req.status,
                     reason,
-                },
-            ];
+                    notes: req.notes,
+                });
+            } else {
+                for (const it of items) {
+                    rows.push({
+                        id: req.id,
+                        borrowDateISO,
+                        returnDueISO,
+                        approverOrReceiver,
+                        equipmentName: it.equipment?.name ?? "-",
+                        status: req.status,
+                        reason,
+                        notes: req.notes,
+                    });
+                }
+            }
         }
-        return items.map((it) => ({
-            id: latest.id,
-            borrowDateISO,
-            returnDueISO,
-            approverOrReceiver,
-            equipmentName: it.equipment?.name ?? "-",
-            status: latest.status,
-            reason,
-        }));
-    }, [latest]);
+        return rows;
+    }, [all]);
 
-    // ค้นหา + เรียง
+    // ค้นหา + เรียง + filter เฉพาะสถานะที่ต้องการ (เช่น รออนุมัติ)
     const filteredData = useMemo(() => {
         const s = lc(searchTerm);
         const list = [...flatRows].filter(
@@ -158,7 +158,7 @@ export default function UserExternalStatusBorrow() {
             <section className="bg-white rounded-lg shadow border">
                 <div className="p-4 border-b flex flex-wrap gap-3 items-center justify-between">
                     <h2 className="text-lg font-semibold text-gray-800">
-                        สถานะการยืมครุภัณฑ์ (ล่าสุด)
+                        รายการคำขอยืมของคุณ
                     </h2>
                     <div className="flex items-center gap-2">
                         <button
@@ -171,7 +171,7 @@ export default function UserExternalStatusBorrow() {
                         <div className="relative">
                             <input
                                 type="text"
-                                placeholder="ค้นหาในคำขอล่าสุด"
+                                placeholder="ค้นหาในรายการของคุณ"
                                 value={searchTerm}
                                 onChange={(e) => {
                                     setSearchTerm(e.target.value);
@@ -221,16 +221,15 @@ export default function UserExternalStatusBorrow() {
                                 </tr>
                             )}
 
-                            {!loading && latest === null && (
+                            {!loading && currentData.length === 0 && (
                                 <tr>
                                     <td colSpan={7} className="px-4 py-6 text-center text-sm text-gray-500">
-                                        ยังไม่มีคำขอล่าสุด
+                                        ยังไม่มีรายการ
                                     </td>
                                 </tr>
                             )}
 
                             {!loading &&
-                                latest !== null &&
                                 currentData.map((item, index) => (
                                     <tr key={`${item.id}-${index}`} className="hover:bg-gray-50">
                                         <td className="px-4 py-3 text-sm text-gray-900">
@@ -266,8 +265,7 @@ export default function UserExternalStatusBorrow() {
                     </table>
                 </div>
 
-
-                {!loading && latest !== null && (
+                {!loading && (
                     <div className="flex items-center justify-between px-4 py-3 border-t">
                         <span className="text-sm text-gray-700">
                             แสดง {filteredData.length === 0 ? 0 : startIndex + 1} -{" "}

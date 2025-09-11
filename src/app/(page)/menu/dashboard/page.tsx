@@ -105,7 +105,8 @@ export default function Dashboard() {
     const totalInternalUsers = userStats.internal;
     const totalExternalUsers = userStats.external;
 
-    const totalEquipments = equipments.length;
+    // นับเฉพาะครุภัณฑ์ที่ยังไม่ถูกจำหน่าย (DISPOSED)
+    const totalEquipments = equipments.filter((x) => x.status !== "DISPOSED").length;
 
     // สถานะครุภัณฑ์
     const normalEquipment = equipments.filter((x) => x.status === "NORMAL").length;
@@ -128,12 +129,20 @@ export default function Dashboard() {
             if (key in map) map[key] += 1;
         }
 
+        // หาค่าสูงสุดจริงเพื่อขยายกราฟ
+        const values = Object.values(map);
+        const maxValue = Math.max(1, ...values);
+        // ขยายค่าสูงสุดให้กราฟดูสูงขึ้น (เช่น คูณ 1.5 หรือเพิ่ม offset)
+        const scale = maxValue < 5 ? 2 : 1.5;
+        const scaledMax = Math.ceil(maxValue * scale);
+
         return months.map((m) => {
             const value = map[m.key] || 0;
             return {
                 month: m.label,
                 value,
                 label: `${value} รายการ`,
+                scaledMax,
             };
         });
     }, [borrows]);
@@ -192,11 +201,11 @@ export default function Dashboard() {
                                     "bg-blue-600",
                                     "bg-emerald-500",
                                 ];
-                                const maxValue = Math.max(1, ...monthlyBars.map((m) => m.value));
+                                // ใช้ scaledMax เพื่อขยายกราฟ
                                 const minBarHeight = 20;
                                 const height = data.value === 0
                                     ? minBarHeight
-                                    : minBarHeight + ((data.value / maxValue) * (100 - minBarHeight));
+                                    : minBarHeight + ((data.value / (data.scaledMax || 1)) * (100 - minBarHeight));
 
                                 return (
                                     <div key={index} className="flex flex-col items-center w-1/6">

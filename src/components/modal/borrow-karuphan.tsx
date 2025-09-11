@@ -4,12 +4,26 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 
-// ใช้สำหรับ default value ให้ input type="date"
+// ใช้สำหรับ default value ให้ input type="date" (ค.ศ.)
 const toInputDate = (d: Date) => {
     const y = d.getFullYear();
     const m = String(d.getMonth() + 1).padStart(2, "0");
     const day = String(d.getDate()).padStart(2, "0");
     return `${y}-${m}-${day}`;
+};
+
+// แปลง ค.ศ. <-> พ.ศ. (YYYY-MM-DD)
+const ceToThai = (ymdCE: string) => {
+    if (!ymdCE) return ymdCE;
+    const [y, m, d] = ymdCE.split("-");
+    if (!y || !m || !d) return ymdCE;
+    return `${String(Number(y) + 543).padStart(4, "0")}-${m}-${d}`;
+};
+const thaiToCE = (ymdBE: string) => {
+    if (!ymdBE) return ymdBE;
+    const [y, m, d] = ymdBE.split("-");
+    if (!y || !m || !d) return ymdBE;
+    return `${String(Number(y) - 543).padStart(4, "0")}-${m}-${d}`;
 };
 
 type Me = {
@@ -67,8 +81,9 @@ type BorrowKaruphanProps = {
 const BorrowKaruphan = ({ onClose, onBorrow, onSuccess, selectedEquipment, cartItems }: BorrowKaruphanProps) => {
     const router = useRouter();
     const [me, setMe] = useState<Me | null>(null);
-    const [borrowDate, setBorrowDate] = useState<string>(toInputDate(new Date()));
-    const [returnDate, setReturnDate] = useState<string>("");
+    // ใช้ state แสดง/รับค่าเป็น พ.ศ. (string)
+    const [borrowDateBE, setBorrowDateBE] = useState<string>(ceToThai(toInputDate(new Date())));
+    const [returnDateBE, setReturnDateBE] = useState<string>("");
     const [reason, setReason] = useState<string>("");
     const [submitting, setSubmitting] = useState(false);
 
@@ -146,7 +161,7 @@ const BorrowKaruphan = ({ onClose, onBorrow, onSuccess, selectedEquipment, cartI
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!borrowDate || !returnDate) return;
+        if (!borrowDateBE || !returnDateBE) return;
 
         // ❗ถ้า parent ส่ง onBorrow มา ให้เรียกอันนั้น (parent จะเคลียร์ตะกร้า/รีโหลดเอง)
         const borrowerType: "INTERNAL" | "EXTERNAL" = me?.role === "EXTERNAL" ? "EXTERNAL" : "INTERNAL";
@@ -162,7 +177,7 @@ const BorrowKaruphan = ({ onClose, onBorrow, onSuccess, selectedEquipment, cartI
                         }
                         : null,
                     notes: null,
-                    returnDue: returnDate,
+                    returnDue: returnDateBE,
                     reason,
                 });
                 onSuccess?.();
@@ -174,7 +189,7 @@ const BorrowKaruphan = ({ onClose, onBorrow, onSuccess, selectedEquipment, cartI
         }
 
         // fallback เดิม: ยิง API ในโมดอลเอง (กรณีเรียกใช้โมดอลแบบ standalone)
-        await handleBorrow({ borrowDate, returnDue: returnDate, reason });
+        await handleBorrow({ borrowDate: thaiToCE(borrowDateBE), returnDue: thaiToCE(returnDateBE), reason });
     };
 
     return (
@@ -229,22 +244,38 @@ const BorrowKaruphan = ({ onClose, onBorrow, onSuccess, selectedEquipment, cartI
 
                 {/* ฟอร์มหลัก */}
                 <form onSubmit={handleSubmit} className="flex flex-col gap-4 text-sm">
-                    <FormRow label="วันที่ยืม">
+                    <FormRow label="วันที่ยืม (พ.ศ.)">
                         <input
                             type="date"
-                            value={borrowDate}
-                            onChange={e => setBorrowDate(e.target.value)}
+                            value={borrowDateBE}
+                            onChange={e => {
+                                let v = e.target.value;
+                                if (/^\d{4}-\d{2}-\d{2}$/.test(v)) {
+                                    const [y, m, d] = v.split("-");
+                                    if (Number(y) < 2500) v = ceToThai(v);
+                                }
+                                setBorrowDateBE(v);
+                            }}
                             className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none transition-colors bg-white text-gray-700"
+                            placeholder="2568-09-11"
                             required
                         />
                     </FormRow>
 
-                    <FormRow label="กำหนดคืน">
+                    <FormRow label="กำหนดคืน (พ.ศ.)">
                         <input
                             type="date"
-                            value={returnDate}
-                            onChange={(e) => setReturnDate(e.target.value)}
+                            value={returnDateBE}
+                            onChange={e => {
+                                let v = e.target.value;
+                                if (/^\d{4}-\d{2}-\d{2}$/.test(v)) {
+                                    const [y, m, d] = v.split("-");
+                                    if (Number(y) < 2500) v = ceToThai(v);
+                                }
+                                setReturnDateBE(v);
+                            }}
                             className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none transition-colors bg-white text-gray-700"
+                            placeholder="2568-09-11"
                             required
                         />
                     </FormRow>

@@ -42,7 +42,7 @@ export default function SignInPage() {
 
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-cover bg-center" style={{ backgroundImage: 'url(/hospital.png)' }}>
+        <div className="min-h-screen flex items-center justify-center bg-cover bg-center">
             <form onSubmit={onSubmit} className="w-[360px] bg-white/90 p-6 rounded-2xl shadow relative z-10">
                 <h1 className="text-xl font-bold text-center mb-2">ระบบครุภัณฑ์</h1>
                 <p className="text-center text-sm text-gray-500 mb-6">เข้าสู่บัญชีของคุณ</p>
@@ -87,7 +87,6 @@ export default function SignInPage() {
                     <div className="mb-1"><span className="font-semibold">Admin</span>: admin@pcu.local / <span className="font-mono">Admin#1234</span></div>
                     <div className="mb-1"><span className="font-semibold">Internal</span>: internal1@pcu.local / <span className="font-mono">Internal#1234</span></div>
                     <div className="mb-1"><span className="font-semibold">External</span>: external1@pcu.local / <span className="font-mono">External#1234</span></div>
-                    <div className="text-gray-500">* สามารถใช้บัญชี Internal/External อื่นๆ ที่ขึ้นต้น internal/external ได้</div>
                 </div>
             </form>
             <div className="absolute inset-0 bg-white/60 z-0" />
