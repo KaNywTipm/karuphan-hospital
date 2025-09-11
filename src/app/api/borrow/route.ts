@@ -51,6 +51,7 @@ export async function GET(req: Request) {
                     id: true,
                     status: true,
                     borrowerType: true,
+                    borrowDate: true,
                     returnDue: true,
                     actualReturnDate: true,
                     reason: true,

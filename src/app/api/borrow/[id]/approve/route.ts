@@ -60,7 +60,9 @@ export async function PATCH(req: Request, { params }: Params) {
         status: "APPROVED",
         approvedById: adminId, // ✅ ลงชื่อแอดมิน
         approvedAt: new Date(),
-        borrowDate: new Date(),
+        // ถ้ามี borrowDate เดิม (กรณียืมล่วงหน้า) ให้ใช้ของเดิม ไม่เซตใหม่
+        // ถ้าไม่มี (null) ให้เซตเป็นวันนี้
+        borrowDate: reqRow.borrowDate ?? new Date(),
       },
     });
     await tx.equipment.updateMany({
