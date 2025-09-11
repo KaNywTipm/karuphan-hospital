@@ -1,33 +1,43 @@
+
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 
-type Row = {
-    id: number;
-    equipmentCode?: string | null;
-    equipmentName?: string | null;
-    returnDue?: string | null;
-    actualReturnDate?: string | null;
-    status?: "PENDING" | "APPROVED" | "RETURNED" | "REJECTED" | "OVERDUE";
-    returnCondition?: "NORMAL" | "BROKEN" | "LOST" | "WAIT_DISPOSE" | "DISPOSED" | null;
-    categoryNames?: string | string[] | null;
-};
+interface Row {
+    number: number;
+    code: string;
+    idnum?: string | null;
+    name: string;
+    description?: string | null;
+    price?: number | null;
+    receivedDate: string;
+    status: "NORMAL" | "RESERVED" | "IN_USE" | "BROKEN" | "LOST" | "WAIT_DISPOSE" | "DISPOSED";
+    category?: { id: number; name: string } | null;
+}
 type Category = { id: number; name: string };
 
-const conditionTH = (c?: Row["returnCondition"]) =>
-    c === "NORMAL" ? "ปกติ" :
-        c === "BROKEN" ? "ชำรุด" :
-            c === "LOST" ? "สูญหาย" :
-                c === "WAIT_DISPOSE" ? "รอจำหน่าย" :
-                    c === "DISPOSED" ? "จำหน่ายแล้ว" : "ไม่ระบุ";
+const statusLabelTH = (s: Row["status"]) =>
+({
+    NORMAL: "ปกติ",
+    RESERVED: "รออนุมัติ",
+    IN_USE: "กำลังใช้งาน",
+    BROKEN: "ชำรุด",
+    LOST: "สูญหาย",
+    WAIT_DISPOSE: "รอจำหน่าย",
+    DISPOSED: "จำหน่ายแล้ว",
+}[s] || "-");
 
-const badgeCls = (c?: Row["returnCondition"]) =>
-    c === "NORMAL" ? "bg-Green text-White" :
-        c === "BROKEN" ? "bg-Yellow text-NavyBlue" :
-            c === "LOST" ? "bg-RedLight text-White" :
-                c === "WAIT_DISPOSE" ? "bg-Grey text-White" :
-                    c === "DISPOSED" ? "bg-NavyBlue text-White" : "bg-Grey text-White";
+const statusColor = (s: Row["status"]) =>
+({
+    NORMAL: "bg-green-100 text-green-800",
+    RESERVED: "bg-blue-100 text-blue-800",
+    IN_USE: "bg-orange-100 text-orange-800",
+    BROKEN: "bg-red-100 text-red-800",
+    LOST: "bg-gray-100 text-gray-800",
+    WAIT_DISPOSE: "bg-yellow-100 text-yellow-800",
+    DISPOSED: "bg-purple-100 text-purple-800",
+}[s] || "");
 
 export default function StatusKaruphanReport() {
     const [rows, setRows] = useState<Row[]>([]);
@@ -35,17 +45,17 @@ export default function StatusKaruphanReport() {
     const [search, setSearch] = useState("");
     const [cat, setCat] = useState("");
     const [sort, setSort] = useState<"newest" | "oldest">("newest");
-    const [cond, setCond] = useState<Row["returnCondition"] | "">("");
+    const [cond, setCond] = useState<Row["status"] | "">("");
 
     useEffect(() => {
         (async () => {
-            const [bRes, cRes] = await Promise.all([
-                fetch("/api/borrow", { cache: "no-store" }),
+            const [eRes, cRes] = await Promise.all([
+                fetch("/api/equipment?sort=receivedDate:desc&page=1&pageSize=1000", { cache: "no-store" }),
                 fetch("/api/categories", { cache: "no-store" }),
             ]);
-            const b = await bRes.json().catch(() => ({ data: [] }));
+            const e = await eRes.json().catch(() => ({ data: [] }));
             const c = await cRes.json().catch(() => ({ data: [] }));
-            setRows(Array.isArray(b?.data) ? b.data : []);
+            setRows(Array.isArray(e?.data) ? e.data : []);
             setCats(Array.isArray(c?.data) ? c.data : []);
         })();
     }, []);
@@ -53,22 +63,19 @@ export default function StatusKaruphanReport() {
     const filtered = useMemo(() => {
         const q = (search || "").toLowerCase();
         return (rows || [])
-            .filter(r => r.status === "RETURNED" && !!r.returnCondition)
             .filter(r =>
-                (r.equipmentCode || "").toLowerCase().includes(q) ||
-                (r.equipmentName || "").toLowerCase().includes(q)
+                (!cond || r.status === cond) &&
+                ((r.name || "").toLowerCase().includes(q) ||
+                    (r.code || "").toLowerCase().includes(q) ||
+                    (r.category?.name?.toLowerCase() ?? "").includes(q))
             )
             .filter(r => {
                 if (!cat) return true;
-                const names = Array.isArray(r.categoryNames)
-                    ? r.categoryNames
-                    : (typeof r.categoryNames === "string" ? r.categoryNames.split(",").map(s => s.trim()) : []);
-                return names.some(n => n === cat);
+                return r.category?.name === cat;
             })
-            .filter(r => (cond ? r.returnCondition === cond : true))
             .sort((a, b) => {
-                const da = new Date(a.actualReturnDate || a.returnDue || "").getTime();
-                const db = new Date(b.actualReturnDate || b.returnDue || "").getTime();
+                const da = new Date(a.receivedDate || "").getTime();
+                const db = new Date(b.receivedDate || "").getTime();
                 return sort === "newest" ? db - da : da - db;
             });
     }, [rows, search, cat, cond, sort]);
@@ -76,22 +83,15 @@ export default function StatusKaruphanReport() {
     const toDate = (s?: string | null) => (s ? new Date(s).toLocaleDateString("th-TH") : "-");
 
     const handleExcelExport = () => {
-        const headers = ["ลำดับ", "เลขครุภัณฑ์", "ชื่อครุภัณฑ์", "วันที่คืน", "ผลสรุป", "สถานะ"];
-        const lines = filtered.map((r, i) => {
-            const remark =
-                r.returnCondition === "LOST" ? "รอดำเนินการ" :
-                    r.returnCondition === "BROKEN" ? "ซ่อมแซม" :
-                        r.returnCondition === "DISPOSED" ? "จำหน่ายแล้ว" :
-                            r.returnCondition === "WAIT_DISPOSE" ? "รอจำหน่าย" : "ใช้งานปกติ";
-            return [
-                i + 1,
-                r.equipmentCode ?? "",
-                `"${r.equipmentName ?? "-"}"`,
-                toDate(r.actualReturnDate || r.returnDue),
-                `"${remark}"`,
-                `"${conditionTH(r.returnCondition)}"`,
-            ].join(",");
-        });
+        const headers = ["ลำดับ", "เลขครุภัณฑ์", "ชื่อครุภัณฑ์", "หมวดหมู่", "วันที่ได้รับ", "สถานะ"];
+        const lines = filtered.map((r, i) => [
+            i + 1,
+            r.code ?? "",
+            `"${r.name ?? "-"}"`,
+            `"${r.category?.name ?? "-"}"`,
+            toDate(r.receivedDate),
+            `"${statusLabelTH(r.status)}"`,
+        ].join(","));
         const csv = [headers.join(","), ...lines].join("\n");
         const blob = new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8;" });
         const url = URL.createObjectURL(blob);
@@ -155,34 +155,25 @@ export default function StatusKaruphanReport() {
                             <th className="border px-4 py-3 text-center font-medium">ลำดับ</th>
                             <th className="border px-4 py-3 text-center font-medium">เลขครุภัณฑ์</th>
                             <th className="border px-4 py-3 text-center font-medium">ชื่อครุภัณฑ์</th>
-                            <th className="border px-4 py-3 text-center font-medium">วันที่คืน</th>
-                            <th className="border px-4 py-3 text-center font-medium">ผลสรุป</th>
+                            <th className="border px-4 py-3 text-center font-medium">หมวดหมู่</th>
+                            <th className="border px-4 py-3 text-center font-medium">วันที่ได้รับ</th>
                             <th className="border px-4 py-3 text-center font-medium">สถานะ</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {filtered.length === 0 && <tr><td colSpan={6} className="border px-4 py-8 text-center text-gray-500">ไม่พบข้อมูลครุภัณฑ์ที่คืนแล้ว</td></tr>}
-                        {filtered.map((r, i) => {
-                            const remark =
-                                r.returnCondition === "LOST" ? "รอดำเนินการ" :
-                                    r.returnCondition === "BROKEN" ? "ซ่อมแซม" :
-                                        r.returnCondition === "DISPOSED" ? "จำหน่ายแล้ว" :
-                                            r.returnCondition === "WAIT_DISPOSE" ? "รอจำหน่าย" : "ใช้งานปกติ";
-                            return (
-                                <tr key={r.id} className="hover:bg-gray-50">
-                                    <td className="border px-4 py-3 text-center">{i + 1}</td>
-                                    <td className="border px-4 py-3 text-center">{r.equipmentCode ?? "-"}</td>
-                                    <td className="border px-4 py-3 text-center">{r.equipmentName ?? "-"}</td>
-                                    <td className="border px-4 py-3 text-center">{toDate(r.actualReturnDate || r.returnDue)}</td>
-                                    <td className="border px-4 py-3 text-center">{remark}</td>
-                                    <td className="border px-4 py-3 text-center">
-                                        <span className={`px-2 py-1 rounded-full text-xs ${badgeCls(r.returnCondition)}`}>
-                                            {conditionTH(r.returnCondition)}
-                                        </span>
-                                    </td>
-                                </tr>
-                            );
-                        })}
+                        {filtered.length === 0 && <tr><td colSpan={6} className="border px-4 py-8 text-center text-gray-500">ไม่พบข้อมูลครุภัณฑ์</td></tr>}
+                        {filtered.map((r, i) => (
+                            <tr key={r.number} className="hover:bg-gray-50">
+                                <td className="border px-4 py-3 text-center">{i + 1}</td>
+                                <td className="border px-4 py-3 text-center">{r.code}</td>
+                                <td className="border px-4 py-3 text-center">{r.name}</td>
+                                <td className="border px-4 py-3 text-center">{r.category?.name ?? "-"}</td>
+                                <td className="border px-4 py-3 text-center">{toDate(r.receivedDate)}</td>
+                                <td className="border px-4 py-3 text-center">
+                                    <span className={`px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap ${statusColor(r.status)}`}>{statusLabelTH(r.status)}</span>
+                                </td>
+                            </tr>
+                        ))}
                     </tbody>
                 </table>
             </div>

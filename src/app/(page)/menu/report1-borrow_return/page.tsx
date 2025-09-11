@@ -164,7 +164,7 @@ export default function BorrowReturnReport() {
                         <tr className="bg-Pink text-White">
                             <th className="border px-4 py-3 text-center font-medium">ลำดับ</th>
                             <th className="border px-4 py-3 text-center font-medium">ผู้ยืม</th>
-                            <th className="border px-4 py-3 text-center font-medium">หน่วยงาน</th>
+                            <th className="border px-4 py-3 text-center font-medium">บุคลากร</th>
                             <th className="border px-4 py-3 text-center font-medium">เลขครุภัณฑ์</th>
                             <th className="border px-4 py-3 text-center font-medium">ชื่อครุภัณฑ์</th>
                             <th className="border px-4 py-3 text-center font-medium">วันที่ยืม</th>

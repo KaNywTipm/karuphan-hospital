@@ -10,9 +10,11 @@ type Row = {
     equipmentCode?: string | null;
     equipmentName?: string | null;
     borrowDate?: string | null;
+    returnDue?: string | null;
     reason?: string | null;
     status?: "PENDING" | "APPROVED" | "RETURNED" | "REJECTED" | "OVERDUE";
     categoryNames?: string | string[] | null;
+    rejectedByName?: string | null;
 };
 type Category = { id: number; name: string };
 
@@ -31,7 +33,27 @@ export default function NotApproveReport() {
             ]);
             const b = await bRes.json().catch(() => ({ data: [] }));
             const c = await cRes.json().catch(() => ({ data: [] }));
-            setRows(Array.isArray(b?.data) ? b.data : []);
+            // Map all display fields for table (borrowerName, department, equipmentCode, equipmentName, rejectedByName)
+            const borrowRows = Array.isArray(b?.data) ? b.data.map((r: any) => ({
+                id: r.id,
+                borrowerName:
+                    r.borrowerType === "INTERNAL"
+                        ? (r.requester?.fullName ?? "-")
+                        : (r.externalName || r.requester?.fullName || "-"),
+                department:
+                    r.borrowerType === "INTERNAL"
+                        ? (r.requester?.department?.name ?? "-")
+                        : (r.externalDept ?? "ภายนอกกลุ่มงาน"),
+                equipmentCode: (r.items ?? []).map((it: any) => it?.equipment?.code).filter(Boolean).join(", "),
+                equipmentName: (r.items ?? []).map((it: any) => it?.equipment?.name).filter(Boolean).join(", "),
+                borrowDate: r.borrowDate ?? null,
+                returnDue: r.returnDue ?? null,
+                reason: r.reason ?? null,
+                status: r.status,
+                categoryNames: r.categoryNames,
+                rejectedByName: r.rejectedBy?.fullName ?? "-",
+            })) : [];
+            setRows(borrowRows);
             setCats(Array.isArray(c?.data) ? c.data : []);
         })();
     }, []);
@@ -63,7 +85,7 @@ export default function NotApproveReport() {
     const toDate = (s?: string | null) => (s ? new Date(s).toLocaleDateString("th-TH") : "-");
 
     const handleExcelExport = () => {
-        const headers = ["ลำดับ", "ผู้ยืม", "หน่วยงาน", "เลขครุภัณฑ์", "ชื่อครุภัณฑ์", "หมวดหมู่", "วันที่ยืม", "เหตุผลการยืม", "สถานะ"];
+        const headers = ["ลำดับ", "ผู้ยืม", "หน่วยงาน", "เลขครุภัณฑ์", "ชื่อครุภัณฑ์", "หมวดหมู่", "วันที่ยืม", "กำหนดคืน", "เหตุผลการยืม", "ผู้ไม่อนุมัติ", "สถานะ"];
         const lines = filtered.map((r, i) => {
             const catText = Array.isArray(r.categoryNames) ? r.categoryNames.join(" / ") : (r.categoryNames ?? "");
             return [
@@ -74,7 +96,9 @@ export default function NotApproveReport() {
                 `"${r.equipmentName ?? "-"}"`,
                 `"${catText}"`,
                 toDate(r.borrowDate),
+                toDate(r.returnDue),
                 `"${r.reason ?? ""}"`,
+                `"${r.rejectedByName ?? "-"}"`,
                 `"ไม่อนุมัติ"`,
             ].join(",");
         });
@@ -128,16 +152,18 @@ export default function NotApproveReport() {
                         <tr className="bg-Pink text-White">
                             <th className="border px-4 py-3 text-center font-medium">ลำดับ</th>
                             <th className="border px-4 py-3 text-center font-medium">ผู้ยืม</th>
-                            <th className="border px-4 py-3 text-center font-medium">หน่วยงาน</th>
+                            <th className="border px-4 py-3 text-center font-medium">บุคลากร</th>
                             <th className="border px-4 py-3 text-center font-medium">เลขครุภัณฑ์</th>
                             <th className="border px-4 py-3 text-center font-medium">ชื่อครุภัณฑ์</th>
                             <th className="border px-4 py-3 text-center font-medium">วันที่ยืม</th>
+                            <th className="border px-4 py-3 text-center font-medium">กำหนดคืน</th>
                             <th className="border px-4 py-3 text-center font-medium">เหตุผลการยืม</th>
+                            <th className="border px-4 py-3 text-center font-medium">ผู้ไม่อนุมัติ</th>
                             <th className="border px-4 py-3 text-center font-medium">สถานะ</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {filtered.length === 0 && <tr><td colSpan={8} className="border px-4 py-8 text-center text-gray-500">ไม่พบข้อมูลครุภัณฑ์ที่ถูกยกเลิก/ไม่อนุมัติ</td></tr>}
+                        {filtered.length === 0 && <tr><td colSpan={11} className="border px-4 py-8 text-center text-gray-500">ไม่พบข้อมูลครุภัณฑ์ที่ถูกยกเลิก/ไม่อนุมัติ</td></tr>}
                         {filtered.map((r, i) => (
                             <tr key={r.id} className="hover:bg-gray-50">
                                 <td className="border px-4 py-3 text-center">{i + 1}</td>
@@ -146,7 +172,9 @@ export default function NotApproveReport() {
                                 <td className="border px-4 py-3 text-center">{r.equipmentCode ?? "-"}</td>
                                 <td className="border px-4 py-3 text-center">{r.equipmentName ?? "-"}</td>
                                 <td className="border px-4 py-3 text-center">{toDate(r.borrowDate)}</td>
+                                <td className="border px-4 py-3 text-center">{toDate(r.returnDue)}</td>
                                 <td className="border px-4 py-3 text-center">{r.reason ?? "-"}</td>
+                                <td className="border px-4 py-3 text-center">{r.rejectedByName ?? "-"}</td>
                                 <td className="border px-4 py-3 text-center"><span className="px-2 py-1 rounded-full text-xs bg-RedLight text-White">ไม่อนุมัติ</span></td>
                             </tr>
                         ))}
