@@ -17,6 +17,7 @@ type Row = {
     returnDue?: string | null;
     actualReturnDate?: string | null;
     reason?: string | null;
+    returnNotes?: string | null;
     receivedBy?: string | null;         // ถ้ามีใน API
     returnCondition?: string | null;    // ถ้ามีใน API
     adminName?: string | null;          // ชื่อแอดมินผู้รับคืน
@@ -79,11 +80,11 @@ export default function AdminPage() {
                         ? (r.requester?.fullName ?? "-")
                         : (r.externalName || r.requester?.fullName || "-")
                 ,
-                // ชื่อแอดมินผู้รับคืน (เหมือน return page)
+                // ชื่อแอดมินผู้รับคืน (คืนแล้ว/อนุมัติแล้ว) หรือ rejectedBy (ไม่อนุมัติ/ยกเลิก)
                 adminName:
-                    r.receivedBy?.fullName ??
-                    r.approvedBy?.fullName ??
-                    "-",
+                    r.status === "REJECTED"
+                        ? (r.rejectedBy?.fullName ?? "-")
+                        : (r.receivedBy?.fullName ?? r.approvedBy?.fullName ?? "-"),
                 department:
                     r.borrowerType === "INTERNAL"
                         ? (r.requester?.department?.name ?? "-")
@@ -95,6 +96,7 @@ export default function AdminPage() {
                 returnDue: r.returnDue ?? null,
                 actualReturnDate: r.actualReturnDate ?? null,
                 reason: r.reason ?? null,
+                returnNotes: r.returnNotes ?? null,
                 // กรณี INTERNAL ใช้ requester.fullName, กรณี EXTERNAL ใช้ externalName เช่นกัน (ถ้าต้องการโชว์ผู้ยืมในคอลัมน์อื่น)
                 receivedBy: r.receivedBy?.fullName ?? null,
                 returnCondition: r.returnCondition ?? null,
@@ -335,7 +337,12 @@ export default function AdminPage() {
                                             <td className="border border-gray-300 px-4 py-3 text-center">{item.adminName}</td>
                                         )}
 
-                                        <td className="border border-gray-300 px-4 py-3 text-center">{item.reason || "-"}</td>
+                                        {/* เหตุผลที่ยืม */}
+                                        {activeTab === "คืนแล้ว" ? (
+                                            <td className="border border-gray-300 px-4 py-3 text-center">{item.returnNotes || "-"}</td>
+                                        ) : (
+                                            <td className="border border-gray-300 px-4 py-3 text-center">{item.reason || "-"}</td>
+                                        )}
 
                                         {activeTab === "รออนุมัติ" && (
                                             <td className="border border-gray-300 px-4 py-3 text-center">

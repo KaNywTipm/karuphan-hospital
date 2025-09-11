@@ -52,6 +52,10 @@ export default function ReturnPage() {
                     setBorrowRequest(j.data);
                     // ถ้ามี actualReturnDate เดิม → แปลงขึ้น input
                     setActualReturnDate(isoToBE(j.data.actualReturnDate));
+                    // ถ้ามี returnCondition เดิม (คืนแล้ว) ให้ setReturnCondition ด้วย
+                    if (j.data?.returnCondition) {
+                        setReturnCondition(j.data.returnCondition);
+                    }
                 } else {
                     alert(j?.error ?? "โหลดคำขอไม่สำเร็จ");
                 }
@@ -161,7 +165,7 @@ export default function ReturnPage() {
                             </table>
                         </div>
 
-                        {/* ข้อมูลประกอบ (ดีไซน์เดิม) */}
+                        {/* ข้อมูลประกอบ */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                             <div className="space-y-4">
                                 <div>วันที่ยืม {borrowRequest.borrowDate ? new Date(borrowRequest.borrowDate).toLocaleDateString("th-TH") : "ไม่ระบุ"}</div>
@@ -183,7 +187,7 @@ export default function ReturnPage() {
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">เหตุผลคืน</label>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">เหตุผลที่คืน</label>
                                     <textarea
                                         className="w-full px-3 py-2 border border-gray-300 rounded-md h-20 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
                                         placeholder="ระบุเหตุผลหรือหมายเหตุ..."

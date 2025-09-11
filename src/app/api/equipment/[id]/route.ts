@@ -160,7 +160,18 @@ export async function PATCH(
         category: { select: { id: true, name: true } },
       },
     });
-    return NextResponse.json({ ok: true, data: updated });
+    // แปลง receivedDate เป็นวันเดือนปีไทยก่อนส่งกลับ
+    const thReceivedDate = updated.receivedDate
+      ? new Intl.DateTimeFormat("th-TH-u-ca-buddhist", {
+          day: "2-digit",
+          month: "short",
+          year: "numeric",
+        }).format(new Date(updated.receivedDate))
+      : null;
+    return NextResponse.json({
+      ok: true,
+      data: { ...updated, receivedDate: thReceivedDate },
+    });
   } catch (e: any) {
     if (e?.code === "P2002") {
       // unique ซ้ำ (code / [categoryId,idnum])

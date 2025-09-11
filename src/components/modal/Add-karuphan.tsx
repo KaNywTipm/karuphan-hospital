@@ -74,6 +74,10 @@ export default function Addkaruphan({ onClose, onAdd }: Props) {
         });
         const json = await res.json();
         if (!res.ok) return alert(json?.error || "บันทึกไม่สำเร็จ");
+        // ถ้า response ส่ง receivedDate เป็นวันเดือนปีไทย (string) ให้ setForm ใหม่ด้วย
+        if (json?.data?.receivedDate) {
+            setForm(s => ({ ...s, receivedDateBE: json.data.receivedDate }));
+        }
         onClose?.();
         onAdd?.();
     };

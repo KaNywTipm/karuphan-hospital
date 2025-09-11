@@ -3,14 +3,21 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 
-// ค.ศ. ↔ พ.ศ.
+
+// ค.ศ. → พ.ศ. (YYYY-MM-DD)
 const ceToThai = (ymdCE: string) => {
+    if (!ymdCE) return ymdCE;
     const [y, m, d] = ymdCE.split("-");
-    return `${Number(y) + 543}-${m}-${d}`;
+    // handle invalid
+    if (!y || !m || !d) return ymdCE;
+    return `${String(Number(y) + 543).padStart(4, "0")}-${m}-${d}`;
 };
+// พ.ศ. → ค.ศ. (YYYY-MM-DD)
 const thaiToCE = (ymdBE: string) => {
+    if (!ymdBE) return ymdBE;
     const [y, m, d] = ymdBE.split("-");
-    return `${Number(y) - 543}-${m}-${d}`;
+    if (!y || !m || !d) return ymdBE;
+    return `${String(Number(y) - 543).padStart(4, "0")}-${m}-${d}`;
 };
 
 type Category = { id: number; name: string };
@@ -54,7 +61,7 @@ export default function Editkaruphan({
         name: item.name || "",
         description: item.description || "",
         price: item.price ?? "",
-        receivedDateBE: ceToThai(item.receivedDate),
+        receivedDateBE: ceToThai(item.receivedDate), // แสดง/กรอกเป็น พ.ศ.
         status: item.status,
     });
 
@@ -81,7 +88,7 @@ export default function Editkaruphan({
             name: form.name.trim(),
             description: form.description || null,
             price: form.price ? Number(String(form.price).replace(/,/g, "")) : null,
-            receivedDate: thaiToCE(form.receivedDateBE),
+            receivedDate: thaiToCE(form.receivedDateBE), // ส่งเป็น ค.ศ.
             categoryId: Number(form.categoryId),
             status: form.status,
         };
@@ -92,6 +99,17 @@ export default function Editkaruphan({
         });
         const json = await res.json();
         if (!res.ok) return alert(json?.error || "อัปเดตไม่สำเร็จ");
+        // ถ้า response ส่ง receivedDate เป็นวันเดือนปีไทย (string) ให้ setForm ใหม่ด้วย
+        if (json?.data?.receivedDate) {
+            // รองรับทั้งกรณี API ส่งกลับเป็น พ.ศ. หรือ ค.ศ.
+            let be = json.data.receivedDate;
+            // ถ้าเป็นปี < 2500 ให้แปลงเป็น พ.ศ.
+            if (/^\d{4}-\d{2}-\d{2}$/.test(be)) {
+                const [y] = be.split("-");
+                if (Number(y) < 2500) be = ceToThai(be);
+            }
+            setForm(s => ({ ...s, receivedDateBE: be }));
+        }
         onClose?.();
         onUpdate?.();
     };
@@ -156,10 +174,10 @@ export default function Editkaruphan({
                     </FormRow>
 
                     <FormRow label="รายละเอียด">
-                        <input
+                        <textarea
                             value={form.description}
                             onChange={(e) => setForm(s => ({ ...s, description: e.target.value }))}
-                            className="form-input border border-gray-300 rounded px-2 py-1 w-full"
+                            className="form-input border border-gray-300 rounded px-2 py-1 w-full h-20 resize-none"
                         />
                     </FormRow>
 
@@ -176,7 +194,15 @@ export default function Editkaruphan({
                             <input
                                 type="date"
                                 value={form.receivedDateBE}
-                                onChange={(e) => setForm(s => ({ ...s, receivedDateBE: e.target.value }))}
+                                onChange={e => {
+                                    // ป้องกันการกรอกปี ค.ศ. (เช่น 2025) ให้แปลงเป็น พ.ศ. อัตโนมัติ
+                                    let v = e.target.value;
+                                    if (/^\d{4}-\d{2}-\d{2}$/.test(v)) {
+                                        const [y, m, d] = v.split("-");
+                                        if (Number(y) < 2500) v = ceToThai(v);
+                                    }
+                                    setForm(s => ({ ...s, receivedDateBE: v }));
+                                }}
                                 placeholder="2568-01-01"
                                 className="form-input border border-gray-300 rounded px-2 py-1 w-full "
                                 required
