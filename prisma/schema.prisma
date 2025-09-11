@@ -86,7 +86,6 @@ model User {
     approvals      BorrowRequest[] @relation("Approver")
     rejected       BorrowRequest[] @relation("Rejector")
 
-    auditLogs AuditLog[]
     createdAt DateTime   @default(now())
     updatedAt DateTime   @updatedAt
 
@@ -211,25 +210,6 @@ model BorrowItem {
     @@index([equipmentId])
 }
 
-// บันทึกกิจกรรม/การเปลี่ยนแปลง
-model AuditLog {
-    id Int @id @default(autoincrement())
-
-    userId Int?
-    user   User? @relation(fields: [userId], references: [id], onUpdate: Cascade, onDelete: SetNull)
-
-    action    String // "CREATE", "UPDATE", "DELETE", "APPROVE", "REJECT", "RETURN" ฯลฯ
-    tableName String
-    recordId  Int
-    oldValue  Json?
-    newValue  Json?
-
-    createdAt DateTime @default(now())
-
-    @@index([userId])
-    @@index([tableName])
-    @@index([createdAt])
-}
 
 model PasswordResetRequest {
     id        Int       @id @default(autoincrement())

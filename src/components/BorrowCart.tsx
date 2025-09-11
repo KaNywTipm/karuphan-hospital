@@ -145,7 +145,7 @@ const BorrowCart = ({
                                     return;
                                 }
 
-                                // ✅ สำเร็จ: เคลียร์ตะกร้า + ปิดโมดัล (จะไม่ค้างอีก)
+                                //  สำเร็จ: เคลียร์ตะกร้า + ปิดโมดัล (จะไม่ค้างอีก)
                                 onClearCart();
                                 setShowBorrowModal(false);
                             } catch (e) {

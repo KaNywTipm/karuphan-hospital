@@ -183,8 +183,17 @@ export default function InternalBorrowPage() {
         setSelectedIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
     };
     const handleSelectAll = () => {
-        if (selectedIds.length === currentItems.length) setSelectedIds([]);
-        else setSelectedIds(currentItems.map((x) => x.id));
+        // Only select items that are not busy (status === 'NORMAL')
+        const selectableIds = currentItems.filter((x) => !x.busy).map((x) => x.id);
+        if (selectedIds.filter(id => selectableIds.includes(id)).length === selectableIds.length && selectableIds.length > 0) {
+            setSelectedIds(selectedIds.filter(id => !selectableIds.includes(id)));
+        } else {
+            // Merge with any already selected busy items (shouldn't happen, but for safety)
+            setSelectedIds([
+                ...selectedIds.filter(id => !selectableIds.includes(id)),
+                ...selectableIds
+            ]);
+        }
     };
     const handleAddSelectedToCart = () => {
         const selected = currentItems.filter((x) => selectedIds.includes(x.id));

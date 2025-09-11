@@ -111,12 +111,9 @@ export default function Dashboard() {
     const normalEquipment = equipments.filter((x) => x.status === "NORMAL").length;
     const borrowedEquipment = equipments.filter((x) => x.status === "IN_USE").length;
     const damagedEquipment = equipments.filter((x) => x.status === "BROKEN").length;
-
-    // สถานะการยืม-คืน
-    const pendingApproval = borrows.filter((x) => x.status === "PENDING").length;
-    const approved = borrows.filter((x) => x.status === "APPROVED").length;
-    const returned = borrows.filter((x) => x.status === "RETURNED").length;
-    const notApproved = borrows.filter((x) => x.status === "REJECTED").length;
+    const lostEquipment = equipments.filter((x) => x.status === "LOST").length;
+    const waitDisposeEquipment = equipments.filter((x) => x.status === "WAIT_DISPOSE").length;
+    const disposedEquipment = equipments.filter((x) => x.status === "DISPOSED").length;
 
 
     // --------- สร้างกราฟรายเดือนจาก "borrows" จริง (6 เดือนล่าสุด) ---------
@@ -153,11 +150,6 @@ export default function Dashboard() {
                         <p className="text-3xl font-bold text-white">
                             {totalEquipments.toLocaleString("th-TH")}
                         </p>
-                        {!loading && (
-                            <p className="text-white/80 text-sm mt-1">
-                                ปกติ {normalEquipment} • กำลังยืม {borrowedEquipment}
-                            </p>
-                        )}
                     </div>
 
                     <div className="rounded-xl shadow-lg p-6 text-left bg-gradient-to-br from-green-400 to-green-600 relative overflow-hidden">
@@ -201,7 +193,10 @@ export default function Dashboard() {
                                     "bg-emerald-500",
                                 ];
                                 const maxValue = Math.max(1, ...monthlyBars.map((m) => m.value));
-                                const height = (data.value / maxValue) * 100;
+                                const minBarHeight = 20;
+                                const height = data.value === 0
+                                    ? minBarHeight
+                                    : minBarHeight + ((data.value / maxValue) * (100 - minBarHeight));
 
                                 return (
                                     <div key={index} className="flex flex-col items-center w-1/6">
@@ -228,6 +223,36 @@ export default function Dashboard() {
                         </div>
                     </div>
                 </div>
+
+                {/* การ์ดสรุปสถานะครุภัณฑ์ แยกออกมาด้านล่าง */}
+                {!loading && (
+                    <div className="mt-6 flex flex-wrap gap-4 justify-center">
+                        <div className="flex flex-col items-center bg-blue-100 text-blue-800 rounded-lg px-4 py-2 min-w-[150px]">
+                            <span className="font-semibold text-lg">{normalEquipment}</span>
+                            <span className="text-sm">ปกติ</span>
+                        </div>
+                        <div className="flex flex-col items-center bg-yellow-100 text-yellow-800 rounded-lg px-4 py-2 min-w-[150px]">
+                            <span className="font-semibold text-lg">{borrowedEquipment}</span>
+                            <span className="text-sm">กำลังยืม</span>
+                        </div>
+                        <div className="flex flex-col items-center bg-red-100 text-red-800 rounded-lg px-4 py-2 min-w-[150px]">
+                            <span className="font-semibold text-lg">{damagedEquipment}</span>
+                            <span className="text-sm">ชำรุด</span>
+                        </div>
+                        <div className="flex flex-col items-center bg-pink-100 text-pink-800 rounded-lg px-4 py-2 min-w-[150px]">
+                            <span className="font-semibold text-lg">{lostEquipment}</span>
+                            <span className="text-sm">สูญหาย</span>
+                        </div>
+                        <div className="flex flex-col items-center bg-gray-200 text-gray-800 rounded-lg px-4 py-2 min-w-[150px]">
+                            <span className="font-semibold text-lg">{waitDisposeEquipment}</span>
+                            <span className="text-sm">รอจำหน่าย</span>
+                        </div>
+                        <div className="flex flex-col items-center bg-gray-400 text-white rounded-lg px-4 py-2 min-w-[150px]">
+                            <span className="font-semibold text-lg">{disposedEquipment}</span>
+                            <span className="text-sm">จำหน่ายแล้ว</span>
+                        </div>
+                    </div>
+                )}
             </section>
         </main>
     );
