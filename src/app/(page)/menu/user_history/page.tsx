@@ -11,6 +11,7 @@ type Row = {
     reason: string;
     equipmentName: string;
     equipmentCode: string;
+    approverOrReceiver: string;
 };
 
 export default function UserHistory() {
@@ -30,36 +31,40 @@ export default function UserHistory() {
                 const json = await res.json();
                 const list = Array.isArray(json) ? json : (json?.data ?? []);
 
-                // ✅ flatten: BorrowRequest + items[] -> Row[]
+                // flatten: BorrowRequest + items[] -> Row[]
                 const rows: Row[] = (list as any[]).flatMap((req: any) => {
                     const borrowDate = req.requestedAt ?? req.createdAt ?? req.requestDate ?? null;
-                    const returnDue = req.returnDue ?? null;
                     const actualReturnDate = req.actualReturnDate ?? null;
                     const status = String(req.status).toUpperCase();
                     const reason = req.rejectReason ?? req.reason ?? req.notes ?? "";
+                    const approverOrReceiver = req.approverOrReceiver ?? req.receivedBy?.fullName ?? "-";
 
                     const items = Array.isArray(req.items) ? req.items : [];
                     if (items.length === 0) {
                         return [{
                             requestId: req.id,
                             borrowDate,
-                            returnDue,
+                            returnDue: req.returnDue ?? null,
                             actualReturnDate,
                             status,
                             reason,
                             equipmentName: "-",
                             equipmentCode: "-",
+                            approverOrReceiver,
                         }];
                     }
                     return items.map((it: any) => ({
                         requestId: req.id,
                         borrowDate,
-                        returnDue,
+                        returnDue: req.returnDue ?? null,
                         actualReturnDate,
                         status,
                         reason,
                         equipmentName: it?.equipment?.name ?? "-",
-                        equipmentCode: String(it?.equipment?.number ?? it?.equipmentId ?? "-"),
+                        equipmentCode: it?.equipment?.number !== undefined && it?.equipment?.number !== null
+                            ? String(it.equipment.number)
+                            : (it?.equipmentId !== undefined ? String(it.equipmentId) : "-"),
+                        approverOrReceiver,
                     }));
                 });
 
@@ -100,7 +105,7 @@ export default function UserHistory() {
 
     const statusBadge = (st: Row["status"]) => {
         const map: Record<Row["status"], string> = {
-            PENDING: "bg-yellow-100 text-yellow-800",
+            PENDING: "bg-blue-100 text-blue-800", // เปลี่ยนเป็นฟ้า
             APPROVED: "bg-orange-100 text-orange-800",
             RETURNED: "bg-green-100 text-green-800",
             REJECTED: "bg-red-100 text-red-800",
@@ -168,9 +173,6 @@ export default function UserHistory() {
                                 <th className="px-4 py-3 text-left text-sm font-medium w-[110px]">
                                     กำหนดยืม
                                 </th>
-                                <th className="px-4 py-3 text-left text-sm font-medium w-[110px]">
-                                    กำหนดคืน
-                                </th>
                                 <th className="px-4 py-3 text-left text-sm font-medium w-[130px]">
                                     วันที่คืนจริง
                                 </th>
@@ -179,6 +181,9 @@ export default function UserHistory() {
                                 </th>
                                 <th className="px-4 py-3 text-left text-sm font-medium w-[250px]">
                                     ชื่อครุภัณฑ์
+                                </th>
+                                <th className="px-4 py-3 text-left text-sm font-medium w-[180px]">
+                                    ผู้อนุมัติยืม/คืน
                                 </th>
                                 <th className="px-4 py-3 text-left text-sm font-medium w-[130px]">
                                     สถานะ
@@ -193,10 +198,10 @@ export default function UserHistory() {
                                 <tr key={`${r.requestId}-${i}`} className="hover:bg-gray-50">
                                     <td className="px-4 py-3 text-sm">{startIndex + i + 1}</td>
                                     <td className="px-4 py-3 text-sm">{fmt(r.borrowDate)}</td>
-                                    <td className="px-4 py-3 text-sm">{fmt(r.returnDue)}</td>
                                     <td className="px-4 py-3 text-sm">{fmt(r.actualReturnDate)}</td>
                                     <td className="px-4 py-3 text-sm">{r.equipmentCode}</td>
                                     <td className="px-4 py-3 text-sm">{r.equipmentName}</td>
+                                    <td className="px-4 py-3 text-sm">{r.approverOrReceiver || "-"}</td>
                                     <td className="px-4 py-3 text-sm">
                                         <span
                                             className={`px-2 py-1 rounded-full text-xs font-medium ${statusBadge(
@@ -213,7 +218,7 @@ export default function UserHistory() {
                             {pageRows.length === 0 && (
                                 <tr>
                                     <td
-                                        colSpan={7}
+                                        colSpan={8}
                                         className="px-4 py-6 text-center text-sm text-gray-500"
                                     >
                                         ไม่พบรายการ

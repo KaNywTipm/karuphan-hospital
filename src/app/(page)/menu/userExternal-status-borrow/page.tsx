@@ -38,7 +38,7 @@ const statusBadgeClass = (s: string) => {
     if (t === "APPROVED") return "bg-green-100 text-green-800";
     if (t === "REJECTED") return "bg-red-100 text-red-800";
     if (t === "RETURNED") return "bg-blue-100 text-blue-800";
-    if (t === "PENDING") return "bg-amber-100 text-amber-800";
+    if (t === "PENDING") return "bg-blue-100 text-blue-800";
     if (t === "OVERDUE") return "bg-fuchsia-100 text-fuchsia-800";
     return "bg-gray-100 text-gray-800";
 };
@@ -58,7 +58,8 @@ export default function UserExternalStatusBorrow() {
     async function load() {
         setLoading(true);
         try {
-            const res = await fetch("/api/borrow/history/me?only=pending=1", {
+            // ดึงเฉพาะรายการที่รออนุมัติ (pending)
+            const res = await fetch("/api/borrow/history/me?only=pending", {
                 credentials: "include",
                 cache: "no-store",
             });
@@ -133,8 +134,8 @@ export default function UserExternalStatusBorrow() {
     // ค้นหา + เรียง + filter เฉพาะสถานะที่ต้องการ (เช่น รออนุมัติ)
     const filteredData = useMemo(() => {
         const s = lc(searchTerm);
+        // ไม่ต้อง filter สถานะอีก เพราะ backend ส่งมาเฉพาะ pending แล้ว
         const list = flatRows
-            .filter(r => String(r.status).toUpperCase() === "PENDING") // ✅ โชว์เฉพาะที่ยังรออนุมัติ
             .filter(r =>
                 lc(r.equipmentName).includes(s) ||
                 lc(r.reason).includes(s) ||
@@ -156,22 +157,15 @@ export default function UserExternalStatusBorrow() {
     return (
         <div className="p-6 bg-gray-50 min-h-screen flex flex-col gap-8">
             <section className="bg-white rounded-lg shadow border">
-                <div className="p-4 border-b flex flex-wrap gap-3 items-center justify-between">
+                <div className="p-4 border-b flex justify-between items-center">
                     <h2 className="text-lg font-semibold text-gray-800">
-                        รายการคำขอยืมของคุณ
+                        ประวัติการยืมครุภัณฑ์ (ไม่นับรายการที่ยังรออนุมัติ)
                     </h2>
                     <div className="flex items-center gap-2">
-                        <button
-                            onClick={load}
-                            className="px-3 py-2 text-sm border rounded-lg hover:bg-gray-50"
-                            title="รีเฟรช"
-                        >
-                            รีเฟรช
-                        </button>
                         <div className="relative">
                             <input
                                 type="text"
-                                placeholder="ค้นหาในรายการของคุณ"
+                                placeholder="ค้นหาครุภัณฑ์"
                                 value={searchTerm}
                                 onChange={(e) => {
                                     setSearchTerm(e.target.value);
@@ -188,9 +182,7 @@ export default function UserExternalStatusBorrow() {
                             />
                         </div>
                         <button
-                            onClick={() =>
-                                setSortOrder((p) => (p === "newest" ? "oldest" : "newest"))
-                            }
+                            onClick={() => setSortOrder((p) => (p === "newest" ? "oldest" : "newest"))}
                             className="p-2 border border-gray-300 rounded-lg hover:bg-gray-100"
                             title={sortOrder === "newest" ? "เรียงจากใหม่ไปเก่า" : "เรียงจากเก่าไปใหม่"}
                         >
@@ -204,18 +196,19 @@ export default function UserExternalStatusBorrow() {
                         <thead className="bg-Pink text-White">
                             <tr>
                                 <th className="px-4 py-3 text-left text-sm font-medium w-[80px]">ลำดับ</th>
-                                <th className="px-4 py-3 text-left text-sm font-medium w-[120px]">วันที่ยืม</th>
-                                <th className="px-4 py-3 text-left text-sm font-medium w-[120px]">กำหนดคืน</th>
-                                <th className="px-4 py-3 text-left text-sm font-medium w-[150px]">ผู้อนุมัติยืม/คืน</th>
-                                <th className="px-4 py-3 text-left text-sm font-medium">ชื่อครุภัณฑ์</th>
-                                <th className="px-4 py-3 text-left text-sm font-medium w-[120px]">สถานะ</th>
+                                <th className="px-4 py-3 text-left text-sm font-medium w-[110px]">กำหนดยืม</th>
+                                <th className="px-4 py-3 text-left text-sm font-medium w-[130px]">วันที่คืนจริง</th>
+                                <th className="px-4 py-3 text-left text-sm font-medium w-[150px]">เลขครุภัณฑ์</th>
+                                <th className="px-4 py-3 text-left text-sm font-medium w-[250px]">ชื่อครุภัณฑ์</th>
+                                <th className="px-4 py-3 text-left text-sm font-medium w-[180px]">ผู้อนุมัติยืม/คืน</th>
+                                <th className="px-4 py-3 text-left text-sm font-medium w-[130px]">สถานะ</th>
                                 <th className="px-4 py-3 text-left text-sm font-medium w-[150px]">เหตุผลที่ยืม</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-200">
                             {loading && (
                                 <tr>
-                                    <td colSpan={7} className="px-4 py-6 text-center text-sm text-gray-500">
+                                    <td colSpan={8} className="px-4 py-6 text-center text-sm text-gray-500">
                                         กำลังโหลดข้อมูล…
                                     </td>
                                 </tr>
@@ -223,7 +216,7 @@ export default function UserExternalStatusBorrow() {
 
                             {!loading && currentData.length === 0 && (
                                 <tr>
-                                    <td colSpan={7} className="px-4 py-6 text-center text-sm text-gray-500">
+                                    <td colSpan={8} className="px-4 py-6 text-center text-sm text-gray-500">
                                         ยังไม่มีรายการ
                                     </td>
                                 </tr>
@@ -242,10 +235,14 @@ export default function UserExternalStatusBorrow() {
                                             {fmtDate(item.returnDueISO)}
                                         </td>
                                         <td className="px-4 py-3 text-sm text-gray-900">
-                                            {item.approverOrReceiver || "-"}
+                                            {/* เลขครุภัณฑ์: ไม่มีใน Row ปัจจุบัน (external) */}
+                                            -
                                         </td>
                                         <td className="px-4 py-3 text-sm text-gray-900">
                                             {item.equipmentName}
+                                        </td>
+                                        <td className="px-4 py-3 text-sm text-gray-900">
+                                            {item.approverOrReceiver || "-"}
                                         </td>
                                         <td className="px-4 py-3 text-sm">
                                             <span
@@ -268,15 +265,15 @@ export default function UserExternalStatusBorrow() {
                 {!loading && (
                     <div className="flex items-center justify-between px-4 py-3 border-t">
                         <span className="text-sm text-gray-700">
-                            แสดง {filteredData.length === 0 ? 0 : startIndex + 1} -{" "}
+                            แสดง {filteredData.length === 0 ? 0 : startIndex + 1} –{" "}
                             {Math.min(startIndex + itemsPerPage, filteredData.length)} จาก{" "}
                             {filteredData.length} รายการ
                         </span>
                         <div className="flex items-center gap-1">
                             <button
+                                disabled={currentPage <= 1}
                                 onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
                                 className="px-3 py-1 text-sm text-gray-500 hover:text-gray-700 disabled:opacity-50"
-                                disabled={currentPage <= 1}
                             >
                                 ← Previous
                             </button>
@@ -284,9 +281,9 @@ export default function UserExternalStatusBorrow() {
                                 {currentPage}
                             </span>
                             <button
+                                disabled={currentPage >= totalPages}
                                 onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
                                 className="px-3 py-1 text-sm text-gray-700 hover:text-gray-900 disabled:opacity-50"
-                                disabled={currentPage >= totalPages}
                             >
                                 Next →
                             </button>

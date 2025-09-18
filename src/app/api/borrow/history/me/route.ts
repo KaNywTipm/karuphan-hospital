@@ -9,12 +9,22 @@ export const dynamic = "force-dynamic";
 function flattenBorrowRequests(list: any[]) {
     const rows: any[] = [];
     for (const req of list) {
-        const borrowDate =
-            req.requestedAt ?? req.createdAt ?? req.requestDate ?? null;
+        // ใช้วันที่สร้างคำขอยืม (createdAt) เป็นวันกำหนดยืมเสมอ
+        const borrowDate = req.createdAt ?? null;
         const returnDue = req.returnDue ?? null;
         const actualReturnDate = req.actualReturnDate ?? null;
         const status = String(req.status).toUpperCase();
         const reason = req.rejectReason ?? req.reason ?? req.notes ?? "";
+
+        // เลือกชื่อผู้อนุมัติ/รับคืน ตามสถานะ
+        let approverOrReceiver = "-";
+        if (status === "APPROVED" || status === "OVERDUE") {
+            approverOrReceiver = req.approvedBy?.fullName ?? "-";
+        } else if (status === "RETURNED") {
+            approverOrReceiver = req.receivedBy?.fullName ?? "-";
+        } else if (status === "REJECTED") {
+            approverOrReceiver = req.rejectedBy?.fullName ?? "-";
+        }
 
         const items = Array.isArray(req.items) ? req.items : [];
         if (!items.length) {
@@ -27,7 +37,7 @@ function flattenBorrowRequests(list: any[]) {
                 reason,
                 equipmentName: "-",
                 equipmentCode: "-",
-                approverOrReceiver: req.receivedBy?.fullName ?? "-",
+                approverOrReceiver,
             });
             continue;
         }
@@ -40,9 +50,8 @@ function flattenBorrowRequests(list: any[]) {
                 actualReturnDate,
                 reason,
                 equipmentName: it?.equipment?.name ?? "-",
-                // หมายเลขครุภัณฑ์ในตารางผู้ใช้ใช้ "number" (ลำดับ) ไม่ใช่ "code"
                 equipmentCode: String(it?.equipment?.number ?? it?.equipmentId ?? "-"),
-                approverOrReceiver: req.receivedBy?.fullName ?? "-",
+                approverOrReceiver,
             });
         }
     }
@@ -63,32 +72,47 @@ export async function GET(req: Request) {
         url.searchParams.get("only") === "pending" ||
         url.searchParams.get("pending") === "1";
 
-    // page/pageSize เผื่ออนาคต (ตอนนี้ UI สองหน้าดึงรวดเดียวได้)
     const page = Math.max(1, Number(url.searchParams.get("page") || 1));
-    const pageSize = Math.max(1, Math.min(200, Number(url.searchParams.get("pageSize") || 200)));
+    const pageSize = Math.max(
+        1,
+        Math.min(200, Number(url.searchParams.get("pageSize") || 200))
+    );
 
-    // ----- เงื่อนไข "รายการของฉัน" -----
-    // ภายใน (INTERNAL) แน่นอนว่า requesterId = user.id
-    // ภายนอก (EXTERNAL) โปรเจ็กต์ของคุณไม่ได้เก็บ userId ในตารางคำขอ
-    // จึงรองรับการ match ตาม requesterId (ถ้ามี) + ชื่อ/เบอร์ (ถ้าคุณบันทึกไว้ใน external*)
+    // --- เงื่อนไข "ประวัติของฉัน" ---
+    // INTERNAL: กรอง requesterId ตรง user.id
+    // EXTERNAL: กรอง externalName หรือ externalPhone ตรง user
     const userId = Number(session.user.id);
-    const fullName = String(session.user.fullName ?? session.user.name ?? "");
-    const phone = String(session.user.phone ?? "");
+    const fullName = String(
+        session.user.fullName ?? session.user.name ?? ""
+    ).trim();
+    const phone = String(session.user.phone ?? "").trim();
+    const userRole = String(session.user.role ?? "").toUpperCase();
 
-    const baseWhere: any = {
-        OR: [
-            { requesterId: userId }, // ใช้ได้ทั้ง INTERNAL และกรณี EXTERNAL ที่ยังคงผูก requesterId
-            // เผื่อระบบคุณบันทึกคำขอภายนอกเป็น external*
-            { borrowerType: "EXTERNAL", externalName: fullName || undefined },
-            { borrowerType: "EXTERNAL", externalPhone: phone || undefined },
-        ],
-    };
+    let baseWhere: any = {};
+    if (userRole === "INTERNAL" || userRole === "ADMIN") {
+        // เฉพาะ INTERNAL/ADMIN: กรอง requesterId
+        baseWhere = { requesterId: userId };
+    } else if (userRole === "EXTERNAL") {
+        // เฉพาะ EXTERNAL: กรอง externalName หรือ externalPhone
+        baseWhere = {
+            borrowerType: "EXTERNAL",
+            OR: [
+                fullName ? { externalName: fullName } : undefined,
+                phone ? { externalPhone: phone } : undefined,
+            ].filter(Boolean),
+        };
+    } else {
+        // ไม่รู้ role: ไม่คืนข้อมูล
+        return NextResponse.json(
+            { ok: false, error: "forbidden" },
+            { status: 403 }
+        );
+    }
 
-    // ----- เงื่อนไขสถานะ -----
+    // --- เงื่อนไขสถานะ ---
     if (onlyPending) {
         baseWhere.status = "PENDING";
     } else {
-        // ประวัติ = ไม่เอารายการรออนุมัติ
         baseWhere.status = { not: "PENDING" };
     }
 
@@ -99,7 +123,9 @@ export async function GET(req: Request) {
                 where: baseWhere,
                 orderBy: { createdAt: "desc" },
                 include: {
+                    approvedBy: { select: { fullName: true } },
                     receivedBy: { select: { fullName: true } },
+                    rejectedBy: { select: { fullName: true } },
                     items: {
                         include: {
                             equipment: { select: { number: true, name: true } },
