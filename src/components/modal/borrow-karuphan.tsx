@@ -177,8 +177,12 @@ const BorrowKaruphan = ({ onClose, onBorrow, onSuccess, selectedEquipment, cartI
                         }
                         : null,
                     notes: null,
-                    returnDue: returnDateBE,
+                    // ✅ แปลง พ.ศ. -> ค.ศ. ก่อนส่งให้ parent
+                    returnDue: thaiToCE(returnDateBE),
                     reason,
+                    // (ถ้า parent ต้องการ แถมชื่อ/แผนกไปให้ด้วยได้)
+                    borrowerName: me?.fullName,
+                    department: me?.department?.name ?? null,
                 });
                 onSuccess?.();
                 onClose?.();

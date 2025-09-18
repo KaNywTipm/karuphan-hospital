@@ -155,7 +155,7 @@ model BorrowRequest {
 
     status           BorrowStatus     @default(PENDING)
     borrowDate       DateTime? // วันที่เริ่ม "ตามแผน" (ผู้ใช้เลือกได้ อนุมัติล่วงหน้าได้)
-    actualBorrowDate DateTime? // วันที่เริ่ม "จริง" (รับของแล้ว)
+    // actualBorrowDate DateTime? // วันที่เริ่ม "จริง" (รับของแล้ว) เผื่อได้ใช้ในอนาคต
     returnDue        DateTime
     actualReturnDate DateTime?
     returnCondition  ReturnCondition?

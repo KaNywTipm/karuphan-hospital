@@ -2,31 +2,28 @@
 import React, { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 
-/* ---------- helpers ---------- */
+/* ---------- types + helpers ---------- */
 type BorrowItem = { equipment?: { number?: number; name?: string } };
 type BorrowRequest = {
     id: number;
-    status: string; // PENDING | APPROVED | REJECTED | RETURNED | ...
-    requestedAt?: string;
+    status: string;                 // PENDING | APPROVED | REJECTED | RETURNED | ...
+    requestedAt?: string;           // ใช้เป็น “วันที่ยืม”
     createdAt?: string;
     requestDate?: string;
-    returnDue?: string;
-    actualReturnDate?: string;
+    returnDue?: string | null;
+    actualReturnDate?: string | null;
     reason?: string;
     notes?: string;
-    receivedBy?: { fullName?: string } | null;
     items?: BorrowItem[];
 };
 
-const asList = <T,>(v: any): T[] =>
-    Array.isArray(v) ? v : Array.isArray(v?.data) ? v.data : [];
-
+const asList = <T,>(v: any): T[] => (Array.isArray(v) ? v : Array.isArray(v?.data) ? v.data : []);
 const lc = (v: any) => String(v ?? "").toLowerCase();
 
 const toThaiStatus = (s: string) => {
     const t = String(s).toUpperCase();
     if (t === "PENDING") return "รออนุมัติ";
-    if (t === "APPROVED") return "อนุมัติ";
+    if (t === "APPROVED") return "อนุมัติแล้ว/รอคืน";
     if (t === "REJECTED") return "ไม่อนุมัติ";
     if (t === "RETURNED") return "คืนแล้ว";
     if (t === "OVERDUE") return "เกินกำหนด";
@@ -35,15 +32,15 @@ const toThaiStatus = (s: string) => {
 
 const statusBadgeClass = (s: string) => {
     const t = String(s).toUpperCase();
-    if (t === "APPROVED") return "bg-green-100 text-green-800";
-    if (t === "REJECTED") return "bg-red-100 text-red-800";
-    if (t === "RETURNED") return "bg-blue-100 text-blue-800";
     if (t === "PENDING") return "bg-blue-100 text-blue-800";
+    if (t === "APPROVED") return "bg-orange-100 text-orange-800";
+    if (t === "RETURNED") return "bg-green-100 text-green-800";
+    if (t === "REJECTED") return "bg-red-100 text-red-800";
     if (t === "OVERDUE") return "bg-fuchsia-100 text-fuchsia-800";
     return "bg-gray-100 text-gray-800";
 };
 
-// แปลงวันที่ yyyy-mm-dd หรือ yyyy-mm-ddTHH:mm:ss ให้เป็นวัน/เดือน/ปีไทย (พ.ศ.)
+// yyyy-mm-dd/iso -> วัน/เดือน/ปี(พ.ศ.)
 const fmtThaiDate = (d?: string | null) => {
     if (!d) return "-";
     const m = d.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
@@ -68,14 +65,13 @@ export default function UserExternalStatusBorrow() {
     async function load() {
         setLoading(true);
         try {
-            // ดึงเฉพาะรายการที่รออนุมัติ (pending)
+            // ดึงเฉพาะรายการ "รออนุมัติ"
             const res = await fetch("/api/borrow/history/me?only=pending", {
                 credentials: "include",
                 cache: "no-store",
             });
             const json = await res.json();
             const data = asList<BorrowRequest>(json);
-            console.log("[userExternal-status-borrow] fetched data:", data);
             setAll(data);
         } catch (e) {
             setAll([]);
@@ -89,25 +85,26 @@ export default function UserExternalStatusBorrow() {
         load();
     }, []);
 
-    // แปลง borrow request ทั้งหมดให้เป็น "หนึ่งอุปกรณ์ = หนึ่งแถว" (เหมือนฝั่งแอดมิน)
+    // แปลงให้ “1 อุปกรณ์ = 1 แถว”
     type Row = {
         id: number;
-        borrowDate: string | null;
+        borrowDate: string | null;        // วันที่ส่งคำขอ = วันที่ยืม
         returnDue: string | null;
         equipmentName: string;
         equipmentCode: string;
         status: string;
         reason: string;
-        notes?: string;
     };
+
     const flatRows: Row[] = useMemo(() => {
         if (!all.length) return [];
-        // เรียงใหม่สุดก่อน
+        // เรียงตาม “วันที่ยืม”
         const sorted = [...all].sort((a, b) => {
             const da = new Date(a.requestedAt || a.createdAt || a.requestDate || 0).getTime();
             const db = new Date(b.requestedAt || b.createdAt || b.requestDate || 0).getTime();
             return db - da;
         });
+
         const rows: Row[] = [];
         for (const req of sorted) {
             const borrowDate = req.requestedAt || req.createdAt || req.requestDate || null;
@@ -123,7 +120,6 @@ export default function UserExternalStatusBorrow() {
                     equipmentCode: "-",
                     status: req.status,
                     reason,
-                    notes: req.notes,
                 });
             } else {
                 for (const it of items) {
@@ -138,7 +134,6 @@ export default function UserExternalStatusBorrow() {
                                 : "-",
                         status: req.status,
                         reason,
-                        notes: req.notes,
                     });
                 }
             }
@@ -146,22 +141,22 @@ export default function UserExternalStatusBorrow() {
         return rows;
     }, [all]);
 
-    // ค้นหา + เรียง + filter เฉพาะสถานะที่ต้องการ (เช่น รออนุมัติ)
+    // ค้นหา + เรียง โดยใช้ “วันที่ยืม”
     const filteredData = useMemo(() => {
         const s = lc(searchTerm);
-        // ไม่ต้อง filter สถานะอีก เพราะ backend ส่งมาเฉพาะ pending แล้ว
-        const list = flatRows
-            .filter(r =>
-                lc(r.equipmentName).includes(s) ||
-                lc(r.reason).includes(s) ||
-                lc(r.status).includes(s)
+        return flatRows
+            .filter(
+                (r) =>
+                    lc(r.equipmentName).includes(s) ||
+                    lc(r.equipmentCode).includes(s) ||
+                    lc(r.reason).includes(s) ||
+                    lc(r.status).includes(s)
             )
             .sort((a, b) => {
-                const da = new Date(a.returnDue ?? 0).getTime();
-                const db = new Date(b.returnDue ?? 0).getTime();
+                const da = new Date(a.borrowDate ?? 0).getTime();
+                const db = new Date(b.borrowDate ?? 0).getTime();
                 return sortOrder === "newest" ? db - da : da - db;
             });
-        return list;
     }, [flatRows, searchTerm, sortOrder]);
 
     // แบ่งหน้า
@@ -180,7 +175,7 @@ export default function UserExternalStatusBorrow() {
                         <div className="relative">
                             <input
                                 type="text"
-                                placeholder="ค้นหาครุภัณฑ์"
+                                placeholder="ค้นหาครุภัณฑ์ / เลขครุภัณฑ์ / เหตุผล"
                                 value={searchTerm}
                                 onChange={(e) => {
                                     setSearchTerm(e.target.value);
@@ -222,7 +217,7 @@ export default function UserExternalStatusBorrow() {
                         <tbody className="divide-y divide-gray-200">
                             {loading && (
                                 <tr>
-                                    <td colSpan={8} className="px-4 py-6 text-center text-sm text-gray-500">
+                                    <td colSpan={7} className="px-4 py-6 text-center text-sm text-gray-500">
                                         กำลังโหลดข้อมูล…
                                     </td>
                                 </tr>
@@ -230,7 +225,7 @@ export default function UserExternalStatusBorrow() {
 
                             {!loading && currentData.length === 0 && (
                                 <tr>
-                                    <td colSpan={8} className="px-4 py-6 text-center text-sm text-gray-500">
+                                    <td colSpan={7} className="px-4 py-6 text-center text-sm text-gray-500">
                                         ยังไม่มีรายการ
                                     </td>
                                 </tr>

@@ -4,8 +4,8 @@ import Image from "next/image";
 
 type Row = {
     requestId: number;
-    borrowDate: string | null;
-    returnDue: string;
+    borrowDate: string | null;       // = วันที่ส่งคำขอ
+    returnDue: string | null;
     actualReturnDate: string | null;
     status: "PENDING" | "APPROVED" | "RETURNED" | "REJECTED" | "OVERDUE";
     reason: string;
@@ -15,11 +15,15 @@ type Row = {
 };
 
 export default function UserHistory() {
-    const [rows, setRows] = useState<any[]>([]);
+    const [rows, setRows] = useState<Row[]>([]);
     const [search, setSearch] = useState("");
     const [sort, setSort] = useState<"newest" | "oldest">("newest");
     const [page, setPage] = useState(1);
     const perPage = 5;
+
+    // --- helper ตรวจว่าเป็นแถวที่ flatten มาแล้วจาก API ---
+    const isFlatRow = (r: any) =>
+        typeof r?.equipmentName !== "undefined" && typeof r?.equipmentCode !== "undefined";
 
     useEffect(() => {
         (async () => {
@@ -31,88 +35,80 @@ export default function UserHistory() {
                 const json = await res.json();
                 const list = Array.isArray(json) ? json : (json?.data ?? []);
 
-                // flatten: BorrowRequest + items[] -> Row[]
-                const rows: Row[] = (list as any[]).flatMap((req: any) => {
-                    const borrowDate = req.requestedAt ?? req.createdAt ?? req.requestDate ?? null;
-                    const actualReturnDate = req.actualReturnDate ?? null;
-                    const status = String(req.status).toUpperCase();
-                    const reason = req.rejectReason ?? req.reason ?? req.notes ?? "";
-                    const approverOrReceiver = req.approverOrReceiver ?? req.receivedBy?.fullName ?? "-";
+                let out: Row[] = [];
 
-                    const items = Array.isArray(req.items) ? req.items : [];
-                    if (items.length === 0) {
-                        return [{
+                if (list.length && isFlatRow(list[0])) {
+                    // API ส่งแบบ flatten แล้ว → map ตรง ๆ ไม่ต้องยุ่งกับ req.items
+                    out = (list as any[]).map((r: any) => ({
+                        requestId: r.id,
+                        borrowDate: r.borrowDate ?? r.requestedAt ?? r.createdAt ?? r.requestDate ?? null,
+                        returnDue: r.returnDue ?? null,
+                        actualReturnDate: r.actualReturnDate ?? null,
+                        status: String(r.status).toUpperCase() as Row["status"],
+                        reason: r.reason ?? r.notes ?? r.rejectReason ?? "",
+                        equipmentName: r.equipmentName ?? "-",
+                        equipmentCode:
+                            r.equipmentCode ?? (r.equipmentNumber != null ? String(r.equipmentNumber) : "-"),
+                        approverOrReceiver: r.approverOrReceiver ?? r.receivedBy?.fullName ?? "-",
+                    }));
+                } else {
+                    // กรณี API ยังส่งแบบดิบ ๆ พร้อม items[] → flatten ตามเดิม
+                    out = (list as any[]).flatMap((req: any) => {
+                        const borrowDate =
+                            req.requestedAt ?? req.createdAt ?? req.requestDate ?? null;
+                        const actualReturnDate = req.actualReturnDate ?? null;
+                        const status = String(req.status).toUpperCase();
+                        const reason = req.rejectReason ?? req.reason ?? req.notes ?? "";
+                        const approverOrReceiver = req.approverOrReceiver ?? req.receivedBy?.fullName ?? "-";
+
+                        const items = Array.isArray(req.items) ? req.items : [];
+                        if (items.length === 0) {
+                            return [{
+                                requestId: req.id,
+                                borrowDate,
+                                returnDue: req.returnDue ?? null,
+                                actualReturnDate,
+                                status,
+                                reason,
+                                equipmentName: "-",
+                                equipmentCode: "-",
+                                approverOrReceiver,
+                            }];
+                        }
+                        return items.map((it: any) => ({
                             requestId: req.id,
                             borrowDate,
                             returnDue: req.returnDue ?? null,
                             actualReturnDate,
                             status,
                             reason,
-                            equipmentName: "-",
-                            equipmentCode: "-",
+                            equipmentName: it?.equipment?.name ?? "-",
+                            equipmentCode:
+                                it?.equipment?.number != null
+                                    ? String(it.equipment.number)
+                                    : it?.equipmentId != null
+                                        ? String(it.equipmentId)
+                                        : "-",
                             approverOrReceiver,
-                        }];
-                    }
-                    return items.map((it: any) => ({
-                        requestId: req.id,
-                        borrowDate,
-                        returnDue: req.returnDue ?? null,
-                        actualReturnDate,
-                        status,
-                        reason,
-                        equipmentName: it?.equipment?.name ?? "-",
-                        equipmentCode: it?.equipment?.number !== undefined && it?.equipment?.number !== null
-                            ? String(it.equipment.number)
-                            : (it?.equipmentId !== undefined ? String(it.equipmentId) : "-"),
-                        approverOrReceiver,
-                    }));
-                });
+                        }));
+                    });
+                }
 
-                setRows(rows);
+                setRows(out);
             } catch {
                 setRows([]);
             }
         })();
     }, []);
 
-    // ปรับ filtered ให้ใช้ rows ที่แปลงแล้วได้เลย
-    const filtered = useMemo(() => {
-        const s = (search ?? "").toLowerCase();
 
-        // ซ่อน PENDING ตามเงื่อนไขเดิม
-        const allowed: Row["status"][] = ["APPROVED", "REJECTED", "RETURNED", "OVERDUE"];
-
-        const list = (rows as Row[])
-            .filter(r => allowed.includes(r.status))
-            .filter(r =>
-                (r.equipmentName ?? "").toLowerCase().includes(s) ||
-                (r.equipmentCode ?? "").toLowerCase().includes(s) ||
-                (r.reason ?? "").toLowerCase().includes(s)
-            )
-            .sort((a, b) => {
-                const da = a.borrowDate ? new Date(a.borrowDate).getTime() : 0;
-                const db = b.borrowDate ? new Date(b.borrowDate).getTime() : 0;
-                return sort === "newest" ? db - da : da - db;
-            });
-
-        return list;
-    }, [rows, search, sort]);
-
-
-    const totalPages = Math.max(1, Math.ceil(filtered.length / perPage));
-    const startIndex = (page - 1) * perPage;
-    const pageRows = filtered.slice(startIndex, startIndex + perPage);
-
-    const statusBadge = (st: Row["status"]) => {
-        const map: Record<Row["status"], string> = {
-            PENDING: "bg-blue-100 text-blue-800", // เปลี่ยนเป็นฟ้า
-            APPROVED: "bg-orange-100 text-orange-800",
-            RETURNED: "bg-green-100 text-green-800",
-            REJECTED: "bg-red-100 text-red-800",
-            OVERDUE: "bg-purple-100 text-purple-800",
-        };
-        return map[st];
-    };
+    const statusBadge = (st: Row["status"]) => ({
+        PENDING: "bg-blue-100 text-blue-800",
+        APPROVED: "bg-orange-100 text-orange-800",
+        RETURNED: "bg-green-100 text-green-800",
+        REJECTED: "bg-red-100 text-red-800",
+        OVERDUE: "bg-purple-100 text-purple-800",
+    }[st]);
 
     const statusText = (st: Row["status"]) =>
         ({
@@ -123,18 +119,89 @@ export default function UserHistory() {
             OVERDUE: "เกินกำหนด",
         } as const)[st];
 
-    // แปลงวันที่ yyyy-mm-dd หรือ yyyy-mm-ddTHH:mm:ss ให้เป็นวัน/เดือน/ปีไทย (พ.ศ.)
-    const fmtThaiDate = (d: string | null) => {
+    // แปลงวันที่เป็น วัน/เดือน/ปี(พ.ศ.)
+    // แปลงวันที่เป็น พ.ศ.
+    const fmtThaiDate = (d: string | null | undefined) => {
         if (!d) return "-";
-        const m = d.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
-        if (m) {
-            const year = Number(m[1]) + 543;
-            const month = Number(m[2]);
-            const day = Number(m[3]);
-            return `${day}/${month}/${year}`;
-        }
-        return new Date(d).toLocaleDateString("th-TH");
+        try { return new Date(d).toLocaleDateString("th-TH"); } catch { return "-"; }
     };
+
+    // แถวของตาราง
+    type Row = {
+        requestId: number;
+        borrowDate: string | null;
+        returnDue: string | null;
+        actualReturnDate: string | null;
+        status: "PENDING" | "APPROVED" | "RETURNED" | "REJECTED" | "OVERDUE";
+        reason: string;
+        equipmentCode: string;
+        equipmentName: string;
+        approverOrReceiver: string;
+    };
+
+    useEffect(() => {
+        (async () => {
+            try {
+                const r = await fetch("/api/borrow/history/me?exclude=pending", { cache: "no-store" });
+                const j = await r.json();
+                const list = Array.isArray(j) ? j : (j?.data ?? []);
+
+                const rows: Row[] = (list as any[]).map((x: any) => {
+                    // ✅ รองรับทั้ง flatten (equipmentCode/Name) และ fallback จาก items[]
+                    const eqCode =
+                        x.equipmentCode ??
+                        (x.items?.[0]?.equipment?.code ??
+                            (x.items?.[0]?.equipment?.number != null
+                                ? String(x.items[0].equipment.number)
+                                : "-"));
+                    const eqName =
+                        x.equipmentName ??
+                        (x.items?.[0]?.equipment?.name ?? "-");
+
+                    return {
+                        requestId: x.id,
+                        borrowDate: x.borrowDate ?? x.requestedAt ?? x.createdAt ?? x.requestDate ?? null,
+                        returnDue: x.returnDue ?? null,
+                        actualReturnDate: x.actualReturnDate ?? null,
+                        status: String(x.status).toUpperCase() as Row["status"],
+                        reason: x.reason ?? "",
+                        equipmentCode: eqCode ?? "-",
+                        equipmentName: eqName ?? "-",
+                        approverOrReceiver:
+                            x.approverOrReceiver ?? x.receivedBy?.fullName ?? x.approvedBy?.fullName ?? "-",
+                    };
+                });
+
+                setRows(rows);
+            } catch {
+                setRows([]);
+            }
+        })();
+    }, []);
+
+
+    // filter + sort (เรียงตาม “วันที่ยืม”)
+    const filtered = useMemo(() => {
+        const s = (search ?? "").toLowerCase();
+        const allowed: Row["status"][] = ["APPROVED", "REJECTED", "RETURNED", "OVERDUE"];
+        return rows
+            .filter((r) => allowed.includes(r.status))
+            .filter(
+                (r) =>
+                    (r.equipmentName ?? "").toLowerCase().includes(s) ||
+                    (r.equipmentCode ?? "").toLowerCase().includes(s) ||
+                    (r.reason ?? "").toLowerCase().includes(s)
+            )
+            .sort((a, b) => {
+                const da = a.borrowDate ? new Date(a.borrowDate).getTime() : 0;
+                const db = b.borrowDate ? new Date(b.borrowDate).getTime() : 0;
+                return sort === "newest" ? db - da : da - db;
+            });
+    }, [rows, search, sort]);
+
+    const totalPages = Math.max(1, Math.ceil(filtered.length / perPage));
+    const startIndex = (page - 1) * perPage;
+    const pageRows = filtered.slice(startIndex, startIndex + perPage);
 
     return (
         <div className="p-6 bg-gray-50 min-h-screen flex flex-col gap-8">
@@ -177,60 +244,38 @@ export default function UserHistory() {
                     <table className="w-full table-fixed">
                         <thead className="bg-Pink text-White">
                             <tr>
-                                <th className="px-4 py-3 text-left text-sm font-medium w-[80px]">
-                                    ลำดับ
-                                </th>
-                                <th className="px-4 py-3 text-left text-sm font-medium w-[110px]">
-                                    กำหนดคืน
-                                </th>
-                                <th className="px-4 py-3 text-left text-sm font-medium w-[130px]">
-                                    วันที่คืนจริง
-                                </th>
-                                <th className="px-4 py-3 text-left text-sm font-medium w-[150px]">
-                                    เลขครุภัณฑ์
-                                </th>
-                                <th className="px-4 py-3 text-left text-sm font-medium w-[250px]">
-                                    ชื่อครุภัณฑ์
-                                </th>
-                                <th className="px-4 py-3 text-left text-sm font-medium w-[180px]">
-                                    ผู้อนุมัติยืม/คืน
-                                </th>
-                                <th className="px-4 py-3 text-left text-sm font-medium w-[130px]">
-                                    สถานะ
-                                </th>
-                                <th className="px-4 py-3 text-left text-sm font-medium w-[150px]">
-                                    เหตุผลที่ยืม
-                                </th>
+                                <th className="px-4 py-3 text-left text-sm font-medium w-[80px]">ลำดับ</th>
+                                <th className="px-4 py-3 text-left text-sm font-medium w-[110px]">วันที่ยืม</th>
+                                <th className="px-4 py-3 text-left text-sm font-medium w-[110px]">กำหนดคืน</th>
+                                <th className="px-4 py-3 text-left text-sm font-medium w-[130px]">วันที่คืนจริง</th>
+                                <th className="px-4 py-3 text-left text-sm font-medium w-[150px]">เลขครุภัณฑ์</th>
+                                <th className="px-4 py-3 text-left text-sm font-medium w-[250px]">ชื่อครุภัณฑ์</th>
+                                <th className="px-4 py-3 text-left text-sm font-medium w-[180px]">ผู้อนุมัติยืม/คืน</th>
+                                <th className="px-4 py-3 text-left text-sm font-medium w-[130px]">สถานะ</th>
+                                <th className="px-4 py-3 text-left text-sm font-medium w-[150px]">เหตุผลที่ยืม</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-200">
-                            {pageRows.map((r: Row, i: number) => (
+                            {pageRows.map((r, i) => (
                                 <tr key={`${r.requestId}-${i}`} className="hover:bg-gray-50">
                                     <td className="px-4 py-3 text-sm">{startIndex + i + 1}</td>
+                                    <td className="px-4 py-3 text-sm">{fmtThaiDate(r.borrowDate)}</td>
                                     <td className="px-4 py-3 text-sm">{fmtThaiDate(r.returnDue)}</td>
                                     <td className="px-4 py-3 text-sm">{fmtThaiDate(r.actualReturnDate)}</td>
                                     <td className="px-4 py-3 text-sm">{r.equipmentCode}</td>
                                     <td className="px-4 py-3 text-sm">{r.equipmentName}</td>
                                     <td className="px-4 py-3 text-sm">{r.approverOrReceiver || "-"}</td>
                                     <td className="px-4 py-3 text-sm">
-                                        <span
-                                            className={`px-2 py-1 rounded-full text-xs font-medium ${statusBadge(
-                                                r.status
-                                            )}`}
-                                        >
+                                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${statusBadge(r.status)}`}>
                                             {statusText(r.status)}
                                         </span>
                                     </td>
                                     <td className="px-4 py-3 text-sm">{r.reason || "-"}</td>
                                 </tr>
                             ))}
-
                             {pageRows.length === 0 && (
                                 <tr>
-                                    <td
-                                        colSpan={8}
-                                        className="px-4 py-6 text-center text-sm text-gray-500"
-                                    >
+                                    <td colSpan={9} className="px-4 py-6 text-center text-sm text-gray-500">
                                         ไม่พบรายการ
                                     </td>
                                 </tr>
@@ -241,9 +286,7 @@ export default function UserHistory() {
 
                 <div className="flex items-center justify-between px-4 py-3 border-t">
                     <span className="text-sm text-gray-700">
-                        แสดง {filtered.length === 0 ? 0 : startIndex + 1} –{" "}
-                        {Math.min(startIndex + perPage, filtered.length)} จาก{" "}
-                        {filtered.length} รายการ
+                        แสดง {filtered.length === 0 ? 0 : startIndex + 1} – {Math.min(startIndex + perPage, filtered.length)} จาก {filtered.length} รายการ
                     </span>
                     <div className="flex items-center gap-1">
                         <button
