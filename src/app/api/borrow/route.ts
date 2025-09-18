@@ -23,12 +23,6 @@ function pickBorrower(v: string | null | undefined) {
     return ALLOWED_BORROWER.has(s) ? (s as any) : undefined;
 }
 
-/**
- * GET /api/borrow
- * query:
- *  - status: PENDING|APPROVED|RETURNED|REJECTED|OVERDUE (optional)
- *  - page=1&pageSize=20
- */
 export async function GET(req: Request) {
     try {
         const sp = new URL(req.url).searchParams;
