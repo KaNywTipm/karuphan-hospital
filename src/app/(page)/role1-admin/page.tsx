@@ -1,3 +1,4 @@
+
 "use client";
 import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
@@ -30,6 +31,28 @@ const toThaiStatus = (s: RowStatus) =>
             s === "RETURNED" ? "คืนแล้ว" :
                 s === "REJECTED" ? "ไม่อนุมัติ" :
                     "เกินกำหนด";
+
+// สำหรับแปลสภาพ (returnCondition) เฉพาะในหน้าคืนแล้ว
+function returnConditionLabelTH(s?: string | null) {
+    switch (s) {
+        case "NORMAL": return "ปกติ";
+        case "BROKEN": return "ชำรุด";
+        case "LOST": return "สูญหาย";
+        case "WAIT_DISPOSE": return "รอจำหน่าย";
+        case "DISPOSED": return "จำหน่ายแล้ว";
+        default: return s || "-";
+    }
+}
+function returnConditionColor(s?: string | null) {
+    switch (s) {
+        case "NORMAL": return "bg-green-100 text-green-800";
+        case "BROKEN": return "bg-red-100 text-red-800";
+        case "LOST": return "bg-gray-100 text-gray-800";
+        case "WAIT_DISPOSE": return "bg-yellow-100 text-yellow-800";
+        case "DISPOSED": return "bg-purple-100 text-purple-800";
+        default: return "bg-gray-100 text-gray-800";
+    }
+}
 
 function getActionButtonStyleByStatus(status: RowStatus) {
     switch (status) {
@@ -321,21 +344,7 @@ export default function AdminPage() {
                                             <>
                                                 <td className="border border-gray-300 px-4 py-3 text-center">{item.adminName}</td>
                                                 <td className="border border-gray-300 px-4 py-3 text-center">
-                                                    <span className={`px-2 py-1 rounded text-xs font-medium ${!item.returnCondition || item.returnCondition === "NORMAL" ? "bg-green-100 text-green-800" :
-                                                        item.returnCondition === "BROKEN" ? "bg-red-100 text-red-800" :
-                                                            item.returnCondition === "LOST" ? "bg-gray-100 text-gray-800" :
-                                                                item.returnCondition === "WAIT_DISPOSE" ? "bg-yellow-100 text-yellow-800" :
-                                                                    item.returnCondition === "DISPOSED" ? "bg-purple-100 text-purple-800" :
-                                                                        "bg-gray-100 text-gray-800"
-                                                        }`}>
-                                                        {!item.returnCondition || item.returnCondition === "NORMAL"
-                                                            ? "ปกติ"
-                                                            : item.returnCondition === "BROKEN" ? "ชำรุด"
-                                                                : item.returnCondition === "LOST" ? "สูญหาย"
-                                                                    : item.returnCondition === "WAIT_DISPOSE" ? "รอจำหน่าย"
-                                                                        : item.returnCondition === "DISPOSED" ? "จำหน่ายแล้ว"
-                                                                            : "ปกติ"}
-                                                    </span>
+                                                    <span className={`px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap ${returnConditionColor(item.returnCondition)}`}>{returnConditionLabelTH(item.returnCondition)}</span>
                                                 </td>
                                             </>
                                         )}

@@ -154,7 +154,8 @@ model BorrowRequest {
     externalPhone String?
 
     status           BorrowStatus     @default(PENDING)
-    borrowDate       DateTime?
+    borrowDate        DateTime?   // วันที่เริ่ม "ตามแผน" (ผู้ใช้เลือกได้ อนุมัติล่วงหน้าได้)
+    actualBorrowDate  DateTime?   // วันที่เริ่ม "จริง" (รับของแล้ว)
     returnDue        DateTime
     actualReturnDate DateTime?
     returnCondition  ReturnCondition?

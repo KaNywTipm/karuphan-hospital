@@ -58,7 +58,7 @@ export default function UserExternalStatusBorrow() {
     async function load() {
         setLoading(true);
         try {
-            const res = await fetch("/api/borrow/history/me", {
+            const res = await fetch("/api/borrow/history/me?only=pending=1", {
                 credentials: "include",
                 cache: "no-store",
             });
@@ -133,18 +133,18 @@ export default function UserExternalStatusBorrow() {
     // ค้นหา + เรียง + filter เฉพาะสถานะที่ต้องการ (เช่น รออนุมัติ)
     const filteredData = useMemo(() => {
         const s = lc(searchTerm);
-        const list = [...flatRows].filter(
-            (r) =>
+        const list = flatRows
+            .filter(r => String(r.status).toUpperCase() === "PENDING") // ✅ โชว์เฉพาะที่ยังรออนุมัติ
+            .filter(r =>
                 lc(r.equipmentName).includes(s) ||
-                lc(r.approverOrReceiver).includes(s) ||
                 lc(r.reason).includes(s) ||
-                lc(toThaiStatus(r.status)).includes(s)
-        );
-        list.sort((a, b) => {
-            const da = new Date(a.borrowDateISO ?? 0).getTime();
-            const db = new Date(b.borrowDateISO ?? 0).getTime();
-            return sortOrder === "newest" ? db - da : da - db;
-        });
+                lc(r.status).includes(s)
+            )
+            .sort((a, b) => {
+                const da = new Date(a.borrowDateISO ?? 0).getTime();
+                const db = new Date(b.borrowDateISO ?? 0).getTime();
+                return sortOrder === "newest" ? db - da : da - db;
+            });
         return list;
     }, [flatRows, searchTerm, sortOrder]);
 

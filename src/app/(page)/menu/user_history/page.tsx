@@ -165,23 +165,26 @@ export default function UserHistory() {
                                 <th className="px-4 py-3 text-left text-sm font-medium w-[80px]">
                                     ลำดับ
                                 </th>
-                                <th className="px-4 py-3 text-left text-sm font-medium w-[120px]">
+                                <th className="px-4 py-3 text-left text-sm font-medium w-[110px]">
                                     กำหนดยืม
                                 </th>
-                                <th className="px-4 py-3 text-left text-sm font-medium w-[120px]">
+                                <th className="px-4 py-3 text-left text-sm font-medium w-[110px]">
                                     กำหนดคืน
                                 </th>
-                                <th className="px-4 py-3 text-left text-sm font-medium w-[120px]">
+                                <th className="px-4 py-3 text-left text-sm font-medium w-[130px]">
                                     วันที่คืนจริง
                                 </th>
-                                <th className="px-4 py-3 text-left text-sm font-medium">
+                                <th className="px-4 py-3 text-left text-sm font-medium w-[150px]">
+                                    เลขครุภัณฑ์
+                                </th>
+                                <th className="px-4 py-3 text-left text-sm font-medium w-[250px]">
                                     ชื่อครุภัณฑ์
                                 </th>
-                                <th className="px-4 py-3 text-left text-sm font-medium w-[110px]">
+                                <th className="px-4 py-3 text-left text-sm font-medium w-[130px]">
                                     สถานะ
                                 </th>
-                                <th className="px-4 py-3 text-left text-sm font-medium">
-                                    เหตุผล
+                                <th className="px-4 py-3 text-left text-sm font-medium w-[150px]">
+                                    เหตุผลที่ยืม
                                 </th>
                             </tr>
                         </thead>
@@ -192,6 +195,7 @@ export default function UserHistory() {
                                     <td className="px-4 py-3 text-sm">{fmt(r.borrowDate)}</td>
                                     <td className="px-4 py-3 text-sm">{fmt(r.returnDue)}</td>
                                     <td className="px-4 py-3 text-sm">{fmt(r.actualReturnDate)}</td>
+                                    <td className="px-4 py-3 text-sm">{r.equipmentCode}</td>
                                     <td className="px-4 py-3 text-sm">{r.equipmentName}</td>
                                     <td className="px-4 py-3 text-sm">
                                         <span
