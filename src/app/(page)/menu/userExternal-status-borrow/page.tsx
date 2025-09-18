@@ -43,8 +43,18 @@ const statusBadgeClass = (s: string) => {
     return "bg-gray-100 text-gray-800";
 };
 
-const fmtDate = (d?: string | null) =>
-    d ? new Date(d).toLocaleDateString("th-TH") : "-";
+// แปลงวันที่ yyyy-mm-dd หรือ yyyy-mm-ddTHH:mm:ss ให้เป็นวัน/เดือน/ปีไทย (พ.ศ.)
+const fmtThaiDate = (d?: string | null) => {
+    if (!d) return "-";
+    const m = d.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+    if (m) {
+        const year = Number(m[1]) + 543;
+        const month = Number(m[2]);
+        const day = Number(m[3]);
+        return `${day}/${month}/${year}`;
+    }
+    return new Date(d).toLocaleDateString("th-TH");
+};
 
 /* ---------- page ---------- */
 export default function UserExternalStatusBorrow() {
@@ -64,9 +74,12 @@ export default function UserExternalStatusBorrow() {
                 cache: "no-store",
             });
             const json = await res.json();
-            setAll(asList<BorrowRequest>(json));
-        } catch {
+            const data = asList<BorrowRequest>(json);
+            console.log("[userExternal-status-borrow] fetched data:", data);
+            setAll(data);
+        } catch (e) {
             setAll([]);
+            console.error("[userExternal-status-borrow] fetch error", e);
         } finally {
             setLoading(false);
         }
@@ -79,10 +92,10 @@ export default function UserExternalStatusBorrow() {
     // แปลง borrow request ทั้งหมดให้เป็น "หนึ่งอุปกรณ์ = หนึ่งแถว" (เหมือนฝั่งแอดมิน)
     type Row = {
         id: number;
-        borrowDateISO: string | null;
-        returnDueISO: string | null;
-        approverOrReceiver: string;
+        borrowDate: string | null;
+        returnDue: string | null;
         equipmentName: string;
+        equipmentCode: string;
         status: string;
         reason: string;
         notes?: string;
@@ -97,18 +110,17 @@ export default function UserExternalStatusBorrow() {
         });
         const rows: Row[] = [];
         for (const req of sorted) {
-            const borrowDateISO = req.requestedAt || req.createdAt || req.requestDate || null;
-            const returnDueISO = req.returnDue ?? null;
+            const borrowDate = req.requestedAt || req.createdAt || req.requestDate || null;
+            const returnDue = req.returnDue ?? null;
             const reason = req.reason ?? req.notes ?? "";
-            const approverOrReceiver = req.receivedBy?.fullName ?? "-";
             const items = req.items ?? [];
             if (!items.length) {
                 rows.push({
                     id: req.id,
-                    borrowDateISO,
-                    returnDueISO,
-                    approverOrReceiver,
+                    borrowDate,
+                    returnDue,
                     equipmentName: "-",
+                    equipmentCode: "-",
                     status: req.status,
                     reason,
                     notes: req.notes,
@@ -117,10 +129,13 @@ export default function UserExternalStatusBorrow() {
                 for (const it of items) {
                     rows.push({
                         id: req.id,
-                        borrowDateISO,
-                        returnDueISO,
-                        approverOrReceiver,
+                        borrowDate,
+                        returnDue,
                         equipmentName: it.equipment?.name ?? "-",
+                        equipmentCode:
+                            it.equipment?.number !== undefined && it.equipment?.number !== null
+                                ? String(it.equipment.number)
+                                : "-",
                         status: req.status,
                         reason,
                         notes: req.notes,
@@ -142,8 +157,8 @@ export default function UserExternalStatusBorrow() {
                 lc(r.status).includes(s)
             )
             .sort((a, b) => {
-                const da = new Date(a.borrowDateISO ?? 0).getTime();
-                const db = new Date(b.borrowDateISO ?? 0).getTime();
+                const da = new Date(a.returnDue ?? 0).getTime();
+                const db = new Date(b.returnDue ?? 0).getTime();
                 return sortOrder === "newest" ? db - da : da - db;
             });
         return list;
@@ -159,7 +174,7 @@ export default function UserExternalStatusBorrow() {
             <section className="bg-white rounded-lg shadow border">
                 <div className="p-4 border-b flex justify-between items-center">
                     <h2 className="text-lg font-semibold text-gray-800">
-                        ประวัติการยืมครุภัณฑ์ (ไม่นับรายการที่ยังรออนุมัติ)
+                        สถานะการยืมครุภัณฑ์ (รายการรออนุมัติ)
                     </h2>
                     <div className="flex items-center gap-2">
                         <div className="relative">
@@ -196,11 +211,10 @@ export default function UserExternalStatusBorrow() {
                         <thead className="bg-Pink text-White">
                             <tr>
                                 <th className="px-4 py-3 text-left text-sm font-medium w-[80px]">ลำดับ</th>
-                                <th className="px-4 py-3 text-left text-sm font-medium w-[110px]">กำหนดยืม</th>
-                                <th className="px-4 py-3 text-left text-sm font-medium w-[130px]">วันที่คืนจริง</th>
+                                <th className="px-4 py-3 text-left text-sm font-medium w-[110px]">วันที่ยืม</th>
+                                <th className="px-4 py-3 text-left text-sm font-medium w-[110px]">กำหนดคืน</th>
                                 <th className="px-4 py-3 text-left text-sm font-medium w-[150px]">เลขครุภัณฑ์</th>
                                 <th className="px-4 py-3 text-left text-sm font-medium w-[250px]">ชื่อครุภัณฑ์</th>
-                                <th className="px-4 py-3 text-left text-sm font-medium w-[180px]">ผู้อนุมัติยืม/คืน</th>
                                 <th className="px-4 py-3 text-left text-sm font-medium w-[130px]">สถานะ</th>
                                 <th className="px-4 py-3 text-left text-sm font-medium w-[150px]">เหตุผลที่ยืม</th>
                             </tr>
@@ -229,20 +243,16 @@ export default function UserExternalStatusBorrow() {
                                             {startIndex + index + 1}
                                         </td>
                                         <td className="px-4 py-3 text-sm text-gray-900">
-                                            {fmtDate(item.borrowDateISO)}
+                                            {fmtThaiDate(item.borrowDate)}
                                         </td>
                                         <td className="px-4 py-3 text-sm text-gray-900">
-                                            {fmtDate(item.returnDueISO)}
+                                            {fmtThaiDate(item.returnDue)}
                                         </td>
                                         <td className="px-4 py-3 text-sm text-gray-900">
-                                            {/* เลขครุภัณฑ์: ไม่มีใน Row ปัจจุบัน (external) */}
-                                            -
+                                            {item.equipmentCode}
                                         </td>
                                         <td className="px-4 py-3 text-sm text-gray-900">
                                             {item.equipmentName}
-                                        </td>
-                                        <td className="px-4 py-3 text-sm text-gray-900">
-                                            {item.approverOrReceiver || "-"}
                                         </td>
                                         <td className="px-4 py-3 text-sm">
                                             <span

@@ -123,8 +123,18 @@ export default function UserHistory() {
             OVERDUE: "เกินกำหนด",
         } as const)[st];
 
-    const fmt = (d: string | null) =>
-        d ? new Date(d).toLocaleDateString("th-TH") : "-";
+    // แปลงวันที่ yyyy-mm-dd หรือ yyyy-mm-ddTHH:mm:ss ให้เป็นวัน/เดือน/ปีไทย (พ.ศ.)
+    const fmtThaiDate = (d: string | null) => {
+        if (!d) return "-";
+        const m = d.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+        if (m) {
+            const year = Number(m[1]) + 543;
+            const month = Number(m[2]);
+            const day = Number(m[3]);
+            return `${day}/${month}/${year}`;
+        }
+        return new Date(d).toLocaleDateString("th-TH");
+    };
 
     return (
         <div className="p-6 bg-gray-50 min-h-screen flex flex-col gap-8">
@@ -171,7 +181,7 @@ export default function UserHistory() {
                                     ลำดับ
                                 </th>
                                 <th className="px-4 py-3 text-left text-sm font-medium w-[110px]">
-                                    กำหนดยืม
+                                    กำหนดคืน
                                 </th>
                                 <th className="px-4 py-3 text-left text-sm font-medium w-[130px]">
                                     วันที่คืนจริง
@@ -197,8 +207,8 @@ export default function UserHistory() {
                             {pageRows.map((r: Row, i: number) => (
                                 <tr key={`${r.requestId}-${i}`} className="hover:bg-gray-50">
                                     <td className="px-4 py-3 text-sm">{startIndex + i + 1}</td>
-                                    <td className="px-4 py-3 text-sm">{fmt(r.borrowDate)}</td>
-                                    <td className="px-4 py-3 text-sm">{fmt(r.actualReturnDate)}</td>
+                                    <td className="px-4 py-3 text-sm">{fmtThaiDate(r.returnDue)}</td>
+                                    <td className="px-4 py-3 text-sm">{fmtThaiDate(r.actualReturnDate)}</td>
                                     <td className="px-4 py-3 text-sm">{r.equipmentCode}</td>
                                     <td className="px-4 py-3 text-sm">{r.equipmentName}</td>
                                     <td className="px-4 py-3 text-sm">{r.approverOrReceiver || "-"}</td>

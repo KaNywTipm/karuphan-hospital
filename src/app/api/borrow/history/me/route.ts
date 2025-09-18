@@ -42,6 +42,18 @@ function flattenBorrowRequests(list: any[]) {
             continue;
         }
         for (const it of items) {
+            // ดึงเลขครุภัณฑ์และชื่อครุภัณฑ์จาก it.equipment ให้ถูกต้อง
+            let equipmentName = "-";
+            let equipmentCode = "-";
+            if (it && typeof it === "object" && it.equipment) {
+                equipmentName = it.equipment.name ?? "-";
+                equipmentCode =
+                    it.equipment.number !== undefined && it.equipment.number !== null
+                        ? String(it.equipment.number)
+                        : it.equipmentId !== undefined
+                            ? String(it.equipmentId)
+                            : "-";
+            }
             rows.push({
                 id: req.id,
                 status,
@@ -49,8 +61,8 @@ function flattenBorrowRequests(list: any[]) {
                 returnDue,
                 actualReturnDate,
                 reason,
-                equipmentName: it?.equipment?.name ?? "-",
-                equipmentCode: String(it?.equipment?.number ?? it?.equipmentId ?? "-"),
+                equipmentName,
+                equipmentCode,
                 approverOrReceiver,
             });
         }
