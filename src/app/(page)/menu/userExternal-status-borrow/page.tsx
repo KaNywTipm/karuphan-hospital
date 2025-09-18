@@ -3,7 +3,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 
 /* ---------- types + helpers ---------- */
-type BorrowItem = { equipment?: { number?: number; name?: string } };
+type BorrowItem = { equipment?: { code?: string; number?: number; name?: string } }; // 👈 เพิ่ม code
 type BorrowRequest = {
     id: number;
     status: string;                 // PENDING | APPROVED | REJECTED | RETURNED | ...
@@ -15,6 +15,9 @@ type BorrowRequest = {
     reason?: string;
     notes?: string;
     items?: BorrowItem[];
+    // กรณี API ส่งแบบ flatten จะมีสองคีย์นี้
+    equipmentCode?: string;
+    equipmentName?: string;
 };
 
 const asList = <T,>(v: any): T[] => (Array.isArray(v) ? v : Array.isArray(v?.data) ? v.data : []);
@@ -81,9 +84,7 @@ export default function UserExternalStatusBorrow() {
         }
     }
 
-    useEffect(() => {
-        load();
-    }, []);
+    useEffect(() => { load(); }, []);
 
     // แปลงให้ “1 อุปกรณ์ = 1 แถว”
     type Row = {
@@ -98,6 +99,7 @@ export default function UserExternalStatusBorrow() {
 
     const flatRows: Row[] = useMemo(() => {
         if (!all.length) return [];
+
         // เรียงตาม “วันที่ยืม”
         const sorted = [...all].sort((a, b) => {
             const da = new Date(a.requestedAt || a.createdAt || a.requestDate || 0).getTime();
@@ -110,6 +112,22 @@ export default function UserExternalStatusBorrow() {
             const borrowDate = req.requestedAt || req.createdAt || req.requestDate || null;
             const returnDue = req.returnDue ?? null;
             const reason = req.reason ?? req.notes ?? "";
+
+            // ✅ กรณี API ส่งแบบ flatten แล้ว (มี equipmentCode/Name มาให้)
+            if (typeof req.equipmentCode !== "undefined" || typeof req.equipmentName !== "undefined") {
+                rows.push({
+                    id: req.id,
+                    borrowDate,
+                    returnDue,
+                    equipmentName: req.equipmentName ?? "-",
+                    equipmentCode: req.equipmentCode ?? "-",
+                    status: req.status,
+                    reason,
+                });
+                continue;
+            }
+
+            // ✅ กรณียังเป็น raw + items[] → แตก 1 item = 1 แถว
             const items = req.items ?? [];
             if (!items.length) {
                 rows.push({
@@ -121,21 +139,23 @@ export default function UserExternalStatusBorrow() {
                     status: req.status,
                     reason,
                 });
-            } else {
-                for (const it of items) {
-                    rows.push({
-                        id: req.id,
-                        borrowDate,
-                        returnDue,
-                        equipmentName: it.equipment?.name ?? "-",
-                        equipmentCode:
-                            it.equipment?.number !== undefined && it.equipment?.number !== null
-                                ? String(it.equipment.number)
-                                : "-",
-                        status: req.status,
-                        reason,
-                    });
-                }
+                continue;
+            }
+            for (const it of items) {
+                rows.push({
+                    id: req.id,
+                    borrowDate,
+                    returnDue,
+                    equipmentName: it.equipment?.name ?? "-",
+                    // ดึง code ก่อน ถ้าไม่มีค่อย fallback เป็น number
+                    equipmentCode:
+                        it.equipment?.code ??
+                        (it.equipment?.number !== undefined && it.equipment?.number !== null
+                            ? String(it.equipment.number)
+                            : "-"),
+                    status: req.status,
+                    reason,
+                });
             }
         }
         return rows;
@@ -183,13 +203,7 @@ export default function UserExternalStatusBorrow() {
                                 }}
                                 className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                             />
-                            <Image
-                                src="/search.png"
-                                alt="search"
-                                width={20}
-                                height={20}
-                                className="absolute left-3 top-1/2 -translate-y-1/2"
-                            />
+                            <Image src="/search.png" alt="search" width={20} height={20} className="absolute left-3 top-1/2 -translate-y-1/2" />
                         </div>
                         <button
                             onClick={() => setSortOrder((p) => (p === "newest" ? "oldest" : "newest"))}
@@ -217,52 +231,31 @@ export default function UserExternalStatusBorrow() {
                         <tbody className="divide-y divide-gray-200">
                             {loading && (
                                 <tr>
-                                    <td colSpan={7} className="px-4 py-6 text-center text-sm text-gray-500">
-                                        กำลังโหลดข้อมูล…
-                                    </td>
+                                    <td colSpan={7} className="px-4 py-6 text-center text-sm text-gray-500">กำลังโหลดข้อมูล…</td>
                                 </tr>
                             )}
 
                             {!loading && currentData.length === 0 && (
                                 <tr>
-                                    <td colSpan={7} className="px-4 py-6 text-center text-sm text-gray-500">
-                                        ยังไม่มีรายการ
-                                    </td>
+                                    <td colSpan={7} className="px-4 py-6 text-center text-sm text-gray-500">ยังไม่มีรายการ</td>
                                 </tr>
                             )}
 
-                            {!loading &&
-                                currentData.map((item, index) => (
-                                    <tr key={`${item.id}-${index}`} className="hover:bg-gray-50">
-                                        <td className="px-4 py-3 text-sm text-gray-900">
-                                            {startIndex + index + 1}
-                                        </td>
-                                        <td className="px-4 py-3 text-sm text-gray-900">
-                                            {fmtThaiDate(item.borrowDate)}
-                                        </td>
-                                        <td className="px-4 py-3 text-sm text-gray-900">
-                                            {fmtThaiDate(item.returnDue)}
-                                        </td>
-                                        <td className="px-4 py-3 text-sm text-gray-900">
-                                            {item.equipmentCode}
-                                        </td>
-                                        <td className="px-4 py-3 text-sm text-gray-900">
-                                            {item.equipmentName}
-                                        </td>
-                                        <td className="px-4 py-3 text-sm">
-                                            <span
-                                                className={`px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap ${statusBadgeClass(
-                                                    item.status
-                                                )}`}
-                                            >
-                                                {toThaiStatus(item.status)}
-                                            </span>
-                                        </td>
-                                        <td className="px-4 py-3 text-sm text-gray-900">
-                                            {item.reason || "-"}
-                                        </td>
-                                    </tr>
-                                ))}
+                            {!loading && currentData.map((item, index) => (
+                                <tr key={`${item.id}-${index}`} className="hover:bg-gray-50">
+                                    <td className="px-4 py-3 text-sm text-gray-900">{startIndex + index + 1}</td>
+                                    <td className="px-4 py-3 text-sm text-gray-900">{fmtThaiDate(item.borrowDate)}</td>
+                                    <td className="px-4 py-3 text-sm text-gray-900">{fmtThaiDate(item.returnDue)}</td>
+                                    <td className="px-4 py-3 text-sm text-gray-900">{item.equipmentCode}</td>
+                                    <td className="px-4 py-3 text-sm text-gray-900">{item.equipmentName}</td>
+                                    <td className="px-4 py-3 text-sm">
+                                        <span className={`px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap ${statusBadgeClass(item.status)}`}>
+                                            {toThaiStatus(item.status)}
+                                        </span>
+                                    </td>
+                                    <td className="px-4 py-3 text-sm text-gray-900">{item.reason || "-"}</td>
+                                </tr>
+                            ))}
                         </tbody>
                     </table>
                 </div>
@@ -270,9 +263,7 @@ export default function UserExternalStatusBorrow() {
                 {!loading && (
                     <div className="flex items-center justify-between px-4 py-3 border-t">
                         <span className="text-sm text-gray-700">
-                            แสดง {filteredData.length === 0 ? 0 : startIndex + 1} –{" "}
-                            {Math.min(startIndex + itemsPerPage, filteredData.length)} จาก{" "}
-                            {filteredData.length} รายการ
+                            แสดง {filteredData.length === 0 ? 0 : startIndex + 1} – {Math.min(startIndex + itemsPerPage, filteredData.length)} จาก {filteredData.length} รายการ
                         </span>
                         <div className="flex items-center gap-1">
                             <button
