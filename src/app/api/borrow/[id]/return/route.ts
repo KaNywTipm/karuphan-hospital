@@ -35,11 +35,6 @@ function coerceReturnCondition(
 
 export const dynamic = "force-dynamic";
 
-/**
- * PATCH /api/borrow/:id/return
- * body: { returnCondition: "NORMAL"|"BROKEN"|"LOST"|"WAIT_DISPOSE"|"DISPOSED", returnNotes?: string }
- * เฉพาะ ADMIN
- */
 export async function PATCH(
   req: Request,
   { params }: { params: { id: string } }
@@ -74,21 +69,16 @@ export async function PATCH(
     );
   }
 
-  const rc = String(body?.returnCondition ?? "NORMAL").toUpperCase();
-  const allow = new Set([
-    "NORMAL",
-    "BROKEN",
-    "LOST",
-    "WAIT_DISPOSE",
-    "DISPOSED",
-  ]);
-  if (!allow.has(rc)) {
+  // รับเป็น array: [{equipmentId, condition}]
+  const returnConditions: Array<{ equipmentId: number; condition: string }> =
+    Array.isArray(body.returnConditions) ? body.returnConditions : [];
+  const returnNotes = body?.returnNotes ? String(body.returnNotes) : null;
+  if (!returnConditions.length) {
     return NextResponse.json(
-      { ok: false, error: "invalid-return-condition" },
+      { ok: false, error: "missing-return-conditions" },
       { status: 400 }
     );
   }
-  const returnNotes = body?.returnNotes ? String(body.returnNotes) : null;
 
   const adminId = await resolveAdminId(session, prisma);
 
@@ -98,7 +88,7 @@ export async function PATCH(
       const reqRow = await tx.borrowRequest.findUnique({
         where: { id },
         include: {
-          items: { select: { equipmentId: true } },
+          items: { select: { id: true, equipmentId: true } },
         },
       });
       if (!reqRow)
@@ -114,13 +104,44 @@ export async function PATCH(
         throw Object.assign(new Error("no-items"), { code: "NO_ITEMS" });
       }
 
-      // 2) อัปเดตคำขอเป็น RETURNED
+      // 2) อัปเดต BorrowItem.returnCondition แยกแต่ละชิ้น
+      for (const item of reqRow.items) {
+        const found = returnConditions.find(
+          (rc) => rc.equipmentId === item.equipmentId
+        );
+        if (found) {
+          const rc = String(found.condition).toUpperCase();
+          const allow = new Set([
+            "NORMAL",
+            "BROKEN",
+            "LOST",
+            "WAIT_DISPOSE",
+            "DISPOSED",
+          ]);
+          if (!allow.has(rc)) continue;
+          await tx.borrowItem.update({
+            where: { id: item.id },
+            data: { returnCondition: rc as any },
+          });
+          // อัปเดตสถานะอุปกรณ์แต่ละชิ้น
+          await tx.equipment.update({
+            where: { number: item.equipmentId },
+            data: {
+              status: rc as any,
+              currentRequestId: null,
+              statusChangedAt: new Date(),
+            },
+          });
+        }
+      }
+
+      // 3) อัปเดตคำขอเป็น RETURNED (ไม่ต้องเซ็ต returnCondition ที่ borrowRequest แล้ว)
       const borrow = await tx.borrowRequest.update({
         where: { id },
         data: {
           status: "RETURNED",
           actualReturnDate: new Date(),
-          returnCondition: rc as any,
+          returnCondition: undefined, // ลบออก (deprecated)
           returnNotes,
           receivedById: adminId,
         },
@@ -133,24 +154,6 @@ export async function PATCH(
               equipment: { select: { number: true, code: true, name: true } },
             },
           },
-        },
-      });
-
-      // 3) เซ็ตสถานะอุปกรณ์กลับตามสภาพคืน + เคลียร์ currentRequestId
-      // หมายเหตุ: สคีม่าปัจจุบันเก็บ returnCondition ที่ระดับ "คำขอ" → ทุกชิ้นจะถูกตั้งสถานะเดียวกัน
-      const mapRC: any = {
-        NORMAL: "NORMAL",
-        BROKEN: "BROKEN",
-        LOST: "LOST",
-        WAIT_DISPOSE: "WAIT_DISPOSE",
-        DISPOSED: "DISPOSED",
-      };
-      await tx.equipment.updateMany({
-        where: { currentRequestId: id },
-        data: {
-          status: mapRC[rc],
-          currentRequestId: null,
-          statusChangedAt: new Date(),
         },
       });
 

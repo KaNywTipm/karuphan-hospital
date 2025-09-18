@@ -27,12 +27,20 @@ export default function ApprovePage() {
                 const j = await r.json().catch(() => ({}));
                 if (r.ok && j?.ok) {
                     const d = j.data;
+                    // กำหนดชื่อผู้ขอและหน่วยงานตามประเภท
+                    let borrowerName = "-";
+                    let department = "-";
+                    if (d.borrowerType === "INTERNAL") {
+                        borrowerName = d.requester?.fullName ?? "-";
+                        department = d.requester?.department?.name ?? "-";
+                    } else if (d.borrowerType === "EXTERNAL") {
+                        borrowerName = d.externalName || d.requester?.fullName || "-";
+                        department = d.externalDept || "ภายนอกกลุ่มงาน";
+                    }
                     const shaped = {
                         ...d,
-                        borrowerName: d.borrowerType === "INTERNAL"
-                            ? (d.requester?.fullName ?? "-")
-                            : (d.externalName || d.requester?.fullName || "-"),
-                        department: d.borrowerType === "INTERNAL" ? (d.requester?.department?.name ?? "-") : (d.externalDept ?? "ภายนอกกลุ่มงาน"),
+                        borrowerName,
+                        department,
                         items: (d.items ?? []).map((it: any) => it.equipment).filter(Boolean),
                     };
                     setRow(shaped);

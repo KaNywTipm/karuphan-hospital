@@ -86,8 +86,8 @@ model User {
     approvals      BorrowRequest[] @relation("Approver")
     rejected       BorrowRequest[] @relation("Rejector")
 
-    createdAt DateTime   @default(now())
-    updatedAt DateTime   @updatedAt
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
 
     @@index([role])
     @@index([isActive])
@@ -154,8 +154,8 @@ model BorrowRequest {
     externalPhone String?
 
     status           BorrowStatus     @default(PENDING)
-    borrowDate        DateTime?   // วันที่เริ่ม "ตามแผน" (ผู้ใช้เลือกได้ อนุมัติล่วงหน้าได้)
-    actualBorrowDate  DateTime?   // วันที่เริ่ม "จริง" (รับของแล้ว)
+    borrowDate       DateTime? // วันที่เริ่ม "ตามแผน" (ผู้ใช้เลือกได้ อนุมัติล่วงหน้าได้)
+    actualBorrowDate DateTime? // วันที่เริ่ม "จริง" (รับของแล้ว)
     returnDue        DateTime
     actualReturnDate DateTime?
     returnCondition  ReturnCondition?
@@ -205,12 +205,14 @@ model BorrowItem {
     request   BorrowRequest @relation(fields: [requestId], references: [id], onUpdate: Cascade, onDelete: Cascade)
     equipment Equipment     @relation(fields: [equipmentId], references: [number], onUpdate: Cascade, onDelete: Restrict)
 
+    // สภาพคืนของแต่ละชิ้น (nullable)
+    returnCondition ReturnCondition?
+
     // ป้องกันการซ้ำอุปกรณ์เดียวกันในคำขอเดียว
     @@unique([requestId, equipmentId])
     // หลายรายงาน/หน้าจอมัก JOIN ตามคู่คีย์นี้
     @@index([equipmentId])
 }
-
 
 model PasswordResetRequest {
     id        Int       @id @default(autoincrement())

@@ -21,14 +21,15 @@ const beToCE = (be: string) => {
 };
 
 
+
 export default function ReturnPage() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const id = Number(searchParams.get("id"));
 
     const [borrowRequest, setBorrowRequest] = useState<any>(null);
-    // ใช้รหัส enum string
-    const [returnCondition, setReturnCondition] = useState<string>("");
+    // ใช้ object: borrowItemId -> condition
+    const [returnConditions, setReturnConditions] = useState<Record<number, string>>({});
     const [returnNotes, setReturnNotes] = useState("");
     const [actualReturnDate, setActualReturnDate] = useState<string>(isoToBE(null));
     const [loading, setLoading] = useState(true);
@@ -50,11 +51,15 @@ export default function ReturnPage() {
                 const j = await r.json().catch(() => ({}));
                 if (r.ok && j?.ok) {
                     setBorrowRequest(j.data);
-                    // ถ้ามี actualReturnDate เดิม → แปลงขึ้น input
                     setActualReturnDate(isoToBE(j.data.actualReturnDate));
-                    // ถ้ามี returnCondition เดิม (คืนแล้ว) ให้ setReturnCondition ด้วย
-                    if (j.data?.returnCondition) {
-                        setReturnCondition(j.data.returnCondition);
+                    // ถ้ามี returnCondition ในแต่ละ item (คืนแล้ว) preload ลง state (ใช้ it.id)
+                    if (Array.isArray(j.data?.items)) {
+                        const rcObj: Record<number, string> = {};
+                        j.data.items.forEach((it: any) => {
+                            if (it.returnCondition && it.id)
+                                rcObj[it.id] = it.returnCondition;
+                        });
+                        setReturnConditions(rcObj);
                     }
                 } else {
                     alert(j?.error ?? "โหลดคำขอไม่สำเร็จ");
@@ -68,15 +73,23 @@ export default function ReturnPage() {
     }, [id]);
 
     const handleReturn = async () => {
-        if (!borrowRequest || !returnCondition) return;
+        if (!borrowRequest) return;
+        // ตรวจสอบว่าทุกชิ้นถูกเลือกสภาพคืนครบ (ใช้ it.id)
+        const items = borrowRequest.items || [];
+        const missing = items.some((it: any) => !returnConditions[it.id]);
+        if (missing) return alert("กรุณาเลือกสภาพคืนให้ครบทุกชิ้น");
         try {
+            const payload = {
+                returnConditions: items.map((it: any) => ({
+                    equipmentId: it.equipment?.number,
+                    condition: returnConditions[it.id]
+                })),
+                returnNotes,
+            };
             const r = await fetch(`/api/borrow/${id}/return`, {
                 method: "PATCH",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    returnCondition, // ส่งเป็น NORMAL/BROKEN/...
-                    returnNotes,
-                }),
+                body: JSON.stringify(payload),
             });
             const j = await r.json().catch(() => ({}));
             if (!r.ok || !j?.ok) return alert(j?.error ?? "บันทึกรับคืนไม่สำเร็จ");
@@ -103,11 +116,23 @@ export default function ReturnPage() {
         return <div className="p-6">ไม่พบคำขอ</div>;
     }
 
+
     // ชื่อแอดมินผู้รับคืน
     const adminName =
         borrowRequest?.receivedBy?.fullName ??
         borrowRequest?.approvedBy?.fullName ??
         "ผู้ดูแลระบบ";
+
+    // ชื่อผู้ยืมและหน่วยงาน (ตามประเภท)
+    let borrowerName = "-";
+    let department = "-";
+    if (borrowRequest?.borrowerType === "INTERNAL") {
+        borrowerName = borrowRequest?.requester?.fullName ?? "-";
+        department = borrowRequest?.requester?.department?.name ?? "-";
+    } else if (borrowRequest?.borrowerType === "EXTERNAL") {
+        borrowerName = borrowRequest?.externalName || borrowRequest?.requester?.fullName || "-";
+        department = borrowRequest?.externalDept || "ภายนอกกลุ่มงาน";
+    }
 
     return (
         <div className="min-h-screen bg-gray-100">
@@ -139,7 +164,7 @@ export default function ReturnPage() {
                                 </thead>
                                 <tbody>
                                     {borrowRequest.items.map((it: any, idx: number) => (
-                                        <tr key={it.equipment?.number ?? idx}>
+                                        <tr key={it.id}>
                                             <td className="border border-gray-300 px-4 py-3 text-sm text-gray-900">{idx + 1}</td>
                                             <td className="border border-gray-300 px-4 py-3 text-sm text-gray-900">{it.equipment?.name ?? '-'}</td>
                                             <td className="border border-gray-300 px-4 py-3 text-sm text-gray-900">
@@ -150,8 +175,8 @@ export default function ReturnPage() {
                                             <td className="border border-gray-300 px-4 py-3 text-sm text-gray-900">
                                                 <select
                                                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                                    value={returnCondition}
-                                                    onChange={(e) => setReturnCondition(e.target.value)}
+                                                    value={returnConditions[it.id] || ""}
+                                                    onChange={e => setReturnConditions(rc => ({ ...rc, [it.id]: e.target.value }))}
                                                 >
                                                     <option value="">เลือกสภาพ</option>
                                                     {RETURN_OPTIONS.map((s) => (
@@ -170,8 +195,8 @@ export default function ReturnPage() {
                             <div className="space-y-4">
                                 <div>วันที่ยืม {borrowRequest.borrowDate ? new Date(borrowRequest.borrowDate).toLocaleDateString("th-TH") : "ไม่ระบุ"}</div>
                                 <div>กำหนดคืน {borrowRequest.returnDue ? new Date(borrowRequest.returnDue).toLocaleDateString("th-TH") : "-"}</div>
-                                <div>บุคลากร {borrowRequest.department}</div>
-                                <div>ผู้ยืม {borrowRequest.borrowerName}</div>
+                                <div>บุคลากร {department}</div>
+                                <div>ผู้ยืม {borrowerName}</div>
                                 <div>เหตุผลที่ยืม {borrowRequest.reason ?? "-"}</div>
                             </div>
 
@@ -208,8 +233,8 @@ export default function ReturnPage() {
                         <div className="flex justify-start gap-4">
                             <button
                                 onClick={handleReturn}
-                                disabled={!returnCondition}
-                                className={`px-6 py-2 rounded-lg font-medium transition-colors ${returnCondition ? "bg-blue-500 hover:bg-blue-600 text-white" : "bg-gray-300 text-gray-500 cursor-not-allowed"}`}
+                                disabled={borrowRequest.items.some((it: any) => !returnConditions[it.id])}
+                                className={`px-6 py-2 rounded-lg font-medium transition-colors ${borrowRequest.items.every((it: any) => returnConditions[it.id]) ? "bg-blue-500 hover:bg-blue-600 text-white" : "bg-gray-300 text-gray-500 cursor-not-allowed"}`}
                             >
                                 บันทึก
                             </button>
