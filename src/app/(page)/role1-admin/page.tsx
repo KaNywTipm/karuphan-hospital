@@ -93,37 +93,54 @@ export default function AdminPage() {
             const res = await fetch("/api/borrow", { cache: "no-store", signal });
             const json = await res.json();
             const raw = Array.isArray(json?.data) ? json.data : [];
-            const shaped = raw.map((r: any) => ({
-                id: r.id,
-                status: r.status,
-                borrowerType: r.borrowerType,
-                // กรณี INTERNAL ใช้ requester.fullName, กรณี EXTERNAL ใช้ externalName
-                borrowerName:
-                    r.borrowerType === "INTERNAL"
-                        ? (r.requester?.fullName ?? "-")
-                        : (r.externalName || r.requester?.fullName || "-")
-                ,
-                // ชื่อแอดมินผู้รับคืน (คืนแล้ว/อนุมัติแล้ว) หรือ rejectedBy (ไม่อนุมัติ/ยกเลิก)
-                adminName:
-                    r.status === "REJECTED"
-                        ? (r.rejectedBy?.fullName ?? "-")
-                        : (r.receivedBy?.fullName ?? r.approvedBy?.fullName ?? "-"),
-                department:
-                    r.borrowerType === "INTERNAL"
-                        ? (r.requester?.department?.name ?? "-")
-                        : (r.externalDept ?? "ภายนอกกลุ่มงาน")
-                ,
-                equipmentCode: (r.items ?? []).map((it: any) => it?.equipment?.code).filter(Boolean).join(", "),
-                equipmentName: (r.items ?? []).map((it: any) => it?.equipment?.name).filter(Boolean).join(", "),
-                borrowDate: r.borrowDate ?? null,
-                returnDue: r.returnDue ?? null,
-                actualReturnDate: r.actualReturnDate ?? null,
-                reason: r.reason ?? null,
-                returnNotes: r.returnNotes ?? null,
-                // กรณี INTERNAL ใช้ requester.fullName, กรณี EXTERNAL ใช้ externalName เช่นกัน (ถ้าต้องการโชว์ผู้ยืมในคอลัมน์อื่น)
-                receivedBy: r.receivedBy?.fullName ?? null,
-                returnCondition: r.returnCondition ?? null,
-            }));
+            const shaped = raw.map((r: any) => {
+                // รวมสภาพคืนแต่ละชิ้น (ถ้ามี)
+                let returnCondition = null;
+                if (r.status === "RETURNED" && Array.isArray(r.items)) {
+                    const arr = r.items.map((it: any) => {
+                        if (!it?.returnCondition) return "-";
+                        switch (it.returnCondition) {
+                            case "NORMAL": return "ปกติ";
+                            case "BROKEN": return "ชำรุด";
+                            case "LOST": return "สูญหาย";
+                            case "WAIT_DISPOSE": return "รอจำหน่าย";
+                            case "DISPOSED": return "จำหน่ายแล้ว";
+                            default: return it.returnCondition;
+                        }
+                    });
+                    returnCondition = arr.join(", ");
+                } else {
+                    returnCondition = r.returnCondition ?? null;
+                }
+                return {
+                    id: r.id,
+                    status: r.status,
+                    borrowerType: r.borrowerType,
+                    borrowerName:
+                        r.borrowerType === "INTERNAL"
+                            ? (r.requester?.fullName ?? "-")
+                            : (r.externalName || r.requester?.fullName || "-")
+                    ,
+                    adminName:
+                        r.status === "REJECTED"
+                            ? (r.rejectedBy?.fullName ?? "-")
+                            : (r.receivedBy?.fullName ?? r.approvedBy?.fullName ?? "-"),
+                    department:
+                        r.borrowerType === "INTERNAL"
+                            ? (r.requester?.department?.name ?? "-")
+                            : (r.externalDept ?? "ภายนอกกลุ่มงาน")
+                    ,
+                    equipmentCode: (r.items ?? []).map((it: any) => it?.equipment?.code).filter(Boolean).join(", "),
+                    equipmentName: (r.items ?? []).map((it: any) => it?.equipment?.name).filter(Boolean).join(", "),
+                    borrowDate: r.borrowDate ?? null,
+                    returnDue: r.returnDue ?? null,
+                    actualReturnDate: r.actualReturnDate ?? null,
+                    reason: r.reason ?? null,
+                    returnNotes: r.returnNotes ?? null,
+                    receivedBy: r.receivedBy?.fullName ?? null,
+                    returnCondition,
+                };
+            });
             setRows(shaped);
         } catch {
             setRows([]); // กันล่ม
@@ -285,7 +302,7 @@ export default function AdminPage() {
                                     <th className="border border-gray-300 px-4 py-3 text-center text-sm font-medium">ผู้รับคืน</th>
                                 )}
 
-                                <th className="border border-gray-300 px-4 py-3 text-center text-sm font-medium">เหตุผลที่ยืม</th>
+                                <th className="border border-gray-300 px-4 py-3 text-center text-sm font-medium">เหตุผลที่คืน</th>
 
                                 {activeTab === "รออนุมัติ" && (
                                     <th className="border border-gray-300 px-4 py-3 text-center text-sm font-medium">การอนุมัติ</th>
