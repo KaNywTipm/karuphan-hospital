@@ -20,67 +20,72 @@ type Category = { id: number; name: string };
 
 export default function NotApproveReport() {
     const [rows, setRows] = useState<Row[]>([]);
-    const [cats, setCats] = useState<Category[]>([]);
     const [search, setSearch] = useState("");
-    const [cat, setCat] = useState("");
     const [sort, setSort] = useState<"newest" | "oldest">("newest");
 
     useEffect(() => {
         (async () => {
-            const [bRes, cRes] = await Promise.all([
-                fetch("/api/borrow", { cache: "no-store" }),
-                fetch("/api/categories", { cache: "no-store" }),
-            ]);
+            // โหลด borrow อย่างเดียว ไม่ต้องโหลดหมวดหมู่
+            const bRes = await fetch("/api/borrow", { cache: "no-store" });
             const b = await bRes.json().catch(() => ({ data: [] }));
-            const c = await cRes.json().catch(() => ({ data: [] }));
-            // Map all display fields for table (borrowerName, department, equipmentCode, equipmentName, rejectedByName)
-            const borrowRows = Array.isArray(b?.data) ? b.data.map((r: any) => ({
-                id: r.id,
-                borrowerName:
-                    r.borrowerType === "INTERNAL"
-                        ? (r.requester?.fullName ?? "-")
-                        : (r.externalName || r.requester?.fullName || "-"),
-                department:
-                    r.borrowerType === "INTERNAL"
-                        ? (r.requester?.department?.name ?? "-")
-                        : (r.externalDept ?? "ภายนอกกลุ่มงาน"),
-                equipmentCode: (r.items ?? []).map((it: any) => it?.equipment?.code).filter(Boolean).join(", "),
-                equipmentName: (r.items ?? []).map((it: any) => it?.equipment?.name).filter(Boolean).join(", "),
-                borrowDate: r.borrowDate ?? null,
-                returnDue: r.returnDue ?? null,
-                reason: r.reason ?? null,
-                status: r.status,
-                categoryNames: r.categoryNames,
-                rejectedByName: r.rejectedBy?.fullName ?? "-",
-            })) : [];
+            const borrowRows = Array.isArray(b?.data)
+                ? b.data.map((r: any) => {
+                    const namesFromItems = Array.from(
+                        new Set(
+                            (r.items ?? [])
+                                .map((it: any) => it?.equipment?.category?.name)
+                                .filter(Boolean)
+                        )
+                    );
+
+                    const normalizedCategoryNames =
+                        Array.isArray(r.categoryNames) && r.categoryNames.length
+                            ? r.categoryNames
+                            : typeof r.categoryNames === "string" && r.categoryNames.trim()
+                                ? r.categoryNames.split(",").map((s: string) => s.trim())
+                                : namesFromItems;
+
+                    return {
+                        id: r.id,
+                        borrowerName:
+                            r.borrowerType === "INTERNAL"
+                                ? (r.requester?.fullName ?? "-")
+                                : (r.externalName || r.requester?.fullName || "-"),
+                        department:
+                            r.borrowerType === "INTERNAL"
+                                ? (r.requester?.department?.name ?? "-")
+                                : (r.externalDept ?? "ภายนอกกลุ่มงาน"),
+                        equipmentCode: (r.items ?? []).map((it: any) => it?.equipment?.code).filter(Boolean).join(", "),
+                        equipmentName: (r.items ?? []).map((it: any) => it?.equipment?.name).filter(Boolean).join(", "),
+                        borrowDate: r.borrowDate ?? null,
+                        returnDue: r.returnDue ?? null,
+                        reason: r.reason ?? null,
+                        status: r.status,
+                        categoryNames: normalizedCategoryNames,
+                        rejectedByName: r.rejectedBy?.fullName ?? "-",
+                    };
+                })
+                : [];
             setRows(borrowRows);
-            setCats(Array.isArray(c?.data) ? c.data : []);
         })();
     }, []);
 
     const filtered = useMemo(() => {
         const q = (search || "").toLowerCase();
-        return (rows || [])
-            .filter(r => r.status === "REJECTED")
-            .filter(r =>
-                (r.borrowerName || "").toLowerCase().includes(q) ||
-                (r.department || "").toLowerCase().includes(q) ||
-                (r.equipmentCode || "").toLowerCase().includes(q) ||
-                (r.equipmentName || "").toLowerCase().includes(q)
-            )
-            .filter(r => {
-                if (!cat) return true;
-                const names = Array.isArray(r.categoryNames)
-                    ? r.categoryNames
-                    : (typeof r.categoryNames === "string" ? r.categoryNames.split(",").map(s => s.trim()) : []);
-                return names.some(n => n === cat);
-            })
-            .sort((a, b) => {
-                const da = new Date(a.borrowDate || "").getTime();
-                const db = new Date(b.borrowDate || "").getTime();
-                return sort === "newest" ? db - da : da - db;
-            });
-    }, [rows, search, cat, sort]);
+        // filter เฉพาะ REJECTED ก่อน แล้วค่อย filter search
+        let data = (rows || []).filter(r => r.status === "REJECTED");
+        data = data.filter(r =>
+            (r.borrowerName || "").toLowerCase().includes(q) ||
+            (r.department || "").toLowerCase().includes(q) ||
+            (r.equipmentCode || "").toLowerCase().includes(q) ||
+            (r.equipmentName || "").toLowerCase().includes(q)
+        );
+        return data.sort((a, b) => {
+            const da = new Date(a.borrowDate || "").getTime();
+            const db = new Date(b.borrowDate || "").getTime();
+            return sort === "newest" ? db - da : da - db;
+        });
+    }, [rows, search, sort]);
 
     const toDate = (s?: string | null) => (s ? new Date(s).toLocaleDateString("th-TH") : "-");
 
@@ -120,13 +125,7 @@ export default function NotApproveReport() {
             </div>
 
             <div className="mb-6 flex justify-between items-center gap-4">
-                <div className="flex items-center gap-2">
-                    <label className="text-sm font-medium text-NavyBlue">หมวดหมู่:</label>
-                    <select value={cat} onChange={(e) => setCat(e.target.value)} className="px-3 py-2 border border-Grey rounded-lg">
-                        <option value="">ทั้งหมด</option>
-                        {cats.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
-                    </select>
-                </div>
+                <div />
                 <div className="flex items-center gap-4">
                     <div className="relative w-80">
                         <input

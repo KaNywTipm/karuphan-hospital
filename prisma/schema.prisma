@@ -30,7 +30,7 @@ enum BorrowStatus {
     APPROVED // อนุมัติแล้ว/รอคืน
     RETURNED // คืนแล้ว
     REJECTED // ไม่อนุมัติ / ยกเลิก
-    OVERDUE // เกินกำหนดคืน (คำนวณ/อัปเดตตามเวลา)
+    // OVERDUE // เกินกำหนดคืน (คำนวณ/อัปเดตตามเวลา)
 }
 
 enum EquipmentStatus {

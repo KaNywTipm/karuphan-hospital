@@ -23,14 +23,13 @@ const statusTH = (s?: Row["status"]) =>
     s === "PENDING" ? "รออนุมัติ" :
         s === "APPROVED" ? "อนุมัติแล้ว/รอคืน" :
             s === "RETURNED" ? "คืนแล้ว" :
-                s === "REJECTED" ? "ไม่อนุมัติ" :
-                    s === "OVERDUE" ? "เกินกำหนด" : "-";
+                s === "REJECTED" ? "ไม่อนุมัติ" : "-";
+                    // s === "OVERDUE" ? "เกินกำหนด" : "-" พัฒนาต่อในอนาคต
 
 export default function BorrowReturnReport() {
     const [search, setSearch] = useState("");
-    const [cat, setCat] = useState("");
+    const [statusFilter, setStatusFilter] = useState<"" | "PENDING" | "APPROVED" | "RETURNED" | "REJECTED" | "OVERDUE">("");
     const [rows, setRows] = useState<Row[]>([]);
-    const [cats, setCats] = useState<Category[]>([]);
     const [loading, setLoading] = useState(true);
     const [sort, setSort] = useState<"newest" | "oldest">("newest");
 
@@ -39,35 +38,49 @@ export default function BorrowReturnReport() {
         (async () => {
             try {
                 setLoading(true);
-                const [bRes, cRes] = await Promise.all([
-                    fetch("/api/borrow", { cache: "no-store" }),
-                    fetch("/api/categories", { cache: "no-store" }),
-                ]);
+                const bRes = await fetch("/api/borrow", { cache: "no-store" });
                 const bJson = await bRes.json().catch(() => ({ data: [] }));
-                const cJson = await cRes.json().catch(() => ({ data: [] }));
                 if (!alive) return;
-                // Map ข้อมูลให้ครบทุกช่องเหมือนหน้า admin
-                const borrowRows = Array.isArray(bJson?.data) ? bJson.data.map((r: any) => ({
-                    id: r.id,
-                    borrowerName:
-                        r.borrowerType === "INTERNAL"
-                            ? (r.requester?.fullName ?? "-")
-                            : (r.externalName || r.requester?.fullName || "-"),
-                    department:
-                        r.borrowerType === "INTERNAL"
-                            ? (r.requester?.department?.name ?? "-")
-                            : (r.externalDept ?? "ภายนอกกลุ่มงาน"),
-                    equipmentCode: (r.items ?? []).map((it: any) => it?.equipment?.code).filter(Boolean).join(", "),
-                    equipmentName: (r.items ?? []).map((it: any) => it?.equipment?.name).filter(Boolean).join(", "),
-                    borrowDate: r.borrowDate ?? null,
-                    returnDue: r.returnDue ?? null,
-                    actualReturnDate: r.actualReturnDate ?? null,
-                    reason: r.reason ?? null,
-                    status: r.status,
-                    categoryNames: r.categoryNames,
-                })) : [];
+                // Map ข้อมูลให้ครบทุกช่องเหมือนหน้า admin (with improved categoryNames logic)
+                const borrowRows = Array.isArray(bJson?.data)
+                    ? bJson.data.map((r: any) => {
+                        const namesFromItems = Array.from(
+                            new Set(
+                                (r.items ?? [])
+                                    .map((it: any) => it?.equipment?.category?.name)
+                                    .filter(Boolean)
+                            )
+                        );
+
+                        const normalizedCategoryNames =
+                            Array.isArray(r.categoryNames) && r.categoryNames.length
+                                ? r.categoryNames
+                                : typeof r.categoryNames === "string" && r.categoryNames.trim()
+                                    ? r.categoryNames.split(",").map((s: string) => s.trim())
+                                    : namesFromItems; // fallback จาก items
+
+                        return {
+                            id: r.id,
+                            borrowerName:
+                                r.borrowerType === "INTERNAL"
+                                    ? (r.requester?.fullName ?? "-")
+                                    : (r.externalName || r.requester?.fullName || "-"),
+                            department:
+                                r.borrowerType === "INTERNAL"
+                                    ? (r.requester?.department?.name ?? "-")
+                                    : (r.externalDept ?? "ภายนอกกลุ่มงาน"),
+                            equipmentCode: (r.items ?? []).map((it: any) => it?.equipment?.code).filter(Boolean).join(", "),
+                            equipmentName: (r.items ?? []).map((it: any) => it?.equipment?.name).filter(Boolean).join(", "),
+                            borrowDate: r.borrowDate ?? null,
+                            returnDue: r.returnDue ?? null,
+                            actualReturnDate: r.actualReturnDate ?? null,
+                            reason: r.reason ?? null,
+                            status: r.status,
+                            categoryNames: normalizedCategoryNames,
+                        };
+                    })
+                    : [];
                 setRows(borrowRows);
-                setCats(Array.isArray(cJson?.data) ? cJson.data : []);
             } finally {
                 if (alive) setLoading(false);
             }
@@ -78,25 +91,19 @@ export default function BorrowReturnReport() {
     const filtered = useMemo(() => {
         const q = (search || "").toLowerCase();
         return (rows || [])
+            .filter(r => !statusFilter || r.status === statusFilter)
             .filter(r =>
                 (r.borrowerName || "").toLowerCase().includes(q) ||
                 (r.department || "").toLowerCase().includes(q) ||
                 (r.equipmentCode || "").toLowerCase().includes(q) ||
                 (r.equipmentName || "").toLowerCase().includes(q)
             )
-            .filter(r => {
-                if (!cat) return true;
-                const names = Array.isArray(r.categoryNames)
-                    ? r.categoryNames
-                    : (typeof r.categoryNames === "string" ? r.categoryNames.split(",").map(s => s.trim()) : []);
-                return names.some(n => n === cat);
-            })
             .sort((a, b) => {
                 const da = new Date(a.borrowDate || "").getTime();
                 const db = new Date(b.borrowDate || "").getTime();
                 return sort === "newest" ? db - da : da - db;
             });
-    }, [rows, search, cat, sort]);
+    }, [rows, search, sort, statusFilter]);
 
     function toDate(s?: string | null) {
         return s ? new Date(s).toLocaleDateString("th-TH") : "-";
@@ -144,37 +151,38 @@ export default function BorrowReturnReport() {
                 </button>
             </div>
 
-            {/* Filters */}
-            <div className="mb-6 flex justify-between items-center gap-4">
+            {/* Filters: Only status dropdown remains */}
+            <div className="mb-6 flex flex-wrap gap-4 items-center">
                 <div className="flex items-center gap-2">
-                    <label className="text-sm font-medium text-NavyBlue">หมวดหมู่:</label>
+                    <label className="text-sm font-medium text-NavyBlue">สถานะ:</label>
                     <select
-                        value={cat}
-                        onChange={(e) => setCat(e.target.value)}
-                        className="px-3 py-2 border border-Grey rounded-lg focus:outline-none focus:ring-2 focus:ring-Blue"
+                        value={statusFilter}
+                        onChange={(e) => setStatusFilter(e.target.value as any)}
+                        className="px-3 py-2 border border-Grey rounded-lg"
                     >
                         <option value="">ทั้งหมด</option>
-                        {cats.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
+                        <option value="PENDING">รออนุมัติ</option>
+                        <option value="APPROVED">อนุมัติแล้ว/รอคืน</option>
+                        <option value="RETURNED">คืนแล้ว</option>
+                        <option value="REJECTED">ไม่อนุมัติ</option>
+                        {/* <option value="OVERDUE">เกินกำหนด</option> */}
                     </select>
                 </div>
-
-                <div className="flex items-center gap-4">
-                    <div className="relative w-80">
-                        <input
-                            type="text"
-                            placeholder="Search"
-                            value={search}
-                            onChange={(e) => setSearch(e.target.value)}
-                            className="w-full px-4 py-2 border border-Grey rounded-lg focus:outline-none focus:ring-2 focus:ring-Blue"
-                        />
-                        <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                            <Image src="/search.png" alt="search" width={20} height={20} className="opacity-50" />
-                        </div>
+                <div className="relative w-80 ml-auto">
+                    <input
+                        type="text"
+                        placeholder="Search"
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
+                        className="w-full px-4 py-2 border border-Grey rounded-lg focus:outline-none focus:ring-2 focus:ring-Blue"
+                    />
+                    <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                        <Image src="/search.png" alt="search" width={20} height={20} className="opacity-50" />
                     </div>
-                    <button onClick={() => setSort(s => s === "newest" ? "oldest" : "newest")} className="p-2 border border-Grey rounded-lg hover:bg-gray-100">
-                        <Image src="/HamBmenu.png" alt="sort" width={20} height={20} />
-                    </button>
                 </div>
+                <button onClick={() => setSort(s => s === "newest" ? "oldest" : "newest")} className="p-2 border border-Grey rounded-lg hover:bg-gray-100">
+                    <Image src="/HamBmenu.png" alt="sort" width={20} height={20} />
+                </button>
             </div>
 
             {/* Table */}

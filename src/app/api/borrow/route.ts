@@ -3,6 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 export const dynamic = "force-dynamic";
 
+// กรณีการส่งคำขอซ้ำ ควรจะ???
+
 const ALLOWED_STATUS = new Set([
     "PENDING",
     "APPROVED",
