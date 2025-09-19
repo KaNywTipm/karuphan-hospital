@@ -105,100 +105,40 @@ type PostBody = {
 // POST /api/borrow
 export async function POST(req: Request) {
     const me = await auth();
-    if (!me)
-        return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
+    if (!me) return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
 
-    const body = (await req.json()) as PostBody;
-
-    const borrowerType = pickBorrower(body?.borrowerType) as PostBody["borrowerType"];
-    if (!borrowerType)
-        return NextResponse.json({ ok: false, error: "invalid-borrowerType" }, { status: 400 });
-
-    if (!Array.isArray(body.items) || body.items.length === 0)
-        return NextResponse.json({ ok: false, error: "no-items" }, { status: 400 });
-
-    const equipmentIds = body.items.map((i) => i.equipmentId);
-
-    // 1) กันเคสอุปกรณ์ใช้งานอยู่ (IN_USE) → ห้ามยืมซ้อน
-    const eqs = await prisma.equipment.findMany({
-        where: { number: { in: equipmentIds } },
-        select: { number: true, status: true },
-    });
-    const busy = eqs.filter((e) => e.status === "IN_USE");
-    if (busy.length) {
-        return NextResponse.json(
-            {
-                ok: false,
-                error: `อุปกรณ์เลข: ${busy.map((b) => b.number).join(", ")} กำลังถูกยืม`,
-            },
-            { status: 409 }
-        );
-    }
-
-    // 2) กัน "คำขอค้าง" ซ้อน (ทั้ง INTERNAL/EXTERNAL) ด้วยการไล่จากฝั่ง BorrowRequest
-    const openReq = await prisma.borrowRequest.findFirst({
-        where: {
-            status: { in: ["PENDING", "APPROVED"] },
-            items: {
-                some: { equipmentId: { in: equipmentIds } }, // equipmentIds = [id ของอุปกรณ์ที่ขอ]
-            },
-        },
-        select: {
-            id: true,
-            items: { select: { equipmentId: true }, take: 1 },
-        },
-    });
-
-    if (openReq) {
-        const conflicted = openReq.items[0]?.equipmentId;
-        return NextResponse.json(
-            { ok: false, error: `มีคำขอค้างสำหรับอุปกรณ์เลข: ${conflicted ?? "ไม่ทราบเลข"}` },
-            { status: 409 }
-        );
-    }
+    const body = await req.json();
+    const { borrowerType, returnDue, reason, external, items } = body as any;
+    if (!items?.length) return NextResponse.json({ ok: false, error: "no-items" }, { status: 400 });
 
     const isInternal = borrowerType === "INTERNAL";
     const isExternal = borrowerType === "EXTERNAL";
 
-    // สรุป external ข้อมูล (ถ้า EXTERNAL)
-    const externalName = isExternal ? body.externalName ?? null : null;
-    const externalDept = isExternal ? body.externalDept ?? null : null;
-    const externalPhone = isExternal ? body.externalPhone ?? null : null;
-
-    // map user id (ภายใน: จาก session, ภายนอก: เป็น null)
+    //  requesterId ผูกกับผู้ที่ล็อกอินเสมอ (ทั้ง INTERNAL/EXTERNAL)
     const requesterId =
-        isExternal
-            ? null
-            : typeof me.user?.id === "number"
-                ? me.user.id
-                : Number(me.user?.id) || null;
+        typeof me.user?.id === "number" ? me.user.id : Number(me.user?.id) || null;
 
-    // สร้างคำขอ + จัดการสถานะอุปกรณ์ใน Transaction เดียว
+    // เก็บข้อมูลผู้ยืมภายนอก (ยังใช้ได้เหมือนเดิม)
+    let externalName = null, externalDept = null, externalPhone = null;
+    if (isExternal) {
+        externalName = body.externalName ?? external?.name ?? null;
+        externalDept = body.externalDept ?? external?.dept ?? null;
+        externalPhone = body.externalPhone ?? external?.phone ?? null;
+    }
+
+    const adminId = 1;
+
     const created = await prisma.$transaction(async (tx) => {
-        const adminId = 1; // กำหนดผู้อนุมัติ/ผู้รับคืนเป็นผู้ดูแลหลัก
-
         const reqRow = await tx.borrowRequest.create({
             data: {
                 borrowerType,
-                requesterId,
-                externalName,
-                externalDept,
-                externalPhone,
-
+                requesterId,                 // 👈 ผูกผู้ร้องขอ
+                externalName, externalDept, externalPhone,
                 status: isInternal ? "APPROVED" : "PENDING",
                 borrowDate: isInternal ? new Date() : null,
-                returnDue: new Date(body.returnDue),
-
-                reason: body?.reason ?? null,
-                returnNotes: body?.notes ?? null,
-
-                items: {
-                    create: body.items.map((it) => ({
-                        equipmentId: it.equipmentId,
-                        quantity: it.quantity ?? 1,
-                    })),
-                },
-
+                returnDue: new Date(returnDue),
+                reason: reason ?? null,
+                items: { create: items.map((it: any) => ({ equipmentId: it.equipmentId, quantity: it.quantity ?? 1 })) },
                 approvedById: isInternal ? adminId : null,
                 receivedById: isInternal ? adminId : null,
                 approvedAt: isInternal ? new Date() : null,
@@ -206,20 +146,14 @@ export async function POST(req: Request) {
             include: { items: true },
         });
 
-        // INTERNAL → ใช้งานทันที
-        if (isInternal) {
-            await tx.equipment.updateMany({
-                where: { number: { in: reqRow.items.map((i) => i.equipmentId) } },
-                data: {
-                    status: "IN_USE",
-                    currentRequestId: reqRow.id,
-                    statusChangedAt: new Date(),
-                },
-            });
-        }
-
-        // EXTERNAL → ไม่เปลี่ยนสถานะอุปกรณ์ (คง NORMAL) และไม่ผูก currentRequestId
-        // หากอยากรองรับสถานะ "RESERVED" จริง ๆ ค่อยคุยกันเพื่อเพิ่ม enum และปรับ FE ต่อภายหลัง
+        await tx.equipment.updateMany({
+            where: { number: { in: reqRow.items.map((i: any) => i.equipmentId) } },
+            data: {
+                status: isExternal ? "RESERVED" : "IN_USE",
+                currentRequestId: reqRow.id,
+                statusChangedAt: new Date(),
+            },
+        });
 
         return reqRow;
     });

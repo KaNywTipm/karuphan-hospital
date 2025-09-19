@@ -58,19 +58,15 @@ export async function PATCH(req: Request, { params }: Params) {
       where: { id },
       data: {
         status: "APPROVED",
-        approvedById: adminId, // ✅ ลงชื่อแอดมิน
+        approvedById: adminId,
         approvedAt: new Date(),
-        // ถ้ามี borrowDate เดิม (กรณียืมล่วงหน้า) ให้ใช้ของเดิม ไม่เซตใหม่
-        // ถ้าไม่มี (null) ให้เซตเป็นวันนี้
-        borrowDate: reqRow.borrowDate ?? new Date(),
+        // สำหรับ INTERNAL อาจมี borrowDate อยู่แล้ว; เติม borrowDate ที่นี่
+        borrowDate: new Date(),
       },
     });
     await tx.equipment.updateMany({
       where: { currentRequestId: id },
-      data: {
-        status: "IN_USE",
-        statusChangedAt: new Date(),
-      },
+      data: { status: "IN_USE", statusChangedAt: new Date() },
     });
   });
 

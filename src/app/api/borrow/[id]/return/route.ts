@@ -138,8 +138,7 @@ export async function PATCH(
         data: {
           status: "RETURNED",
           actualReturnDate: new Date(),
-          returnCondition: undefined, // ลบออก (deprecated)
-          returnNotes,
+          returnNotes: body?.returnNotes ?? null,
           receivedById: adminId,
         },
         include: {
@@ -153,8 +152,7 @@ export async function PATCH(
           },
         },
       });
-
-      // (ถ้าอยากล็อกเพิ่ม ก็บันทึก AuditLog ตรงนี้ได้)
+      
 
       return borrow;
     });

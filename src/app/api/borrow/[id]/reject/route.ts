@@ -47,19 +47,14 @@ export async function PATCH(req: Request, { params }: Params) {
             where: { id },
             data: {
                 status: "REJECTED",
-                rejectedById: adminId, // ✅ ลงชื่อแอดมิน
+                rejectedById: adminId,
                 rejectedAt: new Date(),
-                rejectReason: body?.rejectReason ?? null,
+                rejectReason: body?.reason ?? null,
             },
         });
-
         await tx.equipment.updateMany({
             where: { currentRequestId: id },
-            data: {
-                status: "NORMAL",
-                currentRequestId: null,
-                statusChangedAt: new Date(),
-            },
+            data: { status: "NORMAL", currentRequestId: null, statusChangedAt: new Date() },
         });
     });
 
