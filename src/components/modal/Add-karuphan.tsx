@@ -174,10 +174,6 @@ export default function Addkaruphan({ onClose, onAdd }: Props) {
                             </div>
                         </FormRow>
 
-                        <FormRow label="สถานะ">
-                            <input value="ปกติ" readOnly className="form-input bg-gray-100 border border-gray-300 rounded px-2 py-1 w-full" />
-                        </FormRow>
-
                         <div className="flex justify-center gap-4 mt-6">
                             <button type="submit" className="bg-BlueLight hover:bg-[#70a8b6] text-White px-4 py-2 rounded-md">
                                 เพิ่มข้อมูล

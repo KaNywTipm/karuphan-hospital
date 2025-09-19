@@ -15,7 +15,7 @@ type Equipment = {
 } & Record<string, any>;
 
 type Borrow = {
-    status?: "PENDING" | "APPROVED" | "RETURNED" | "REJECTED" | "OVERDUE";
+    status?: "PENDING" | "APPROVED" | "RETURNED" | "REJECTED" ;
     borrowDate?: string | null;
     createdAt?: string | null;
     returnDue?: string | null;

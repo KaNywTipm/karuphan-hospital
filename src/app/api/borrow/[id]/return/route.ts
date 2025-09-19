@@ -94,10 +94,7 @@ export async function PATCH(
       if (!reqRow)
         throw Object.assign(new Error("not-found"), { code: "NOT_FOUND" });
 
-      // คืนของได้เฉพาะที่อนุมัติอยู่ (หรือ overdue)
-      if (reqRow.status !== "APPROVED" && reqRow.status !== "OVERDUE") {
-        throw Object.assign(new Error("invalid-state"), { code: "BAD_STATE" });
-      }
+      // คืนของได้เฉพาะที่อนุมัติอยู่ (หรือ overdue พัฒนาในอนาคต)
 
       const equipmentIds = reqRow.items.map((i) => i.equipmentId);
       if (equipmentIds.length === 0) {

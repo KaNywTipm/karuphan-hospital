@@ -29,7 +29,6 @@ const toThaiStatus = (s: string) => {
     if (t === "APPROVED") return "อนุมัติแล้ว/รอคืน";
     if (t === "REJECTED") return "ไม่อนุมัติ";
     if (t === "RETURNED") return "คืนแล้ว";
-    if (t === "OVERDUE") return "เกินกำหนด";
     return s || "-";
 };
 
@@ -39,7 +38,6 @@ const statusBadgeClass = (s: string) => {
     if (t === "APPROVED") return "bg-orange-100 text-orange-800";
     if (t === "RETURNED") return "bg-green-100 text-green-800";
     if (t === "REJECTED") return "bg-red-100 text-red-800";
-    if (t === "OVERDUE") return "bg-fuchsia-100 text-fuchsia-800";
     return "bg-gray-100 text-gray-800";
 };
 

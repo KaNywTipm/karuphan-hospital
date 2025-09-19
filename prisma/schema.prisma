@@ -30,7 +30,7 @@ enum BorrowStatus {
     APPROVED // อนุมัติแล้ว/รอคืน
     RETURNED // คืนแล้ว
     REJECTED // ไม่อนุมัติ / ยกเลิก
-    // OVERDUE // เกินกำหนดคืน (คำนวณ/อัปเดตตามเวลา)
+    // เกินกำหนดคืน (พัฒนาในอนาคต)
 }
 
 enum EquipmentStatus {
@@ -178,7 +178,7 @@ model BorrowRequest {
 
     items BorrowItem[]
 
-    // ✅ ฝั่งกลับของอุปกรณ์ที่ “ถือครองอยู่ตอนนี้”
+    // ฝั่งกลับของอุปกรณ์ที่ “ถือครองอยู่ตอนนี้”
     currentEquipments Equipment[] @relation("CurrentEquipmentRequest")
 
     createdAt DateTime @default(now())

@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
 // ---------- Types ----------
-type RowStatus = "PENDING" | "APPROVED" | "RETURNED" | "REJECTED" | "OVERDUE";
+type RowStatus = "PENDING" | "APPROVED" | "RETURNED" | "REJECTED" ;
 type Row = {
     id: number;
     status: RowStatus;
@@ -27,10 +27,10 @@ type Row = {
 // ---------- Helpers ----------
 const toThaiStatus = (s: RowStatus) =>
     s === "PENDING" ? "รออนุมัติ" :
-        s === "APPROVED" ? "อนุมัติแล้ว/รอคืน" :
-            s === "RETURNED" ? "คืนแล้ว" :
-                s === "REJECTED" ? "ไม่อนุมัติ" :
-                    "เกินกำหนด";
+    s === "APPROVED" ? "อนุมัติแล้ว/รอคืน" :
+    s === "RETURNED" ? "คืนแล้ว" :
+    "ไม่อนุมัติ";
+
 
 // สำหรับแปลสภาพ (returnCondition) เฉพาะในหน้าคืนแล้ว
 function returnConditionLabelTH(s?: string | null) {

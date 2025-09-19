@@ -5,7 +5,6 @@ export const zListStatus = z.enum([
   "APPROVED",
   "RETURNED",
   "REJECTED",
-  "OVERDUE",
 ]);
 
 export const ListQuerySchema = z.object({

@@ -2,16 +2,19 @@
 
 import React, { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import Status from "@/components/dropdown/Status";
 
 // แปลงวัน ค.ศ. -> yyyy-MM-dd(พ.ศ.) สำหรับ input[type=date]
 const isoToBE = (iso?: string | null) => {
     if (!iso) {
         const d = new Date();
-        return `${d.getFullYear() + 543}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+        return `${d.getFullYear() + 543}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(
+            d.getDate()
+        ).padStart(2, "0")}`;
     }
     const d = new Date(iso);
-    return `${d.getFullYear() + 543}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    return `${d.getFullYear() + 543}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(
+        d.getDate()
+    ).padStart(2, "0")}`;
 };
 // yyyy-MM-dd(พ.ศ.) -> yyyy-MM-dd(ค.ศ.)
 const beToCE = (be: string) => {
@@ -19,8 +22,6 @@ const beToCE = (be: string) => {
     const [y, m, d] = be.split("-");
     return `${Number(y) - 543}-${m}-${d}`;
 };
-
-
 
 export default function ReturnPage() {
     const router = useRouter();
@@ -44,7 +45,10 @@ export default function ReturnPage() {
     ];
 
     useEffect(() => {
-        if (!id || !Number.isFinite(id)) { setLoading(false); return; }
+        if (!id || !Number.isFinite(id)) {
+            setLoading(false);
+            return;
+        }
         (async () => {
             try {
                 const r = await fetch(`/api/borrow/${id}`, { cache: "no-store" });
@@ -52,12 +56,11 @@ export default function ReturnPage() {
                 if (r.ok && j?.ok) {
                     setBorrowRequest(j.data);
                     setActualReturnDate(isoToBE(j.data.actualReturnDate));
-                    // ถ้ามี returnCondition ในแต่ละ item (คืนแล้ว) preload ลง state (ใช้ it.id)
+                    // preload สภาพคืนต่อชิ้น (ใช้ it.id)
                     if (Array.isArray(j.data?.items)) {
                         const rcObj: Record<number, string> = {};
                         j.data.items.forEach((it: any) => {
-                            if (it.returnCondition && it.id)
-                                rcObj[it.id] = it.returnCondition;
+                            if (it.returnCondition && it.id) rcObj[it.id] = it.returnCondition;
                         });
                         setReturnConditions(rcObj);
                     }
@@ -72,9 +75,23 @@ export default function ReturnPage() {
         })();
     }, [id]);
 
+    // คำนวณ "จำนวนวันเกินกำหนด" จาก returnDue กับ วันที่คืน (ที่ผู้ใช้เลือก)
+    const overdueDays = (() => {
+        try {
+            if (!borrowRequest?.returnDue) return 0;
+            const due = new Date(borrowRequest.returnDue).getTime();
+            const actIso = beToCE(actualReturnDate) || new Date().toISOString();
+            const act = new Date(actIso).getTime();
+            const diff = Math.floor((act - due) / (1000 * 60 * 60 * 24));
+            return diff > 0 ? diff : 0;
+        } catch {
+            return 0;
+        }
+    })();
+
     const handleReturn = async () => {
         if (!borrowRequest) return;
-        // ตรวจสอบว่าทุกชิ้นถูกเลือกสภาพคืนครบ (ใช้ it.id)
+        // ตรวจว่าเลือกสภาพคืนครบทุกชิ้น
         const items = borrowRequest.items || [];
         const missing = items.some((it: any) => !returnConditions[it.id]);
         if (missing) return alert("กรุณาเลือกสภาพคืนให้ครบทุกชิ้น");
@@ -82,7 +99,7 @@ export default function ReturnPage() {
             const payload = {
                 returnConditions: items.map((it: any) => ({
                     equipmentId: it.equipment?.number,
-                    condition: returnConditions[it.id]
+                    condition: returnConditions[it.id],
                 })),
                 returnNotes,
             };
@@ -115,7 +132,6 @@ export default function ReturnPage() {
     if (!borrowRequest) {
         return <div className="p-6">ไม่พบคำขอ</div>;
     }
-
 
     // ชื่อแอดมินผู้รับคืน
     const adminName =
@@ -151,36 +167,57 @@ export default function ReturnPage() {
                             รายการยืมรอคืน #{borrowRequest.id}
                         </h2>
 
-                        {/* Equipment Table (ดีไซน์เดิม) */}
+                        {/* Equipment Table */}
                         <div className="mb-6">
                             <table className="w-full border-collapse">
                                 <thead>
                                     <tr className="bg-red-300">
-                                        <th className="border border-gray-300 px-4 py-2 text-left text-sm font-medium text-gray-700">ลำดับ</th>
-                                        <th className="border border-gray-300 px-4 py-2 text-left text-sm font-medium text-gray-700">ชื่อครุภัณฑ์</th>
-                                        <th className="border border-gray-300 px-4 py-2 text-left text-sm font-medium text-gray-700">กำหนดคืน</th>
-                                        <th className="border border-gray-300 px-4 py-2 text-left text-sm font-medium text-gray-700">สภาพ</th>
+                                        <th className="border border-gray-300 px-4 py-2 text-left text-sm font-medium text-gray-700">
+                                            ลำดับ
+                                        </th>
+                                        <th className="border border-gray-300 px-4 py-2 text-left text-sm font-medium text-gray-700">
+                                            ชื่อครุภัณฑ์
+                                        </th>
+                                        <th className="border border-gray-300 px-4 py-2 text-left text-sm font-medium text-gray-700">
+                                            กำหนดคืน
+                                        </th>
+                                        <th className="border border-gray-300 px-4 py-2 text-left text-sm font-medium text-gray-700">
+                                            สภาพ
+                                        </th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {borrowRequest.items.map((it: any, idx: number) => (
                                         <tr key={it.id}>
-                                            <td className="border border-gray-300 px-4 py-3 text-sm text-gray-900">{idx + 1}</td>
-                                            <td className="border border-gray-300 px-4 py-3 text-sm text-gray-900">{it.equipment?.name ?? '-'}</td>
+                                            <td className="border border-gray-300 px-4 py-3 text-sm text-gray-900">
+                                                {idx + 1}
+                                            </td>
+                                            <td className="border border-gray-300 px-4 py-3 text-sm text-gray-900">
+                                                {it.equipment?.name ?? "-"}
+                                            </td>
                                             <td className="border border-gray-300 px-4 py-3 text-sm text-gray-900">
                                                 {borrowRequest.returnDue
                                                     ? new Date(borrowRequest.returnDue).toLocaleDateString("th-TH")
                                                     : "-"}
+                                                {overdueDays > 0 && (
+                                                    <span className="ml-2 inline-block text-red-600 bg-red-100 px-2 py-0.5 rounded text-xs">
+                                                        คืนเกินกำหนด {overdueDays} วัน
+                                                    </span>
+                                                )}
                                             </td>
                                             <td className="border border-gray-300 px-4 py-3 text-sm text-gray-900">
                                                 <select
                                                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                                                     value={returnConditions[it.id] || ""}
-                                                    onChange={e => setReturnConditions(rc => ({ ...rc, [it.id]: e.target.value }))}
+                                                    onChange={(e) =>
+                                                        setReturnConditions((rc) => ({ ...rc, [it.id]: e.target.value }))
+                                                    }
                                                 >
                                                     <option value="">เลือกสภาพ</option>
                                                     {RETURN_OPTIONS.map((s) => (
-                                                        <option key={s.value} value={s.value}>{s.label}</option>
+                                                        <option key={s.value} value={s.value}>
+                                                            {s.label}
+                                                        </option>
                                                     ))}
                                                 </select>
                                             </td>
@@ -193,8 +230,18 @@ export default function ReturnPage() {
                         {/* ข้อมูลประกอบ */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                             <div className="space-y-4">
-                                <div>วันที่ยืม {borrowRequest.borrowDate ? new Date(borrowRequest.borrowDate).toLocaleDateString("th-TH") : "ไม่ระบุ"}</div>
-                                <div>กำหนดคืน {borrowRequest.returnDue ? new Date(borrowRequest.returnDue).toLocaleDateString("th-TH") : "-"}</div>
+                                <div>
+                                    วันที่ยืม{" "}
+                                    {borrowRequest.borrowDate
+                                        ? new Date(borrowRequest.borrowDate).toLocaleDateString("th-TH")
+                                        : "ไม่ระบุ"}
+                                </div>
+                                <div>
+                                    กำหนดคืน{" "}
+                                    {borrowRequest.returnDue
+                                        ? new Date(borrowRequest.returnDue).toLocaleDateString("th-TH")
+                                        : "-"}
+                                </div>
                                 <div>บุคลากร {department}</div>
                                 <div>ผู้ยืม {borrowerName}</div>
                                 <div>เหตุผลที่ยืม {borrowRequest.reason ?? "-"}</div>
@@ -202,7 +249,9 @@ export default function ReturnPage() {
 
                             <div className="space-y-4">
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">วันที่คืน</label>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                        วันที่คืน
+                                    </label>
                                     <input
                                         type="date"
                                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -210,9 +259,16 @@ export default function ReturnPage() {
                                         onChange={(e) => setActualReturnDate(e.target.value)}
                                         placeholder="2568-01-01"
                                     />
+                                    {overdueDays > 0 && (
+                                        <p className="mt-1 text-xs text-red-600">
+                                            คืนเกินกำหนด {overdueDays} วัน
+                                        </p>
+                                    )}
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">เหตุผลที่คืน</label>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                        เหตุผลที่คืน
+                                    </label>
                                     <textarea
                                         className="w-full px-3 py-2 border border-gray-300 rounded-md h-20 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
                                         placeholder="ระบุเหตุผลหรือหมายเหตุ..."
@@ -221,7 +277,9 @@ export default function ReturnPage() {
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">ผู้รับคืน</label>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                        ผู้รับคืน
+                                    </label>
                                     <div className="bg-gray-200 rounded px-3 py-2 text-sm text-gray-700">
                                         {adminName}
                                     </div>
@@ -234,7 +292,10 @@ export default function ReturnPage() {
                             <button
                                 onClick={handleReturn}
                                 disabled={borrowRequest.items.some((it: any) => !returnConditions[it.id])}
-                                className={`px-6 py-2 rounded-lg font-medium transition-colors ${borrowRequest.items.every((it: any) => returnConditions[it.id]) ? "bg-blue-500 hover:bg-blue-600 text-white" : "bg-gray-300 text-gray-500 cursor-not-allowed"}`}
+                                className={`px-6 py-2 rounded-lg font-medium transition-colors ${borrowRequest.items.every((it: any) => returnConditions[it.id])
+                                        ? "bg-blue-500 hover:bg-blue-600 text-white"
+                                        : "bg-gray-300 text-gray-500 cursor-not-allowed"
+                                    }`}
                             >
                                 บันทึก
                             </button>
@@ -251,4 +312,3 @@ export default function ReturnPage() {
         </div>
     );
 }
-

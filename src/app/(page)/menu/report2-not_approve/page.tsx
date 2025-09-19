@@ -12,7 +12,7 @@ type Row = {
     borrowDate?: string | null;
     returnDue?: string | null;
     reason?: string | null;
-    status?: "PENDING" | "APPROVED" | "RETURNED" | "REJECTED" | "OVERDUE";
+    status?: "PENDING" | "APPROVED" | "RETURNED" | "REJECTED";
     categoryNames?: string | string[] | null;
     rejectedByName?: string | null;
 };

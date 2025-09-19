@@ -7,7 +7,7 @@ type Row = {
     borrowDate: string | null;       // = วันที่ส่งคำขอ
     returnDue: string | null;
     actualReturnDate: string | null;
-    status: "PENDING" | "APPROVED" | "RETURNED" | "REJECTED" | "OVERDUE";
+    status: "PENDING" | "APPROVED" | "RETURNED" | "REJECTED";
     reason: string;
     equipmentName: string;
     equipmentCode: string;
@@ -102,22 +102,23 @@ export default function UserHistory() {
     }, []);
 
 
-    const statusBadge = (st: Row["status"]) => ({
+    const STATUS_BADGE: Record<Row["status"], string> = {
         PENDING: "bg-blue-100 text-blue-800",
         APPROVED: "bg-orange-100 text-orange-800",
         RETURNED: "bg-green-100 text-green-800",
         REJECTED: "bg-red-100 text-red-800",
-        OVERDUE: "bg-purple-100 text-purple-800",
-    }[st]);
+    };
+    // Use STATUS_BADGE[r.status] directly in the render instead of statusBadge[st]
 
-    const statusText = (st: Row["status"]) =>
-        ({
-            PENDING: "รออนุมัติ",
-            APPROVED: "อนุมัติแล้ว/รอคืน",
-            RETURNED: "คืนแล้ว",
-            REJECTED: "ไม่อนุมัติ",
-            OVERDUE: "เกินกำหนด",
-        } as const)[st];
+    const STATUS_TEXT: Record<Row["status"], string> = {
+        PENDING: "รออนุมัติ",
+        APPROVED: "อนุมัติแล้ว/รอคืน",
+        RETURNED: "คืนแล้ว",
+        REJECTED: "ไม่อนุมัติ",
+    };
+    // Use STATUS_TEXT[r.status] directly in the render instead of statusText[st]
+
+
 
     // แปลงวันที่เป็น วัน/เดือน/ปี(พ.ศ.)
     // แปลงวันที่เป็น พ.ศ.
@@ -132,7 +133,7 @@ export default function UserHistory() {
         borrowDate: string | null;
         returnDue: string | null;
         actualReturnDate: string | null;
-        status: "PENDING" | "APPROVED" | "RETURNED" | "REJECTED" | "OVERDUE";
+        status: "PENDING" | "APPROVED" | "RETURNED" | "REJECTED";
         reason: string;
         equipmentCode: string;
         equipmentName: string;
@@ -147,7 +148,7 @@ export default function UserHistory() {
                 const list = Array.isArray(j) ? j : (j?.data ?? []);
 
                 const rows: Row[] = (list as any[]).map((x: any) => {
-                    // ✅ รองรับทั้ง flatten (equipmentCode/Name) และ fallback จาก items[]
+                    // รองรับทั้ง flatten (equipmentCode/Name) และ fallback จาก items[]
                     const eqCode =
                         x.equipmentCode ??
                         (x.items?.[0]?.equipment?.code ??
@@ -183,7 +184,7 @@ export default function UserHistory() {
     // filter + sort (เรียงตาม “วันที่ยืม”)
     const filtered = useMemo(() => {
         const s = (search ?? "").toLowerCase();
-        const allowed: Row["status"][] = ["APPROVED", "REJECTED", "RETURNED", "OVERDUE"];
+        const allowed: Row["status"][] = ["APPROVED", "REJECTED", "RETURNED"];
         return rows
             .filter((r) => allowed.includes(r.status))
             .filter(
@@ -266,8 +267,8 @@ export default function UserHistory() {
                                     <td className="px-4 py-3 text-sm">{r.equipmentName}</td>
                                     <td className="px-4 py-3 text-sm">{r.approverOrReceiver || "-"}</td>
                                     <td className="px-4 py-3 text-sm">
-                                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${statusBadge(r.status)}`}>
-                                            {statusText(r.status)}
+                                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${STATUS_BADGE[r.status]}`}>
+                                            {STATUS_TEXT[r.status]}
                                         </span>
                                     </td>
                                     <td className="px-4 py-3 text-sm">{r.reason || "-"}</td>

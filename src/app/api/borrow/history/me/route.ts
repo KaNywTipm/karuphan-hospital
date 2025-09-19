@@ -19,7 +19,7 @@ function flattenBorrowRequests(list: any[]) {
 
         // ชื่อผู้อนุมัติ/รับคืนตามสถานะ
         let approverOrReceiver = "-";
-        if (status === "APPROVED" || status === "OVERDUE") {
+        if (status === "APPROVED" ) {
             approverOrReceiver = req.approvedBy?.fullName ?? "-";
         } else if (status === "RETURNED") {
             approverOrReceiver = req.receivedBy?.fullName ?? "-";

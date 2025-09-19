@@ -13,7 +13,7 @@ type Row = {
     returnDue?: string | null;
     actualReturnDate?: string | null;
     reason?: string | null;
-    status?: "PENDING" | "APPROVED" | "RETURNED" | "REJECTED" | "OVERDUE";
+    status?: "PENDING" | "APPROVED" | "RETURNED" | "REJECTED" ;
     categoryNames?: string | string[] | null; // ถ้า API ยังไม่ส่งมา จะเป็น undefined ก็ได้
 };
 
@@ -28,7 +28,7 @@ const statusTH = (s?: Row["status"]) =>
 
 export default function BorrowReturnReport() {
     const [search, setSearch] = useState("");
-    const [statusFilter, setStatusFilter] = useState<"" | "PENDING" | "APPROVED" | "RETURNED" | "REJECTED" | "OVERDUE">("");
+    const [statusFilter, setStatusFilter] = useState<"" | "PENDING" | "APPROVED" | "RETURNED" | "REJECTED" >("");
     const [rows, setRows] = useState<Row[]>([]);
     const [loading, setLoading] = useState(true);
     const [sort, setSort] = useState<"newest" | "oldest">("newest");
