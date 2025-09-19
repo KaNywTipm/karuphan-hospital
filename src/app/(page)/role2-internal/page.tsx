@@ -283,8 +283,8 @@ export default function InternalBorrowPage() {
                                             </th>
                                             <th className="border px-4 py-3 text-center w-[80px]">ลำดับ</th>
                                             <th className="border px-4 py-3 text-center w-[180px]">เลขครุภัณฑ์</th>
-                                            <th className="border px-4 py-3 text-center">ชื่อครุภัณฑ์</th>
-                                            <th className="border px-4 py-3 text-center w-[200px]">รายละเอียด</th>
+                                            <th className="border px-4 py-3 text-left">ชื่อครุภัณฑ์</th>
+                                            <th className="border px-4 py-3 text-left w-[200px]">รายละเอียด</th>
                                             <th className="border px-4 py-3 text-center w-[130px]">สถานะ</th>
                                             <th className="border px-4 py-3 text-center w-[110px]">ยืม</th>
                                         </tr>
@@ -293,7 +293,7 @@ export default function InternalBorrowPage() {
                                         {currentItems.map((row, idx) => {
                                             const isBusy = row.status !== "NORMAL";
                                             return (
-                                                <tr key={row.id} className="hover:bg-gray-50">
+                                                <tr key={row.id} className="hover:bg-gray-50 align-middle">
                                                     <td className="border px-4 py-3 text-center">
                                                         <input
                                                             type="checkbox"
@@ -303,9 +303,9 @@ export default function InternalBorrowPage() {
                                                         />
                                                     </td>
                                                     <td className="border px-4 py-3 text-center">{startIndex + idx + 1}</td>
-                                                    <td className="border px-4 py-3 text-center">{row.code}</td>
-                                                    <td className="border px-4 py-3 text-center flex items-center gap-2 justify-center">{row.name}</td>
-                                                    <td className="border px-4 py-3 text-center">{row.details || row.category}</td>
+                                                    <td className="border px-4 py-3 text-center whitespace-nowrap">{row.code}</td>
+                                                    <td className="border px-4 py-3 text-left whitespace-nowrap max-w-[360px] truncate">{row.name}</td>
+                                                    <td className="border px-4 py-3 text-left max-w-[240px] truncate">{row.details || row.category}</td>
                                                     <td className="border px-4 py-3 text-center">
                                                         <StatusBadge status={row.status} />
                                                     </td>
