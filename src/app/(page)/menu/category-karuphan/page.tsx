@@ -33,11 +33,17 @@ export default function CategoryKaruphan() {
     const [editDesc, setEditDesc] = useState("");
 
     // ====== helpers ======
+    const safeJson = async (res: Response) => {
+        // ป้องกันกรณี 204/ไม่มี body → json() จะพัง
+        const ct = res.headers.get("content-type") || "";
+        if (!ct.includes("application/json")) return null;
+        try { return await res.json(); } catch { return null; }
+    };
     const load = async () => {
         try {
             setLoading(true);
             const res = await fetch("/api/categories", { cache: "no-store" });
-            const data = await res.json();
+            const data = await safeJson(res);
             if (!res.ok) throw new Error(data?.error || "โหลดข้อมูลไม่สำเร็จ");
             // API now returns { ok: true, data: [...] }
             setItems(Array.isArray(data.data) ? data.data : []);
@@ -51,6 +57,7 @@ export default function CategoryKaruphan() {
 
     useEffect(() => {
         load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     const filteredData = useMemo(() => {
@@ -90,7 +97,7 @@ export default function CategoryKaruphan() {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ name: newName.trim(), description: newDesc || null }),
             });
-            const data = await res.json();
+            const data = await safeJson(res);
             if (!res.ok) throw new Error(data?.error || "เพิ่มข้อมูลไม่สำเร็จ");
             setNewName("");
             setNewDesc("");
@@ -126,7 +133,7 @@ export default function CategoryKaruphan() {
                     description: editDesc || null,
                 }),
             });
-            const data = await res.json();
+            const data = await safeJson(res);
             if (!res.ok) throw new Error(data?.error || "บันทึกไม่สำเร็จ");
             await load();
             cancelEdit();
@@ -139,7 +146,7 @@ export default function CategoryKaruphan() {
         if (!confirm("ยืนยันการลบหมวดหมู่นี้?")) return;
         try {
             const res = await fetch(`/api/categories/${id}`, { method: "DELETE" });
-            const data = await res.json();
+            const data = await safeJson(res);
             if (!res.ok) throw new Error(data?.error || "ลบไม่สำเร็จ");
             await load();
             // ถ้าลบแล้วหน้าปัจจุบันไม่มีรายการ ให้ถอยหน้าลง
@@ -218,7 +225,7 @@ export default function CategoryKaruphan() {
                                                     <input
                                                         value={editName}
                                                         onChange={(e) => setEditName(e.target.value)}
-                                                        className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
+                                                        className="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:ring-2 focus:ring-Blue"
                                                     />
                                                 ) : (
                                                     item.name
@@ -229,33 +236,33 @@ export default function CategoryKaruphan() {
                                                     <input
                                                         value={editDesc}
                                                         onChange={(e) => setEditDesc(e.target.value)}
-                                                        className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
+                                                        className="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:ring-2 focus:ring-Blue"
                                                         placeholder="รายละเอียด (ไม่บังคับ)"
                                                     />
                                                 ) : (
                                                     item.description || "-"
                                                 )}
                                             </td>
-                                            <td className="px-2 py-3 text-sm text-center">
+                                            <td className="px-1 py-3 text-sm text-center">
                                                 {editId === item.id ? (
                                                     <>
                                                         <button
                                                             onClick={() => saveEdit(item.id)}
-                                                            className="bg-green-600 text-white px-3 py-1 rounded text-sm mr-1 my-1"
+                                                            className="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-sm mr-1 my-1 shadow-sm"
                                                         >
-                                                            บันทึก
+                                                            ✔ บันทึก
                                                         </button>
                                                         <button
                                                             onClick={cancelEdit}
-                                                            className="bg-gray-500 text-white px-3 py-1 rounded text-sm"
+                                                            className="bg-gray-500 hover:bg-gray-600 text-white px-3 py-1 rounded text-sm mr-1 my-1 shadow-sm"
                                                         >
-                                                            ยกเลิก
+                                                            ✕ ยกเลิก
                                                         </button>
                                                     </>
                                                 ) : (
                                                     <button
                                                         onClick={() => startEdit(item)}
-                                                        className="bg-yellow-500 text-white px-3 py-1 rounded text-sm"
+                                                        className="bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-1 rounded text-sm shadow-sm"
                                                         title="แก้ไข"
                                                     >
                                                         <Image src="/edit.png" alt="edit" width={20} height={20} />

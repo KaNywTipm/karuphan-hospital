@@ -4,40 +4,84 @@ import { auth } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
-/**
- * DELETE /api/categories/:id
- * - ต้องเป็น ADMIN
- * - ค่าเริ่มต้น: soft delete -> isActive=false
- * - ถ้าส่ง ?hard=1 -> ลบจริง แต่จะยอมเฉพาะเมื่อไม่มีครุภัณฑ์ในหมวดนั้น (otherwise 409)
- * - not-found -> 404
- */
-
-export async function DELETE(
-  req: Request,
-  { params }: { params: { id: string } }
-) {
+// Helpers
+async function requireAdmin() {
   const session: any = await auth();
   if (!session) {
-    return NextResponse.json(
-      { ok: false, error: "unauthorized" },
-      { status: 401 }
-    );
+    return { ok: false, res: NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 }) };
   }
   const role = String(session.role ?? session.user?.role ?? "").toUpperCase();
   if (role !== "ADMIN") {
-    return NextResponse.json(
-      { ok: false, error: "forbidden" },
-      { status: 403 }
-    );
+    return { ok: false, res: NextResponse.json({ ok: false, error: "forbidden" }, { status: 403 }) };
+  }
+  return { ok: true, session };
+}
+
+function parseId(params: { id?: string }) {
+  const id = Number(params?.id);
+  if (!Number.isFinite(id)) return { ok: false as const, error: NextResponse.json({ ok: false, error: "invalid-id" }, { status: 400 }) };
+  return { ok: true as const, id };
+}
+
+// PATCH /api/categories/:id
+// body: { name: string; description?: string | null }
+export async function PATCH(req: Request, { params }: { params: { id: string } }) {
+  const gate = await requireAdmin();
+  if (!gate.ok) return gate.res;
+
+  const idParsed = parseId(params);
+  if (!idParsed.ok) return idParsed.error;
+  const id = idParsed.id;
+
+  let payload: any;
+  try {
+    payload = await req.json();
+  } catch {
+    return NextResponse.json({ ok: false, error: "invalid-json" }, { status: 400 });
   }
 
-  const id = Number(params.id);
-  if (!Number.isFinite(id)) {
-    return NextResponse.json(
-      { ok: false, error: "invalid-id" },
-      { status: 400 }
-    );
+  const nameRaw = String(payload?.name ?? "").trim();
+  const description = payload?.description == null ? null : String(payload.description).trim();
+
+  if (!nameRaw) {
+    return NextResponse.json({ ok: false, error: "name-required" }, { status: 400 });
   }
+
+  try {
+    // มี isActive อยู่หรือไม่แล้วแต่ schema; ถ้ามีให้คงไว้ (ไม่บังคับ)
+    const updated = await prisma.category.update({
+      where: { id },
+      data: {
+        name: nameRaw,
+        description,
+      },
+    });
+
+    return NextResponse.json({ ok: true, id, data: updated }, { status: 200 });
+  } catch (e: any) {
+    // not found
+    if (e?.code === "P2025") {
+      return NextResponse.json({ ok: false, error: "not-found" }, { status: 404 });
+    }
+    // unique conflict (เช่นชื่อซ้ำ)
+    if (e?.code === "P2002") {
+      return NextResponse.json({ ok: false, error: "duplicate-name" }, { status: 409 });
+    }
+    console.error("PATCH /api/categories/:id error:", e);
+    return NextResponse.json({ ok: false, error: "server-error" }, { status: 500 });
+  }
+}
+
+// DELETE /api/categories/:id
+// ?hard=1 -> ลบจริง (ยอมเมื่อไม่มีอุปกรณ์อ้างถึงเท่านั้น)
+// ไม่ส่ง -> soft delete โดย set isActive=false (ถ้ามีฟิลด์นี้ใน schema)
+export async function DELETE(req: Request, { params }: { params: { id: string } }) {
+  const gate = await requireAdmin();
+  if (!gate.ok) return gate.res;
+
+  const idParsed = parseId(params);
+  if (!idParsed.ok) return idParsed.error;
+  const id = idParsed.id;
 
   const hard = new URL(req.url).searchParams.get("hard") === "1";
 
@@ -45,10 +89,8 @@ export async function DELETE(
     // เช็คว่ามีจริงก่อน
     await prisma.category.findUniqueOrThrow({ where: { id } });
 
-    // เช็คว่ามีครุภัณฑ์ในหมวดหมู่หรือไม่ (soft/hard ลบไม่ได้ถ้ามี)
-    const equipmentCount = await prisma.equipment.count({
-      where: { categoryId: id },
-    });
+    // กันการลบถ้ามีอุปกรณ์อ้างถึง
+    const equipmentCount = await prisma.equipment.count({ where: { categoryId: id } });
     if (equipmentCount > 0) {
       return NextResponse.json(
         { ok: false, error: "category-in-use", detail: { equipmentCount } },
@@ -57,40 +99,39 @@ export async function DELETE(
     }
 
     if (!hard) {
-      // -------- Soft delete --------
-      await prisma.category.update({
-        where: { id },
-        data: { isActive: false },
-      });
-      return NextResponse.json({ ok: true, hard: false }, { status: 200 });
+      // Soft delete (ถ้า schema ไม่มี isActive ให้เปลี่ยนมาใช้ delete แทน)
+      try {
+        await prisma.category.update({ where: { id }, data: { isActive: false as any } });
+        return NextResponse.json({ ok: true, id, hard: false }, { status: 200 });
+      } catch {
+        // กรณีไม่มีฟิลด์ isActive ให้ fallback เป็น hard delete
+        await prisma.category.delete({ where: { id } });
+        return NextResponse.json({ ok: true, id, hard: true }, { status: 200 });
+      }
     }
 
-    // -------- Hard delete --------
+    // Hard delete
     await prisma.category.delete({ where: { id } });
-    return NextResponse.json({ ok: true, hard: true }, { status: 200 });
+    return NextResponse.json({ ok: true, id, hard: true }, { status: 200 });
   } catch (e: any) {
-    // ไม่พบ
     if (e?.code === "P2025") {
-      return NextResponse.json(
-        { ok: false, error: "not-found" },
-        { status: 404 }
-      );
+      return NextResponse.json({ ok: false, error: "not-found" }, { status: 404 });
     }
-    // กันกรณีโดน FK แม้เราจะเช็ค count แล้ว (เพื่อความชัวร์)
     if (e?.code === "P2003" || /Foreign key/i.test(e?.message ?? "")) {
       const equipmentCount =
-        (await prisma.equipment
-          .count({ where: { categoryId: id } })
-          .catch(() => undefined)) ?? undefined;
+        (await prisma.equipment.count({ where: { categoryId: id } }).catch(() => undefined)) ??
+        undefined;
       return NextResponse.json(
         { ok: false, error: "category-in-use", detail: { equipmentCount } },
         { status: 409 }
       );
     }
     console.error("DELETE /api/categories/:id error:", e);
-    return NextResponse.json(
-      { ok: false, error: "server-error" },
-      { status: 500 }
-    );
+    return NextResponse.json({ ok: false, error: "server-error" }, { status: 500 });
   }
+}
+
+// OPTIONS (เผื่อมี preflight)
+export async function OPTIONS() {
+  return NextResponse.json({}, { status: 200 });
 }
