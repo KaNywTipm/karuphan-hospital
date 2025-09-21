@@ -232,11 +232,10 @@ export default function UserHistory() {
                         </div>
                         <button
                             onClick={() => setSort((p) => (p === "newest" ? "oldest" : "newest"))}
-                            className={`px-3 py-2 border rounded-lg text-sm ${sort === "newest" ? "bg-blue-50" : "bg-pink-50"
-                                }`}
+                            className="p-2 border border-gray-300 rounded-lg hover:bg-gray-100"
                             title={sort === "newest" ? "เรียงจากใหม่ → เก่า" : "เรียงจากเก่า → ใหม่"}
                         >
-                            {sort === "newest" ? "ใหม่ → เก่า" : "เก่า → ใหม่"}
+                            <Image src="/HamBmenu.png" alt="sort" width={20} height={20} />
                         </button>
                     </div>
                 </div>

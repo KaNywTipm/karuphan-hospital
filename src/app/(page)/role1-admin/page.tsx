@@ -85,7 +85,7 @@ export default function AdminPage() {
     const [currentPage, setCurrentPage] = useState(1);
     const [rows, setRows] = useState<Row[]>([]);
     const [loading, setLoading] = useState(true);
-    const itemsPerPage = 8;
+    const itemsPerPage = 5;
 
     // ---------- Fetch + Poll ----------
     async function fetchData(signal?: AbortSignal) {
@@ -314,7 +314,7 @@ export default function AdminPage() {
                                     <th className="border border-gray-300 px-4 py-3 text-center text-sm font-medium">ผู้รับคืน</th>
                                 )}
 
-                                <th className="border border-gray-300 px-4 py-3 text-center text-sm font-medium">เหตุผลที่คืน</th>
+                                <th className="border border-gray-300 px-4 py-3 text-center text-sm font-medium">เหตุผลที่ยืม</th>
 
                                 {activeTab === "รออนุมัติ" && (
                                     <th className="border border-gray-300 px-4 py-3 text-center text-sm font-medium">การอนุมัติ</th>
@@ -326,7 +326,7 @@ export default function AdminPage() {
                                     <th className="border border-gray-300 px-4 py-3 text-center text-sm font-medium">วันที่คืน</th>
                                 )}
                                 {activeTab === "ไม่อนุมัติ/ยกเลิก" && (
-                                    <th className="border border-gray-300 px-4 py-3 text-center text-sm font-medium">เหตุผลไม่อนุมัติ</th>
+                                    <th className="border border-gray-300 px-4 py-3 text-center text-sm font-medium">สถานะการยืม</th>
                                 )}
                             </tr>
                         </thead>
