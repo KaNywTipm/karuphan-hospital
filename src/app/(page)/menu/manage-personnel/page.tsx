@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Editpersonnel from "@/components/modal/Edit-personnel";
-import { displayUnitLabel } from "@/components/dropdown/Unit";
+import { displayUnitLabel, UnitFilterDropdown, useUnitFilter, allUnits } from "@/components/dropdown/Unit";
 
 const ITEMS_PER_PAGE = 10;
 
@@ -21,6 +21,7 @@ type UserRow = {
 export default function Managepersonnel() {
   const router = useRouter();
   const [searchTerm, setSearchTerm] = useState("");
+  const [selectedUnit, setSelectedUnit] = useState(""); // เพิ่ม state สำหรับกรองกลุ่มงาน
   const [sortOrder, setSortOrder] = useState<"newest" | "oldest">("newest");
   const [currentPage, setCurrentPage] = useState(1);
   const [users, setUsers] = useState<UserRow[]>([]);
@@ -105,20 +106,36 @@ export default function Managepersonnel() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchTerm]);
 
+  // รีเซ็ตหน้าเมื่อเปลี่ยนการกรอง
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [selectedUnit]);
+
   const filteredData = useMemo(() => {
     // ฝั่ง server เราก็ค้นหาให้แล้ว อันนี้แค่เผื่อ refine อีกชั้น
     const q = (searchTerm || "").toLowerCase();
-    const list = (users || [])
+    let list = (users || [])
       .filter(
         (u) =>
           (u.fullName || "").toLowerCase().includes(q) ||
           (u.phone || "").includes(q) ||
           (u.email || "").toLowerCase().includes(q) ||
           (u.department?.name || "").toLowerCase().includes(q),
-      )
-      .sort((a, b) => (sortOrder === "newest" ? b.id - a.id : a.id - b.id));
+      );
+
+    // กรองตามกลุ่มงานที่เลือก (ถ้ามี)
+    if (selectedUnit) {
+      const selectedUnitLabel = allUnits.find(u => u.id.toString() === selectedUnit)?.label;
+      if (selectedUnitLabel) {
+        list = list.filter(item => item.department?.name === selectedUnitLabel);
+      }
+    }
+
+    // เรียงลำดับ
+    list = list.sort((a, b) => (sortOrder === "newest" ? b.id - a.id : a.id - b.id));
+
     return list;
-  }, [users, searchTerm, sortOrder]);
+  }, [users, searchTerm, selectedUnit, sortOrder]);
 
   const totalPages = Math.ceil(filteredData.length / ITEMS_PER_PAGE);
   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
@@ -187,33 +204,81 @@ export default function Managepersonnel() {
         <h1 className="text-2xl font-bold text-gray-800 mb-4">จัดการบุคลากร</h1>
 
         <section className="bg-white rounded-lg shadow border">
-          <div className="p-4 border-b flex justify-between items-center">
-            <h2 className="text-lg font-semibold text-gray-800">ข้อมูลบุคลากร</h2>
-            <div className="flex items-center gap-4">
-              <div className="relative">
-                <input
-                  type="text"
-                  placeholder="ค้นหาบุคลากร (ชื่อ/อีเมล/เบอร์/หน่วยงาน)"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                />
-                <Image
-                  src="/search.png"
-                  alt="search"
-                  width={20}
-                  height={20}
-                  className="absolute left-3 top-1/2 -translate-y-1/2 opacity-60"
-                />
+          <div className="p-4 border-b">
+            <h2 className="text-lg font-semibold text-gray-800 mb-4">ข้อมูลบุคลากร</h2>
+
+            {/* ส่วนค้นหาและกรอง */}
+            <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between">
+              <div className="flex flex-col sm:flex-row gap-3 flex-1">
+                {/* ช่องค้นหา */}
+                <div className="relative flex-1 max-w-md">
+                  <input
+                    type="text"
+                    placeholder="ค้นหาบุคลากร (ชื่อ/เบอร์/หน่วยงาน)"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                  <Image
+                    src="/search.png"
+                    alt="search"
+                    width={20}
+                    height={20}
+                    className="absolute left-3 top-1/2 -translate-y-1/2 opacity-60"
+                  />
+                </div>
+
+                {/* Dropdown กรองกลุ่มงาน */}
+                <div className="w-full sm:w-80">
+                  <UnitFilterDropdown
+                    selectedUnit={selectedUnit}
+                    onUnitChange={setSelectedUnit}
+                    placeholder="กรองตามกลุ่มงาน"
+                    showAllOption={true}
+                    className="w-full"
+                  />
+                </div>
               </div>
-              <button
-                onClick={() => setSortOrder((p) => (p === "newest" ? "oldest" : "newest"))}
-                className="p-2 border border-gray-300 rounded-lg hover:bg-gray-100"
-                title={sortOrder === "newest" ? "เรียงจากใหม่ไปเก่า" : "เรียงจากเก่าไปใหม่"}
-              >
-                <Image src="/HamBmenu.png" alt="sort" width={20} height={20} />
-              </button>
+
+              {/* ปุ่มเรียงลำดับ */}
+              <div className="flex items-center gap-2">
+                {/* ปุ่มล้างตัวกรอง */}
+                {(searchTerm || selectedUnit) && (
+                  <button
+                    onClick={() => {
+                      setSearchTerm("");
+                      setSelectedUnit("");
+                    }}
+                    className="px-3 py-2 text-sm text-blue-600 hover:text-blue-800 hover:bg-blue-50 border border-blue-200 rounded-lg transition-colors"
+                    title="ล้างตัวกรอง"
+                  >
+                    ล้างตัวกรอง
+                  </button>
+                )}
+
+                <button
+                  onClick={() => setSortOrder((p) => (p === "newest" ? "oldest" : "newest"))}
+                  className="p-2 border border-gray-300 rounded-lg hover:bg-gray-100 transition-colors"
+                  title={sortOrder === "newest" ? "เรียงจากใหม่ไปเก่า" : "เรียงจากเก่าไปใหม่"}
+                >
+                  <Image src="/HamBmenu.png" alt="sort" width={20} height={20} />
+                </button>
+              </div>
             </div>
+
+            {/* แสดงสถานะการกรอง */}
+            {(searchTerm || selectedUnit) && (
+              <div className="mt-3 p-2 bg-blue-50 rounded-md text-sm text-blue-700">
+                <strong>กำลังกรอง:</strong>
+                {searchTerm && <span> ค้นหา: &quot;{searchTerm}&quot;</span>}
+                {selectedUnit && (
+                  <span>
+                    {searchTerm ? " | " : " "}
+                    กลุ่มงาน: {allUnits.find(u => u.id.toString() === selectedUnit)?.label || "ไม่ระบุ"}
+                  </span>
+                )}
+              </div>
+            )}
           </div>
 
           <div className="overflow-x-auto">
@@ -222,8 +287,8 @@ export default function Managepersonnel() {
                 <tr>
                   <th className="px-4 py-3 text-left text-sm font-medium w-1/12">ลำดับ</th>
                   <th className="px-4 py-3 text-left text-sm font-medium">ชื่อ</th>
-                  <th className="px-4 py-3 text-left text-sm font-medium">บุคลากร</th>
-                  <th className="px-4 py-3 text-left text-sm font-medium">กลุ่มงาน</th>
+                  <th className="px-4 py-3 text-left text-sm font-medium">สิทธิ์ในการเข้าถึง</th>
+                  <th className="px-4 py-3 text-left text-sm font-medium">บุคลากรกลุ่มงาน</th>
                   <th className="px-4 py-3 text-left text-sm font-medium">เบอร์โทร</th>
                   <th className="px-2 py-3 text-center text-sm font-medium w-[80px]">แก้ไข</th>
                   <th className="px-2 py-3 text-center text-sm font-medium w-[80px]">ลบ</th>

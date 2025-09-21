@@ -6,10 +6,14 @@ import Image from "next/image";
 type Equip = {
     number: number;
     code: string;
+    idnum?: string | null;
     name: string;
+    description?: string | null;
     category?: { id: number; name: string } | null;
     receivedDate?: string | null;
     price?: number | null | string;
+    status: "NORMAL" | "RESERVED" | "IN_USE" | "BROKEN" | "LOST" | "WAIT_DISPOSE" | "DISPOSED";
+    currentRequestId?: number | null;
 };
 
 type Category = { id: number; name: string };
@@ -24,22 +28,35 @@ export default function TotalAmountReport() {
     useEffect(() => {
         (async () => {
             const [eRes, cRes] = await Promise.all([
-                fetch("/api/equipment", { cache: "no-store" }),
+                fetch(`/api/equipment?sort=receivedDate:${sort === "newest" ? "desc" : "asc"}&page=1&pageSize=500`, {
+                    method: "GET",
+                    cache: "no-store",
+                    headers: { Accept: "application/json" }
+                }),
                 fetch("/api/categories", { cache: "no-store" }),
             ]);
-            const e = await eRes.json().catch(() => ({ data: [] }));
-            const c = await cRes.json().catch(() => ({ data: [] }));
-            setRows(Array.isArray(e?.data) ? e.data : []);
-            setCats(Array.isArray(c?.data) ? c.data : []);
+
+            try {
+                const e = await eRes.json().catch(() => ({ data: [] }));
+                const c = await cRes.json().catch(() => ({ data: [] }));
+                setRows(Array.isArray(e?.data) ? e.data : []);
+                setCats(Array.isArray(c?.data) ? c.data : []);
+            } catch (err) {
+                console.error("[equipment] fetch failed:", err);
+                setRows([]);
+                setCats([]);
+            }
         })();
-    }, []);
+    }, [sort]);
 
     const filtered = useMemo(() => {
         const q = (search || "").toLowerCase();
         return (rows || [])
             .filter(it =>
                 (it.code || "").toLowerCase().includes(q) ||
+                (it.idnum || "").toLowerCase().includes(q) ||
                 (it.name || "").toLowerCase().includes(q) ||
+                (it.description || "").toLowerCase().includes(q) ||
                 ((it.category?.name || "").toLowerCase().includes(q))
             )
             .filter(it => (cat ? (it.category?.name === cat) : true))
@@ -57,21 +74,23 @@ export default function TotalAmountReport() {
     const fmt = (n: number) => n.toLocaleString("th-TH", { maximumFractionDigits: 2 });
 
     const handleExcelExport = () => {
-        const headers = ["ลำดับ", "เลขครุภัณฑ์", "ชื่อครุภัณฑ์", "วันที่ได้รับ", "ราคาเมื่อได้รับ"];
+        const headers = ["ลำดับ", "ID", "เลขครุภัณฑ์", "ชื่อครุภัณฑ์", "รายละเอียดครุภัณฑ์", "วันที่ได้รับ", "ราคาเมื่อได้รับ"];
         const lines = filtered.map((it, i) => [
             i + 1,
+            it.idnum || "-",
             it.code,
             `"${it.name}"`,
+            `"${it.description || "-"}"`,
             it.receivedDate ? new Date(it.receivedDate).toLocaleDateString("th-TH") : "-",
             (typeof it.price === "number" ? it.price : Number(it.price ?? 0) || 0)
         ].join(","));
-        const summary = `\n\n"รายการครุภัณฑ์รวมทั้งสิ้น ${filtered.length} รายการ",,,,"${fmt(totalAmount)} บาท"`;
+        const summary = `\n\n"รายการครุภัณฑ์ในคลังรวมทั้งสิ้น ${filtered.length} รายการ",,,,,"${fmt(totalAmount)} บาท"`;
         const csv = [headers.join(","), ...lines].join("\n") + summary;
         const blob = new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8;" });
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
-        a.download = `สรุปยอดครุภัณฑ์_${new Date().toLocaleDateString("th-TH")}.csv`;
+        a.download = `สรุปยอดครุภัณฑ์ในคลัง_${new Date().toLocaleDateString("th-TH")}.csv`;
         a.click();
         URL.revokeObjectURL(url);
     };
@@ -79,7 +98,10 @@ export default function TotalAmountReport() {
     return (
         <div className="bg-White rounded-lg shadow-sm p-6">
             <div className="flex justify-between items-center mb-6">
-                <h1 className="text-2xl font-bold text-NavyBlue">สรุปยอดครุภัณฑ์</h1>
+                <div>
+                    <h1 className="text-2xl font-bold text-NavyBlue">สรุปยอดครุภัณฑ์ในคลัง</h1>
+                    <p className="text-sm text-gray-600 mt-1">รายงานแสดงครุภัณฑ์ทั้งหมดที่มีในระบบคลัง</p>
+                </div>
                 <button onClick={handleExcelExport} className="bg-Green text-White px-4 py-2 rounded-lg hover:bg-green-600">
                     ดาวน์โหลด Excel
                 </button>
@@ -98,7 +120,7 @@ export default function TotalAmountReport() {
                     <div className="relative w-80">
                         <input
                             type="text"
-                            placeholder="Search"
+                            placeholder="ค้นหาครุภัณฑ์"
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
                             className="w-full px-4 py-2 border border-Grey rounded-lg focus:outline-none focus:ring-2 focus:ring-Blue"
@@ -119,19 +141,25 @@ export default function TotalAmountReport() {
                     <thead>
                         <tr className="bg-Pink text-white">
                             <th className="border px-4 py-3 text-center font-medium">ลำดับ</th>
+                            <th className="border px-4 py-3 text-center font-medium">ID</th>
                             <th className="border px-4 py-3 text-center font-medium">เลขครุภัณฑ์</th>
                             <th className="border px-4 py-3 text-center font-medium">ชื่อครุภัณฑ์</th>
+                            <th className="border px-4 py-3 text-center font-medium">รายละเอียดครุภัณฑ์</th>
                             <th className="border px-4 py-3 text-center font-medium">วันที่ได้รับ</th>
-                            <th className="border px-4 py-3 text-center font-medium">ราคาเดิมดั้งเดิม</th>
+                            <th className="border px-4 py-3 text-center font-medium">ราคาเมื่อได้รับ</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {filtered.length === 0 && <tr><td colSpan={5} className="border px-4 py-8 text-center text-gray-500">ไม่พบข้อมูลครุภัณฑ์</td></tr>}
+                        {filtered.length === 0 && <tr><td colSpan={7} className="border px-4 py-8 text-center text-gray-500">ไม่พบข้อมูลครุภัณฑ์ในคลัง</td></tr>}
                         {filtered.map((it, i) => (
                             <tr key={it.number} className="hover:bg-gray-50">
                                 <td className="border px-4 py-3 text-center">{i + 1}</td>
+                                <td className="border px-4 py-3 text-center">{it.idnum || "-"}</td>
                                 <td className="border px-4 py-3 text-center">{it.code}</td>
                                 <td className="border px-4 py-3 text-center">{it.name}</td>
+                                <td className="border px-4 py-3 text-center">
+                                    {typeof it.description === "string" && it.description.trim() !== "" ? it.description : "-"}
+                                </td>
                                 <td className="border px-4 py-3 text-center">
                                     {it.receivedDate ? new Date(it.receivedDate).toLocaleDateString("th-TH") : "-"}
                                 </td>
@@ -145,19 +173,14 @@ export default function TotalAmountReport() {
             <div className="mt-4 border-t pt-4">
                 <div className="flex justify-between items-center bg-Blue bg-opacity-5 p-4 rounded-lg">
                     <div className="text-lg font-semibold text-NavyBlue">
-                        รายการครุภัณฑ์รวมทั้งสิ้น {filtered.length} รายการ
+                        รายการครุภัณฑ์ในคลังรวมทั้งสิ้น {filtered.length} รายการ
                     </div>
                     <div className="text-xl font-bold text-Blue">{fmt(totalAmount)} บาท</div>
                 </div>
             </div>
 
             <div className="flex items-center justify-between px-4 py-3 border-t mt-4">
-                <span className="text-sm text-gray-700">แสดง {filtered.length} รายการ จากทั้งหมด {rows.length} รายการ</span>
-                <div className="flex items-center gap-1">
-                    <button className="px-3 py-1 text-sm text-gray-500" disabled>← Previous</button>
-                    <button className="w-8 h-8 flex items-center justify-center bg-NavyBlue text-white rounded text-sm">1</button>
-                    <button className="px-3 py-1 text-sm text-gray-700" disabled>Next →</button>
-                </div>
+                <span className="text-sm text-gray-700">แสดง {filtered.length} รายการ จากทั้งหมด {rows.length} รายการ</span>  
             </div>
         </div>
     );

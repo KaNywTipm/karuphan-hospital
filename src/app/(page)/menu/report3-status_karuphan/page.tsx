@@ -133,7 +133,7 @@ export default function StatusKaruphanReport() {
                 <div className="relative w-80 ml-auto">
                     <input
                         type="text"
-                        placeholder="Search"
+                        placeholder="ค้นหาครุภัณฑ์"
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
                         className="w-full px-4 py-2 border border-Grey rounded-lg focus:outline-none focus:ring-2 focus:ring-Blue"
@@ -179,12 +179,9 @@ export default function StatusKaruphanReport() {
             </div>
 
             <div className="flex items-center justify-between px-4 py-3 border-t">
-                <span className="text-sm text-gray-700">แสดง {filtered.length} รายการ</span>
-                <div className="flex items-center gap-1">
-                    <button className="px-3 py-1 text-sm text-gray-500" disabled>← Previous</button>
-                    <button className="w-8 h-8 flex items-center justify-center bg-NavyBlue text-white rounded text-sm">1</button>
-                    <button className="px-3 py-1 text-sm text-gray-700" disabled>Next →</button>
-                </div>
+                <div className="flex items-center justify-between px-4 py-3 border-t mt-4">
+                <span className="text-sm text-gray-700">แสดง {filtered.length} รายการ จากทั้งหมด {rows.length} รายการ</span>  
+            </div>
             </div>
         </div>
     );

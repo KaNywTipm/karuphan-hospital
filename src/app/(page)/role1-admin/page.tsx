@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
 // ---------- Types ----------
-type RowStatus = "PENDING" | "APPROVED" | "RETURNED" | "REJECTED" ;
+type RowStatus = "PENDING" | "APPROVED" | "RETURNED" | "REJECTED";
 type Row = {
     id: number;
     status: RowStatus;
@@ -27,9 +27,9 @@ type Row = {
 // ---------- Helpers ----------
 const toThaiStatus = (s: RowStatus) =>
     s === "PENDING" ? "รออนุมัติ" :
-    s === "APPROVED" ? "อนุมัติแล้ว/รอคืน" :
-    s === "RETURNED" ? "คืนแล้ว" :
-    "ไม่อนุมัติ";
+        s === "APPROVED" ? "อนุมัติแล้ว/รอคืน" :
+            s === "RETURNED" ? "คืนแล้ว" :
+                "ไม่อนุมัติ";
 
 
 // สำหรับแปลสภาพ (returnCondition) เฉพาะในหน้าคืนแล้ว
@@ -85,6 +85,7 @@ export default function AdminPage() {
     const [currentPage, setCurrentPage] = useState(1);
     const [rows, setRows] = useState<Row[]>([]);
     const [loading, setLoading] = useState(true);
+    const itemsPerPage = 8;
 
     // ---------- Fetch + Poll ----------
     async function fetchData(signal?: AbortSignal) {
@@ -188,6 +189,17 @@ export default function AdminPage() {
                 return sortOrder === "newest" ? bDate - aDate : aDate - bDate;
             });
     }, [rows, searchTerm, activeTab, sortOrder]);
+
+    // Pagination
+    const totalPages = Math.ceil(filteredData.length / itemsPerPage);
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    const currentData = filteredData.slice(startIndex, endIndex);
+
+    // Reset to page 1 when changing tabs or search
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [activeTab, searchTerm]);
 
     // นับจำนวนตามแท็บ
     const counts = useMemo(() => {
@@ -326,8 +338,8 @@ export default function AdminPage() {
                                 </tr>
                             )}
 
-                            {!loading && filteredData.map((item, index) => {
-                                const rowNo = index + 1;
+                            {!loading && currentData.map((item, index) => {
+                                const rowNo = startIndex + index + 1;
                                 const personnel =
                                     item.borrowerType === "INTERNAL"
                                         ? "กลุ่มงานบริการด้านปฐมภูมิและองค์รวม"
@@ -411,7 +423,7 @@ export default function AdminPage() {
                                 );
                             })}
 
-                            {!loading && filteredData.length === 0 && (
+                            {!loading && currentData.length === 0 && (
                                 <tr>
                                     <td colSpan={12} className="p-4 text-center text-gray-500">ไม่พบข้อมูล</td>
                                 </tr>
@@ -420,21 +432,56 @@ export default function AdminPage() {
                     </table>
                 </div>
 
-                {/* Footer / Pagination (ยังเป็น mock ปุ่มให้ดีไซน์คงเดิม) */}
+                {/* Footer / Pagination */}
                 <div className="flex items-center justify-between px-4 py-3 border-t">
                     <div className="flex items-center gap-2">
                         <span className="text-sm text-gray-700">
-                            แสดง {filteredData.length} รายการ ({activeTab}) จากทั้งหมด {rows.length} รายการ
+                            แสดง {startIndex + 1}-{Math.min(endIndex, filteredData.length)} จาก {filteredData.length} รายการ ({activeTab})
                         </span>
                     </div>
                     <div className="flex items-center gap-1">
-                        <button className="px-3 py-1 text-sm text-gray-500 hover:text-gray-700" disabled={currentPage === 1}>
+                        <button
+                            className={`px-3 py-1 text-sm ${currentPage === 1 ? 'text-gray-300 cursor-not-allowed' : 'text-gray-500 hover:text-gray-700 cursor-pointer'}`}
+                            onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                            disabled={currentPage === 1}
+                        >
                             ← Previous
                         </button>
-                        <button className="w-8 h-8 flex items-center justify-center bg-gray-800 text-white rounded text-sm">
-                            {currentPage}
-                        </button>
-                        <button className="px-3 py-1 text-sm text-gray-700 hover:text-gray-900" disabled={filteredData.length < 10}>
+
+                        {/* Page numbers */}
+                        {Array.from({ length: totalPages }, (_, i) => i + 1).map(pageNum => {
+                            // Show only current page and 2 pages before/after
+                            if (
+                                pageNum === 1 ||
+                                pageNum === totalPages ||
+                                (pageNum >= currentPage - 1 && pageNum <= currentPage + 1)
+                            ) {
+                                return (
+                                    <button
+                                        key={pageNum}
+                                        onClick={() => setCurrentPage(pageNum)}
+                                        className={`w-8 h-8 flex items-center justify-center rounded text-sm ${currentPage === pageNum
+                                                ? 'bg-gray-800 text-white'
+                                                : 'text-gray-700 hover:bg-gray-100'
+                                            }`}
+                                    >
+                                        {pageNum}
+                                    </button>
+                                );
+                            } else if (
+                                pageNum === currentPage - 2 ||
+                                pageNum === currentPage + 2
+                            ) {
+                                return <span key={pageNum} className="text-gray-400">...</span>;
+                            }
+                            return null;
+                        })}
+
+                        <button
+                            className={`px-3 py-1 text-sm ${currentPage === totalPages ? 'text-gray-300 cursor-not-allowed' : 'text-gray-700 hover:text-gray-900 cursor-pointer'}`}
+                            onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                            disabled={currentPage === totalPages}
+                        >
                             Next →
                         </button>
                     </div>

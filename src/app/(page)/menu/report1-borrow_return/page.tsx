@@ -13,7 +13,7 @@ type Row = {
     returnDue?: string | null;
     actualReturnDate?: string | null;
     reason?: string | null;
-    status?: "PENDING" | "APPROVED" | "RETURNED" | "REJECTED" ;
+    status?: "PENDING" | "APPROVED" | "RETURNED" | "REJECTED";
     categoryNames?: string | string[] | null; // ถ้า API ยังไม่ส่งมา จะเป็น undefined ก็ได้
 };
 
@@ -24,11 +24,11 @@ const statusTH = (s?: Row["status"]) =>
         s === "APPROVED" ? "อนุมัติแล้ว/รอคืน" :
             s === "RETURNED" ? "คืนแล้ว" :
                 s === "REJECTED" ? "ไม่อนุมัติ" : "-";
-                    // s === "OVERDUE" ? "เกินกำหนด" : "-" พัฒนาต่อในอนาคต
+// s === "OVERDUE" ? "เกินกำหนด" : "-" พัฒนาต่อในอนาคต
 
 export default function BorrowReturnReport() {
     const [search, setSearch] = useState("");
-    const [statusFilter, setStatusFilter] = useState<"" | "PENDING" | "APPROVED" | "RETURNED" | "REJECTED" >("");
+    const [statusFilter, setStatusFilter] = useState<"" | "PENDING" | "APPROVED" | "RETURNED" | "REJECTED">("");
     const [rows, setRows] = useState<Row[]>([]);
     const [loading, setLoading] = useState(true);
     const [sort, setSort] = useState<"newest" | "oldest">("newest");
@@ -114,6 +114,17 @@ export default function BorrowReturnReport() {
         const headers = [
             "ลำดับ", "ผู้ยืม", "หน่วยงาน", "เลขครุภัณฑ์", "ชื่อครุภัณฑ์", "หมวดหมู่", "วันที่ยืม", "เหตุผลการยืม", "สถานะ", "วันที่คืน"
         ];
+
+        // ฟังก์ชันสำหรับทำความสะอาดข้อความใน CSV
+        const cleanText = (text: string | undefined | null): string => {
+            if (!text) return "-";
+            // ลบ newline, tab, และ quote ที่เป็นปัญหา
+            return text.toString()
+                .replace(/[\r\n\t]/g, " ") // แทนที่ newline และ tab ด้วยช่องว่าง
+                .replace(/"/g, '""') // escape double quotes
+                .trim();
+        };
+
         const lines = filtered.map((r, i) => {
             const catText = Array.isArray(r.categoryNames)
                 ? r.categoryNames.join(" / ")
@@ -121,17 +132,18 @@ export default function BorrowReturnReport() {
             const returned = r.actualReturnDate || r.returnDue || "";
             return [
                 i + 1,
-                `"${r.borrowerName ?? "-"}"`,
-                `"${r.department ?? "-"}"`,
-                r.equipmentCode ?? "",
-                `"${r.equipmentName ?? "-"}"`,
-                `"${catText}"`,
-                r.borrowDate ? toDate(r.borrowDate) : "-",
-                `"${r.reason ?? ""}"`,
-                `"${statusTH(r.status)}"`,
-                returned ? toDate(returned) : "-"
+                `"${cleanText(r.borrowerName)}"`,
+                `"${cleanText(r.department)}"`,
+                `"${cleanText(r.equipmentCode)}"`,
+                `"${cleanText(r.equipmentName)}"`,
+                `"${cleanText(catText)}"`,
+                `"${r.borrowDate ? toDate(r.borrowDate) : "-"}"`,
+                `"${cleanText(r.reason)}"`,
+                `"${cleanText(statusTH(r.status))}"`,
+                `"${returned ? toDate(returned) : "-"}"`
             ].join(",");
         });
+
         const csv = [headers.join(","), ...lines].join("\n");
         const blob = new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8;" });
         const url = URL.createObjectURL(blob);
@@ -171,7 +183,7 @@ export default function BorrowReturnReport() {
                 <div className="relative w-80 ml-auto">
                     <input
                         type="text"
-                        placeholder="Search"
+                        placeholder="ค้นหาครุภัณฑ์"
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
                         className="w-full px-4 py-2 border border-Grey rounded-lg focus:outline-none focus:ring-2 focus:ring-Blue"
@@ -190,14 +202,14 @@ export default function BorrowReturnReport() {
                 <table className="w-full border-collapse">
                     <thead>
                         <tr className="bg-Pink text-White">
-                            <th className="border px-4 py-3 text-center font-medium">ลำดับ</th>
+                            <th className="border px-4 py-3 text-center font-medium w-16">ลำดับ</th>
                             <th className="border px-4 py-3 text-center font-medium">ผู้ยืม</th>
                             <th className="border px-4 py-3 text-center font-medium">บุคลากร</th>
                             <th className="border px-4 py-3 text-center font-medium">เลขครุภัณฑ์</th>
                             <th className="border px-4 py-3 text-center font-medium">ชื่อครุภัณฑ์</th>
                             <th className="border px-4 py-3 text-center font-medium">วันที่ยืม</th>
                             <th className="border px-4 py-3 text-center font-medium">เหตุผลการยืม</th>
-                            <th className="border px-4 py-3 text-center font-medium">สถานะ</th>
+                            <th className="border px-4 py-3 text-center font-medium w-36">สถานะ</th>
                             <th className="border px-4 py-3 text-center font-medium">วันที่คืน</th>
                         </tr>
                     </thead>
@@ -239,11 +251,6 @@ export default function BorrowReturnReport() {
                 <span className="text-sm text-gray-700">
                     แสดง {filtered.length} รายการ จากทั้งหมด {rows.length} รายการ
                 </span>
-                <div className="flex items-center gap-1">
-                    <button className="px-3 py-1 text-sm text-gray-500" disabled>← Previous</button>
-                    <button className="w-8 h-8 flex items-center justify-center bg-NavyBlue text-white rounded text-sm">1</button>
-                    <button className="px-3 py-1 text-sm text-gray-700" disabled>Next →</button>
-                </div>
             </div>
         </div>
     );

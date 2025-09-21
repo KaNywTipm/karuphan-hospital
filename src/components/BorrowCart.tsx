@@ -126,10 +126,13 @@ const BorrowCart = ({
                                 // ยิงครั้งเดียวรวบยอดตาม API ล่าสุด (items array)
                                 const payload = {
                                     borrowerType: borrowerType === "internal" ? "INTERNAL" : "EXTERNAL",
-                                    returnDue: borrowData.returnDue, // "YYYY-MM-DD"
+                                    returnDue: borrowData.returnDue,
                                     reason: borrowData.reason ?? null,
                                     notes: borrowData.notes ?? null,
-                                    external: borrowData.external ?? null,
+                                    // ✅ แตกค่าจากโมดัลเป็น top-level ให้ API รับถูกช่อง
+                                    externalName: borrowData.externalName ?? null,
+                                    externalDept: borrowData.externalDept ?? null,
+                                    externalPhone: borrowData.externalPhone ?? null,
                                     items: cartItems.map((it) => ({
                                         equipmentId: it.id,
                                         quantity: it.quantity ?? 1,

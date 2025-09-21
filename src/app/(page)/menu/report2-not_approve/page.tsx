@@ -91,22 +91,37 @@ export default function NotApproveReport() {
 
     const handleExcelExport = () => {
         const headers = ["ลำดับ", "ผู้ยืม", "หน่วยงาน", "เลขครุภัณฑ์", "ชื่อครุภัณฑ์", "หมวดหมู่", "วันที่ยืม", "กำหนดคืน", "เหตุผลการยืม", "ผู้ไม่อนุมัติ", "สถานะ"];
+
+        // ฟังก์ชันสำหรับทำความสะอาดข้อความใน CSV
+        const cleanText = (text: string | undefined | null): string => {
+            if (!text) return "-";
+            // ลบ newline, tab, และ quote ที่เป็นปัญหา
+            return text.toString()
+                .replace(/[\r\n\t]/g, " ") // แทนที่ newline และ tab ด้วยช่องว่าง
+                .replace(/"/g, '""') // escape double quotes
+                .trim();
+        };
+
         const lines = filtered.map((r, i) => {
-            const catText = Array.isArray(r.categoryNames) ? r.categoryNames.join(" / ") : (r.categoryNames ?? "");
+            const catText = Array.isArray(r.categoryNames)
+                ? r.categoryNames.join(" / ")
+                : (r.categoryNames ?? "");
+
             return [
                 i + 1,
-                `"${r.borrowerName ?? "-"}"`,
-                `"${r.department ?? "-"}"`,
-                r.equipmentCode ?? "",
-                `"${r.equipmentName ?? "-"}"`,
-                `"${catText}"`,
-                toDate(r.borrowDate),
-                toDate(r.returnDue),
-                `"${r.reason ?? ""}"`,
-                `"${r.rejectedByName ?? "-"}"`,
+                `"${cleanText(r.borrowerName)}"`,
+                `"${cleanText(r.department)}"`,
+                `"${cleanText(r.equipmentCode)}"`,
+                `"${cleanText(r.equipmentName)}"`,
+                `"${cleanText(catText)}"`,
+                `"${toDate(r.borrowDate)}"`,
+                `"${toDate(r.returnDue)}"`,
+                `"${cleanText(r.reason)}"`,
+                `"${cleanText(r.rejectedByName)}"`,
                 `"ไม่อนุมัติ"`,
             ].join(",");
         });
+
         const csv = [headers.join(","), ...lines].join("\n");
         const blob = new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8;" });
         const url = URL.createObjectURL(blob);
@@ -130,7 +145,7 @@ export default function NotApproveReport() {
                     <div className="relative w-80">
                         <input
                             type="text"
-                            placeholder="Search"
+                            placeholder="ค้นหาครุภัณฑ์"
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
                             className="w-full px-4 py-2 border border-Grey rounded-lg focus:outline-none focus:ring-2 focus:ring-Blue"
@@ -149,7 +164,7 @@ export default function NotApproveReport() {
                 <table className="w-full border-collapse">
                     <thead>
                         <tr className="bg-Pink text-White">
-                            <th className="border px-4 py-3 text-center font-medium">ลำดับ</th>
+                            <th className="border px-4 py-3 text-center font-medium w-16">ลำดับ</th>
                             <th className="border px-4 py-3 text-center font-medium">ผู้ยืม</th>
                             <th className="border px-4 py-3 text-center font-medium">บุคลากร</th>
                             <th className="border px-4 py-3 text-center font-medium">เลขครุภัณฑ์</th>
@@ -158,7 +173,7 @@ export default function NotApproveReport() {
                             <th className="border px-4 py-3 text-center font-medium">กำหนดคืน</th>
                             <th className="border px-4 py-3 text-center font-medium">เหตุผลการยืม</th>
                             <th className="border px-4 py-3 text-center font-medium">ผู้ไม่อนุมัติ</th>
-                            <th className="border px-4 py-3 text-center font-medium">สถานะ</th>
+                            <th className="border px-4 py-3 text-center font-medium w-32">สถานะ</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -183,11 +198,6 @@ export default function NotApproveReport() {
 
             <div className="flex items-center justify-between px-4 py-3 border-t">
                 <span className="text-sm text-gray-700">แสดง {filtered.length} รายการ จากทั้งหมด {rows.filter(r => r.status === "REJECTED").length} รายการ</span>
-                <div className="flex items-center gap-1">
-                    <button className="px-3 py-1 text-sm text-gray-500" disabled>← Previous</button>
-                    <button className="w-8 h-8 flex items-center justify-center bg-NavyBlue text-white rounded text-sm">1</button>
-                    <button className="px-3 py-1 text-sm text-gray-700" disabled>Next →</button>
-                </div>
             </div>
         </div>
     );

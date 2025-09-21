@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 
 type Role = "ADMIN" | "INTERNAL" | "EXTERNAL";
 
@@ -15,7 +16,7 @@ type Equipment = {
 } & Record<string, any>;
 
 type Borrow = {
-    status?: "PENDING" | "APPROVED" | "RETURNED" | "REJECTED" ;
+    status?: "PENDING" | "APPROVED" | "RETURNED" | "REJECTED";
     borrowDate?: string | null;
     createdAt?: string | null;
     returnDue?: string | null;
@@ -58,6 +59,8 @@ function safeParseDate(...candidates: (string | null | undefined)[]) {
 }
 
 export default function Dashboard() {
+    const router = useRouter();
+
     // state หลัก
     const [users, setUsers] = useState<User[]>([]);
     const [userStats, setUserStats] = useState<{ internal: number; external: number }>({ internal: 0, external: 0 });
@@ -79,10 +82,18 @@ export default function Dashboard() {
                     fetch("/api/categories", { cache: "no-store" })
                         .then((r) => r.json())
                         .catch(() => ({ data: [] })),
-                    fetch("/api/equipment", { cache: "no-store" })
+                    fetch("/api/equipment?page=1&pageSize=1000", {
+                        method: "GET",
+                        cache: "no-store",
+                        headers: { Accept: "application/json" }
+                    })
                         .then((r) => r.json())
                         .catch(() => ({ data: [] })),
-                    fetch("/api/borrow", { cache: "no-store" })
+                    fetch("/api/borrow?page=1&pageSize=1000", {
+                        method: "GET",
+                        cache: "no-store",
+                        headers: { Accept: "application/json" }
+                    })
                         .then(async (r) => (r.ok ? r.json() : { data: [] }))
                         .catch(() => ({ data: [] })),
                 ]);
@@ -147,122 +158,251 @@ export default function Dashboard() {
         });
     }, [borrows]);
 
+    // ฟังก์ชันการนำทาง
+    const handleNavigateToEquipment = () => {
+        router.push("/menu/list-karuphan");
+    };
+
+    const handleNavigateToUsers = (type: "internal" | "external") => {
+        // นำทางไปหน้าจัดการบุคลากร
+        router.push("/menu/manage-personnel");
+    };
+
+    const handleNavigateToBorrowHistory = () => {
+        // สมมติว่ามีหน้าประวัติการยืม
+        router.push("/menu/borrow-history");
+    };
+
+    const handleNavigateToReports = () => {
+        router.push("/menu/report4-total_amount");
+    };
+
     return (
         <main className="dashboard wrapper py-8 bg-gray-50 min-h-screen">
-            <section className="flex flex-col gap-8">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full">
-                    <div className="rounded-xl shadow-lg p-6 text-left bg-gradient-to-br from-blue-400 to-blue-600 relative overflow-hidden">
-                        <div className="absolute top-4 right-4 opacity-20">
-                            <Image src="/data.png" alt="Equipment" width={48} height={48} />
-                        </div>
-                        <h3 className="text-lg font-semibold text-white mb-2">จำนวนครุภัณฑ์ทั้งหมด</h3>
-                        <p className="text-3xl font-bold text-white">
-                            {totalEquipments.toLocaleString("th-TH")}
-                        </p>
-                    </div>
-
-                    <div className="rounded-xl shadow-lg p-6 text-left bg-gradient-to-br from-green-400 to-green-600 relative overflow-hidden">
-                        <div className="absolute top-4 right-4 opacity-20">
-                            <Image src="/person.png" alt="Internal Users" width={48} height={48} />
-                        </div>
-                        <h3 className="text-lg font-semibold text-white mb-2">จำนวนพนักงานในแผนก</h3>
-                        <p className="text-3xl font-bold text-white">
-                            {totalInternalUsers.toLocaleString("th-TH")}
-                        </p>
-                    </div>
-
-                    <div className="rounded-xl shadow-lg p-6 text-left bg-gradient-to-br from-yellow-500 to-yellow-600 relative overflow-hidden">
-                        <div className="absolute top-4 right-4 opacity-20">
-                            <Image src="/person.png" alt="External Users" width={48} height={48} />
-                        </div>
-                        <h3 className="text-lg font-semibold text-white mb-2">จำนวนพนักงานนอกแผนก</h3>
-                        <p className="text-3xl font-bold text-white">
-                            {totalExternalUsers.toLocaleString("th-TH")}
-                        </p>
+            {loading ? (
+                <div className="flex items-center justify-center min-h-[400px]">
+                    <div className="text-center">
+                        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-500 mx-auto"></div>
+                        <p className="mt-4 text-gray-600">กำลังโหลดข้อมูล...</p>
                     </div>
                 </div>
+            ) : (
+                <section className="flex flex-col gap-8">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full">
+                        {/* การ์ดครุภัณฑ์ทั้งหมด */}
+                        <div
+                            onClick={handleNavigateToEquipment}
+                            className="rounded-xl shadow-lg p-6 text-left bg-gradient-to-br from-blue-400 to-blue-600 relative overflow-hidden cursor-pointer transform transition-all duration-200 hover:scale-105 hover:shadow-xl"
+                        >
+                            <div className="absolute top-4 right-4 opacity-20">
+                                <Image src="/data.png" alt="Equipment" width={48} height={48} />
+                            </div>
+                            <h3 className="text-lg font-semibold text-white mb-2">จำนวนครุภัณฑ์ทั้งหมด</h3>
+                            <p className="text-3xl font-bold text-white">
+                                {loading ? "..." : totalEquipments.toLocaleString("th-TH")}
+                            </p>
+                            <p className="text-sm text-blue-100 mt-2">คลิกเพื่อดูรายละเอียด</p>
+                        </div>
 
-                <div className="bg-white rounded-xl shadow-lg p-6">
-                    <div className="flex justify-between items-center mb-6">
-                        <div>
-                            <h2 className="text-2xl font-bold text-gray-800">รายงานจำนวนการยืมครุภัณฑ์</h2>
-                            <p className="text-gray-600">จำนวนคำขอยืมต่อเดือน (6 เดือนล่าสุด)</p>
+                        {/* การ์ดพนักงานในแผนก */}
+                        <div
+                            onClick={() => handleNavigateToUsers("internal")}
+                            className="rounded-xl shadow-lg p-6 text-left bg-gradient-to-br from-green-400 to-green-600 relative overflow-hidden cursor-pointer transform transition-all duration-200 hover:scale-105 hover:shadow-xl"
+                        >
+                            <div className="absolute top-4 right-4 opacity-20">
+                                <Image src="/person.png" alt="Internal Users" width={48} height={48} />
+                            </div>
+                            <h3 className="text-lg font-semibold text-white mb-2">จำนวนพนักงานในแผนก</h3>
+                            <p className="text-3xl font-bold text-white">
+                                {loading ? "..." : totalInternalUsers.toLocaleString("th-TH")}
+                            </p>
+                            <p className="text-sm text-green-100 mt-2">คลิกเพื่อจัดการ</p>
+                        </div>
+
+                        {/* การ์ดพนักงานนอกแผนก */}
+                        <div
+                            onClick={() => handleNavigateToUsers("external")}
+                            className="rounded-xl shadow-lg p-6 text-left bg-gradient-to-br from-yellow-500 to-yellow-600 relative overflow-hidden cursor-pointer transform transition-all duration-200 hover:scale-105 hover:shadow-xl"
+                        >
+                            <div className="absolute top-4 right-4 opacity-20">
+                                <Image src="/person.png" alt="External Users" width={48} height={48} />
+                            </div>
+                            <h3 className="text-lg font-semibold text-white mb-2">จำนวนพนักงานนอกแผนก</h3>
+                            <p className="text-3xl font-bold text-white">
+                                {loading ? "..." : totalExternalUsers.toLocaleString("th-TH")}
+                            </p>
+                            <p className="text-sm text-yellow-100 mt-2">คลิกเพื่อจัดการ</p>
                         </div>
                     </div>
 
-                    <div className="relative">
-                        <div className="flex items-end justify-between h-80 mb-4">
-                            {monthlyBars.map((data, index) => {
-                                const colors = [
-                                    "bg-blue-400",
-                                    "bg-purple-500",
-                                    "bg-green-500",
-                                    "bg-orange-500",
-                                    "bg-blue-600",
-                                    "bg-emerald-500",
-                                ];
-                                // ใช้ scaledMax เพื่อขยายกราฟ
-                                const minBarHeight = 20;
-                                const height = data.value === 0
-                                    ? minBarHeight
-                                    : minBarHeight + ((data.value / (data.scaledMax || 1)) * (100 - minBarHeight));
+                    {/* สถิติรวม */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                        {/* การ์ดรออนุมัติ */}
+                        <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-blue-500 hover:shadow-xl transition-shadow duration-300">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <p className="text-sm font-medium text-gray-600 mb-1">รออนุมัติ</p>
+                                    <p className="text-3xl font-bold text-blue-600">
+                                        {borrows.filter(b => b.status === "PENDING").length}
+                                    </p>
+                                    <p className="text-xs text-gray-500 mt-1">รายการที่รอการอนุมัติ</p>
+                                </div>
+                            </div>
+                        </div>
 
-                                return (
-                                    <div key={index} className="flex flex-col items-center w-1/6">
-                                        <div className="relative mb-2">
-                                            <span className="text-sm font-semibold text-blue-600 mb-1 block">
-                                                {data.label}
-                                            </span>
-                                            <div
-                                                className={`w-16 ${colors[index % colors.length]} rounded-t-md transition-all duration-700 ease-out`}
-                                                style={{ height: `${height}%`, minHeight: "16px" }}
-                                                title={data.label}
-                                            />
+                        {/* การ์ดอนุมัติแล้ว/รอคืน */}
+                        <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-yellow-500 hover:shadow-xl transition-shadow duration-300">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <p className="text-sm font-medium text-gray-600 mb-1">อนุมัติแล้ว/รอคืน</p>
+                                    <p className="text-3xl font-bold text-yellow-600">
+                                        {borrows.filter(b => b.status === "APPROVED").length}
+                                    </p>
+                                    <p className="text-xs text-gray-500 mt-1">รายการที่อนุมัติและรอคืน</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* การ์ดคืนแล้ว */}
+                        <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-green-500 hover:shadow-xl transition-shadow duration-300">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <p className="text-sm font-medium text-gray-600 mb-1">คืนแล้ว</p>
+                                    <p className="text-3xl font-bold text-green-600">
+                                        {borrows.filter(b => b.status === "RETURNED").length}
+                                    </p>
+                                    <p className="text-xs text-gray-500 mt-1">รายการที่คืนเรียบร้อยแล้ว</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* การ์ดไม่อนุมัติ/ยกเลิก */}
+                        <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-red-500 hover:shadow-xl transition-shadow duration-300">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <p className="text-sm font-medium text-gray-600 mb-1">ไม่อนุมัติ/ยกเลิก</p>
+                                    <p className="text-3xl font-bold text-red-600">
+                                        {borrows.filter(b => b.status === "REJECTED").length}
+                                    </p>
+                                    <p className="text-xs text-gray-500 mt-1">รายการที่ไม่อนุมัติหรือยกเลิก</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="bg-white rounded-xl shadow-lg p-6">
+                        <div className="flex justify-between items-center mb-6">
+                            <div>
+                                <h2 className="text-2xl font-bold text-gray-800">รายงานจำนวนการยืมครุภัณฑ์</h2>
+                                <p className="text-gray-600">จำนวนคำขอยืมต่อเดือน (6 เดือนล่าสุด)</p>
+                            </div>
+                        </div>
+
+                        <div className="relative">
+                            <div className="flex items-end justify-between h-80 mb-4">
+                                {monthlyBars.map((data, index) => {
+                                    const colors = [
+                                        "bg-blue-400",
+                                        "bg-purple-500",
+                                        "bg-green-500",
+                                        "bg-orange-500",
+                                        "bg-blue-600",
+                                        "bg-emerald-500",
+                                    ];
+                                    // ใช้ scaledMax เพื่อขยายกราฟ
+                                    const minBarHeight = 20;
+                                    const height = data.value === 0
+                                        ? minBarHeight
+                                        : minBarHeight + ((data.value / (data.scaledMax || 1)) * (100 - minBarHeight));
+
+                                    return (
+                                        <div key={index} className="flex flex-col items-center w-1/6">
+                                            <div className="relative mb-2">
+                                                <span className="text-sm font-semibold text-blue-600 mb-1 block">
+                                                    {data.label}
+                                                </span>
+                                                <div
+                                                    className={`w-16 ${colors[index % colors.length]} rounded-t-md transition-all duration-700 ease-out`}
+                                                    style={{ height: `${height}%`, minHeight: "16px" }}
+                                                    title={data.label}
+                                                />
+                                            </div>
+                                            <span className="text-sm text-gray-600 font-medium">{data.month}</span>
                                         </div>
-                                        <span className="text-sm text-gray-600 font-medium">{data.month}</span>
+                                    );
+                                })}
+                            </div>
+
+                            {/* แกน Y คร่าว ๆ */}
+                            <div className="absolute left-0 top-0 h-64 flex flex-col justify-between text-sm text-gray-500">
+                                <span>สูงสุด</span>
+                                <span>ต่ำสุด</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* การ์ดสรุปสถานะครุภัณฑ์ แยกออกมาด้านล่าง */}
+                    {!loading && (
+                        <div className="mt-6">
+                            <div className="bg-white rounded-xl shadow-lg p-6">
+                                <div className="flex justify-between items-center mb-4">
+                                    <h3 className="text-xl font-bold text-gray-800">สถานะครุภัณฑ์</h3>
+                                    <button
+                                        onClick={handleNavigateToReports}
+                                        className="text-blue-500 hover:text-blue-600 text-sm font-medium transition-colors duration-200"
+                                    >
+                                        ดูรายงานสรุป →
+                                    </button>
+                                </div>
+                                <div className="flex flex-wrap gap-4 justify-center">
+                                    <div
+                                        onClick={() => router.push("/menu/list-karuphan?status=NORMAL")}
+                                        className="flex flex-col items-center bg-blue-100 text-blue-800 rounded-lg px-4 py-3 min-w-[150px] cursor-pointer hover:bg-blue-200 transition-colors duration-200 transform hover:scale-105"
+                                    >
+                                        <span className="font-semibold text-lg">{normalEquipment}</span>
+                                        <span className="text-sm">ปกติ</span>
                                     </div>
-                                );
-                            })}
+                                    <div
+                                        onClick={() => router.push("/menu/list-karuphan?status=IN_USE")}
+                                        className="flex flex-col items-center bg-yellow-100 text-yellow-800 rounded-lg px-4 py-3 min-w-[150px] cursor-pointer hover:bg-yellow-200 transition-colors duration-200 transform hover:scale-105"
+                                    >
+                                        <span className="font-semibold text-lg">{borrowedEquipment}</span>
+                                        <span className="text-sm">กำลังยืม</span>
+                                    </div>
+                                    <div
+                                        onClick={() => router.push("/menu/list-karuphan?status=BROKEN")}
+                                        className="flex flex-col items-center bg-red-100 text-red-800 rounded-lg px-4 py-3 min-w-[150px] cursor-pointer hover:bg-red-200 transition-colors duration-200 transform hover:scale-105"
+                                    >
+                                        <span className="font-semibold text-lg">{damagedEquipment}</span>
+                                        <span className="text-sm">ชำรุด</span>
+                                    </div>
+                                    <div
+                                        onClick={() => router.push("/menu/list-karuphan?status=LOST")}
+                                        className="flex flex-col items-center bg-pink-100 text-pink-800 rounded-lg px-4 py-3 min-w-[150px] cursor-pointer hover:bg-pink-200 transition-colors duration-200 transform hover:scale-105"
+                                    >
+                                        <span className="font-semibold text-lg">{lostEquipment}</span>
+                                        <span className="text-sm">สูญหาย</span>
+                                    </div>
+                                    <div
+                                        onClick={() => router.push("/menu/list-karuphan?status=WAIT_DISPOSE")}
+                                        className="flex flex-col items-center bg-gray-200 text-gray-800 rounded-lg px-4 py-3 min-w-[150px] cursor-pointer hover:bg-gray-300 transition-colors duration-200 transform hover:scale-105"
+                                    >
+                                        <span className="font-semibold text-lg">{waitDisposeEquipment}</span>
+                                        <span className="text-sm">รอจำหน่าย</span>
+                                    </div>
+                                    <div
+                                        onClick={() => router.push("/menu/list-karuphan?status=DISPOSED")}
+                                        className="flex flex-col items-center bg-gray-400 text-white rounded-lg px-4 py-3 min-w-[150px] cursor-pointer hover:bg-gray-500 transition-colors duration-200 transform hover:scale-105"
+                                    >
+                                        <span className="font-semibold text-lg">{disposedEquipment}</span>
+                                        <span className="text-sm">จำหน่ายแล้ว</span>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
-
-                        {/* แกน Y คร่าว ๆ */}
-                        <div className="absolute left-0 top-0 h-64 flex flex-col justify-between text-sm text-gray-500">
-                            <span>สูงสุด</span>
-                            <span>ต่ำสุด</span>
-                        </div>
-                    </div>
-                </div>
-
-                {/* การ์ดสรุปสถานะครุภัณฑ์ แยกออกมาด้านล่าง */}
-                {!loading && (
-                    <div className="mt-6 flex flex-wrap gap-4 justify-center">
-                        <div className="flex flex-col items-center bg-blue-100 text-blue-800 rounded-lg px-4 py-2 min-w-[150px]">
-                            <span className="font-semibold text-lg">{normalEquipment}</span>
-                            <span className="text-sm">ปกติ</span>
-                        </div>
-                        <div className="flex flex-col items-center bg-yellow-100 text-yellow-800 rounded-lg px-4 py-2 min-w-[150px]">
-                            <span className="font-semibold text-lg">{borrowedEquipment}</span>
-                            <span className="text-sm">กำลังยืม</span>
-                        </div>
-                        <div className="flex flex-col items-center bg-red-100 text-red-800 rounded-lg px-4 py-2 min-w-[150px]">
-                            <span className="font-semibold text-lg">{damagedEquipment}</span>
-                            <span className="text-sm">ชำรุด</span>
-                        </div>
-                        <div className="flex flex-col items-center bg-pink-100 text-pink-800 rounded-lg px-4 py-2 min-w-[150px]">
-                            <span className="font-semibold text-lg">{lostEquipment}</span>
-                            <span className="text-sm">สูญหาย</span>
-                        </div>
-                        <div className="flex flex-col items-center bg-gray-200 text-gray-800 rounded-lg px-4 py-2 min-w-[150px]">
-                            <span className="font-semibold text-lg">{waitDisposeEquipment}</span>
-                            <span className="text-sm">รอจำหน่าย</span>
-                        </div>
-                        <div className="flex flex-col items-center bg-gray-400 text-white rounded-lg px-4 py-2 min-w-[150px]">
-                            <span className="font-semibold text-lg">{disposedEquipment}</span>
-                            <span className="text-sm">จำหน่ายแล้ว</span>
-                        </div>
-                    </div>
-                )}
-            </section>
+                    )}
+                </section>
+            )}
         </main>
     );
 }

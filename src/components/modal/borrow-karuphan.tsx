@@ -61,7 +61,9 @@ interface CartItem {
 type BorrowKaruphanProps = {
     onClose?: () => void;
     onBorrow?: (borrowData: {
-        external: { name: string; dept: string; phone: string } | null;
+        externalName: string;
+        externalDept: string;
+        externalPhone: string;
         notes: null;
         returnDue: string;
         reason: string;
@@ -147,7 +149,7 @@ const BorrowKaruphan = ({ onClose, onBorrow, onSuccess, selectedEquipment, cartI
                 return;
             }
 
-            // 👉 สำเร็จ: ปิดโมดอล + เคลียร์ตะกร้า (ให้ parent ทำ) + รีเฟรชหน้า
+            //  สำเร็จ: ปิดโมดอล + เคลียร์ตะกร้า (ให้ parent ทำ) + รีเฟรชหน้า
             window.dispatchEvent(new Event("cart:clear")); // ถ้า parent ฟัง event นี้อยู่
             onSuccess?.();
             onClose?.();
@@ -163,24 +165,19 @@ const BorrowKaruphan = ({ onClose, onBorrow, onSuccess, selectedEquipment, cartI
         e.preventDefault();
         if (!borrowDateBE || !returnDateBE) return;
 
-        // ❗ถ้า parent ส่ง onBorrow มา ให้เรียกอันนั้น (parent จะเคลียร์ตะกร้า/รีโหลดเอง)
+        // ถ้า parent ส่ง onBorrow มา ให้เรียกอันนั้น (parent จะเคลียร์ตะกร้า/รีโหลดเอง)
         const borrowerType: "INTERNAL" | "EXTERNAL" = me?.role === "EXTERNAL" ? "EXTERNAL" : "INTERNAL";
         if (onBorrow) {
             try {
                 setSubmitting(true);
                 onBorrow({
-                    external: borrowerType === "EXTERNAL"
-                        ? {
-                            name: me?.fullName ?? "",
-                            dept: me?.department?.name ?? "",
-                            phone: me?.phone ?? "",
-                        }
-                        : null,
+                    // ส่งแบบ top-level ให้ API รับตรง
+                    externalName: me?.fullName ?? "",
+                    externalDept: me?.department?.name ?? "",
+                    externalPhone: me?.phone ?? "",
                     notes: null,
-                    // ✅ แปลง พ.ศ. -> ค.ศ. ก่อนส่งให้ parent
                     returnDue: thaiToCE(returnDateBE),
                     reason,
-                    // (ถ้า parent ต้องการ แถมชื่อ/แผนกไปให้ด้วยได้)
                     borrowerName: me?.fullName,
                     department: me?.department?.name ?? null,
                 });
@@ -248,7 +245,7 @@ const BorrowKaruphan = ({ onClose, onBorrow, onSuccess, selectedEquipment, cartI
 
                 {/* ฟอร์มหลัก */}
                 <form onSubmit={handleSubmit} className="flex flex-col gap-4 text-sm">
-                    <FormRow label="วันที่ยืม (พ.ศ.)">
+                    <FormRow label="วันที่ยืม">
                         <input
                             type="date"
                             value={borrowDateBE}
@@ -266,7 +263,7 @@ const BorrowKaruphan = ({ onClose, onBorrow, onSuccess, selectedEquipment, cartI
                         />
                     </FormRow>
 
-                    <FormRow label="กำหนดคืน (พ.ศ.)">
+                    <FormRow label="กำหนดคืน">
                         <input
                             type="date"
                             value={returnDateBE}

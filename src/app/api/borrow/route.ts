@@ -27,7 +27,10 @@ export async function GET(req: Request) {
         // filter / paging
         const status = pickStatus(sp.get("status")) || undefined;
         const page = Math.max(1, Number(sp.get("page") || "1"));
-        const pageSize = Math.min(100, Math.max(1, Number(sp.get("pageSize") || "20")));
+        const pageSize = Math.min(
+            100,
+            Math.max(1, Number(sp.get("pageSize") || "20"))
+        );
 
         const where: any = {};
         if (status) where.status = status;
@@ -84,10 +87,16 @@ export async function GET(req: Request) {
             return { ...r, isOverdue };
         });
 
-        return NextResponse.json({ ok: true, page, pageSize, total, data }, { status: 200 });
+        return NextResponse.json(
+            { ok: true, page, pageSize, total, data },
+            { status: 200 }
+        );
     } catch (e) {
         console.error("[GET /api/borrow] error:", e);
-        return NextResponse.json({ ok: false, error: "server-error" }, { status: 500 });
+        return NextResponse.json(
+            { ok: false, error: "server-error" },
+            { status: 500 }
+        );
     }
 }
 
@@ -105,11 +114,24 @@ type PostBody = {
 // POST /api/borrow
 export async function POST(req: Request) {
     const me = await auth();
-    if (!me) return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
+    if (!me)
+        return NextResponse.json(
+            { ok: false, error: "unauthorized" },
+            { status: 401 }
+        );
 
     const body = await req.json();
-    const { borrowerType, returnDue, reason, external, items } = body as any;
-    if (!items?.length) return NextResponse.json({ ok: false, error: "no-items" }, { status: 400 });
+    const {
+        borrowerType,
+        returnDue,
+        reason,
+        items,
+        externalName,
+        externalDept,
+        externalPhone,
+    } = body as PostBody;
+    if (!items?.length)
+        return NextResponse.json({ ok: false, error: "no-items" }, { status: 400 });
 
     const isInternal = borrowerType === "INTERNAL";
     const isExternal = borrowerType === "EXTERNAL";
@@ -118,12 +140,25 @@ export async function POST(req: Request) {
     const requesterId =
         typeof me.user?.id === "number" ? me.user.id : Number(me.user?.id) || null;
 
-    // เก็บข้อมูลผู้ยืมภายนอก (ยังใช้ได้เหมือนเดิม)
-    let externalName = null, externalDept = null, externalPhone = null;
+    // เก็บข้อมูลผู้ยืมภายนอก และ validate สำหรับ EXTERNAL
+    let finalExternalName = null,
+        finalExternalDept = null,
+        finalExternalPhone = null;
     if (isExternal) {
-        externalName = body.externalName ?? external?.name ?? null;
-        externalDept = body.externalDept ?? external?.dept ?? null;
-        externalPhone = body.externalPhone ?? external?.phone ?? null;
+        finalExternalName = externalName?.trim() || null;
+        finalExternalDept = externalDept?.trim() || null;
+        finalExternalPhone = externalPhone?.trim() || null;
+
+        // Validate: EXTERNAL ต้องมี externalDept
+        if (!finalExternalDept) {
+            return NextResponse.json(
+                {
+                    ok: false,
+                    error: "external-dept-required",
+                },
+                { status: 400 }
+            );
+        }
     }
 
     const adminId = 1;
@@ -132,13 +167,20 @@ export async function POST(req: Request) {
         const reqRow = await tx.borrowRequest.create({
             data: {
                 borrowerType,
-                requesterId,                 // 👈 ผูกผู้ร้องขอ
-                externalName, externalDept, externalPhone,
+                requesterId, // ผูกผู้ร้องขอ
+                externalName: finalExternalName,
+                externalDept: finalExternalDept,
+                externalPhone: finalExternalPhone,
                 status: isInternal ? "APPROVED" : "PENDING",
                 borrowDate: isInternal ? new Date() : null,
                 returnDue: new Date(returnDue),
                 reason: reason ?? null,
-                items: { create: items.map((it: any) => ({ equipmentId: it.equipmentId, quantity: it.quantity ?? 1 })) },
+                items: {
+                    create: items.map((it: any) => ({
+                        equipmentId: it.equipmentId,
+                        quantity: it.quantity ?? 1,
+                    })),
+                },
                 approvedById: isInternal ? adminId : null,
                 receivedById: isInternal ? adminId : null,
                 approvedAt: isInternal ? new Date() : null,
