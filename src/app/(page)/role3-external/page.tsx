@@ -1,6 +1,5 @@
 "use client";
 
-
 // --- Helper & Components ---
 const BORROWER_TYPE: "INTERNAL" | "EXTERNAL" = "EXTERNAL";
 type Status = "NORMAL" | "RESERVED" | "IN_USE" | "BROKEN" | "LOST" | "WAIT_DISPOSE" | "DISPOSED";
@@ -72,7 +71,6 @@ type RowUI = {
 type CartItem = { id: number; code: string; name: string; category: string; details?: string; quantity: number };
 const itemsPerPage = 5;
 
-
 export default function ExternalBorrowPage() {
     const [categories, setCategories] = useState<Category[]>([]);
     const list: Category[] = asList(categories);
@@ -98,14 +96,14 @@ export default function ExternalBorrowPage() {
         details: r.description ?? "",
         receivedDate: r.receivedDate,
         status: r.status,
-        busy: r.status !== "NORMAL", // RESERVED และสถานะอื่น ๆ จะถูกปิดการยืม
+        busy: r.status !== "NORMAL",
     });
 
     const load = useCallback(async () => {
         setLoading(true);
         const [catRes, eqRes] = await Promise.all([
             fetch("/api/categories", { cache: "no-store" }),
-            fetch(`/api/equipment?page=1&pageSize=1000`, { cache: "no-store" }),
+            fetch(`/api/equipment?sort=receivedDate:${sortOrder === "newest" ? "desc" : "asc"}&page=1&pageSize=1000`, { cache: "no-store" }),
         ]);
         const cats: Category[] = await catRes.json();
         const eqJson = await eqRes.json();
@@ -114,7 +112,7 @@ export default function ExternalBorrowPage() {
         setItems(rows);
         setLoading(false);
         setCurrentPage(1);
-    }, []);
+    }, [sortOrder]);
 
     useEffect(() => { load(); }, [load]);
 
@@ -164,7 +162,6 @@ export default function ExternalBorrowPage() {
         setSelectedIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
     };
     const handleSelectAll = () => {
-        // Only select items that are not busy (status === 'NORMAL')
         const selectableIds = currentItems.filter((x) => !x.busy).map((x) => x.id);
         if (selectedIds.filter(id => selectableIds.includes(id)).length === selectableIds.length && selectableIds.length > 0) {
             setSelectedIds(selectedIds.filter(id => !selectableIds.includes(id)));
@@ -188,7 +185,7 @@ export default function ExternalBorrowPage() {
             reason: borrowData?.reason ?? null,
             notes: borrowData?.notes ?? null,
             externalName: borrowData?.externalName ?? null,
-            externalDept: borrowData?.externalDept ?? null,
+            externalDept: (borrowData?.externalDept?.trim() || "ภายนอกกลุ่มงาน"),
             externalPhone: borrowData?.externalPhone ?? null,
             items: cartItems.map((it) => ({ equipmentId: it.id, quantity: 1 })),
         };
@@ -237,12 +234,10 @@ export default function ExternalBorrowPage() {
                             </div>
                             <button
                                 onClick={() => setSortOrder(p => p === "newest" ? "oldest" : "newest")}
-                                className={`p-2 border border-gray-300 rounded-lg hover:bg-gray-100 transition duration-150 flex items-center justify-center ${sortOrder === "newest" ? "bg-blue-50" : "bg-pink-50"
-                                    }`}
+                                className="p-2 border border-gray-300 rounded-lg hover:bg-gray-100"
                                 title={sortOrder === "newest" ? "เรียงจากใหม่ไปเก่า" : "เรียงจากเก่าไปใหม่"}
                             >
-                                <Image src="/HamBmenu.png" alt="เรียงข้อมูล" width={20} height={20} />
-                                <span className="sr-only">เรียงข้อมูล</span>
+                                <Image src="/HamBmenu.png" alt="sort" width={20} height={20} />
                             </button>
                         </div>
                     </div>
@@ -331,6 +326,8 @@ export default function ExternalBorrowPage() {
                     )}
                 </section>
             </div>
+
+            {/* Cart Sidebar */}
             <div className="w-80">
                 <BorrowCart
                     cartItems={cartItems}
@@ -341,19 +338,7 @@ export default function ExternalBorrowPage() {
                     onBorrowSubmit={handleBorrowSubmit}
                 />
             </div>
-            {recentlyRemoved && (
-                <div className="fixed bottom-4 right-4 bg-green-500 text-white px-4 py-3 rounded-lg shadow-lg z-50 flex items-center gap-3">
-                    <span className="text-sm">ลบ “{recentlyRemoved.name}” แล้ว</span>
-                    <button
-                        onClick={() => {
-                            setCartItems((prev) => [...prev, recentlyRemoved]);
-                            setRecentlyRemoved(null);
-                        }}
-                        className="bg-white text-green-600 px-3 py-1 rounded text-sm hover:bg-gray-100">
-                        เลิกทำ
-                    </button>
-                </div>
-            )}
+
             {/* Quick Borrow Modal */}
             {showQuickBorrow && quickItem && (
                 <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
@@ -373,9 +358,9 @@ export default function ExternalBorrowPage() {
                                 returnDue: form.returnDue,
                                 reason: form.reason ?? null,
                                 notes: form.notes ?? null,
-                                externalName: (form.external && typeof form.external === "object" && 'name' in form.external) ? (form.external as any).name ?? null : null,
-                                externalDept: (form.external && typeof form.external === "object" && 'dept' in form.external) ? (form.external as any).dept ?? null : null,
-                                externalPhone: (form.external && typeof form.external === "object" && 'phone' in form.external) ? (form.external as any).phone ?? null : null,
+                                externalName: form.externalName ?? null,
+                                externalDept: (form.externalDept?.trim() || "ภายนอกกลุ่มงาน"),
+                                externalPhone: form.externalPhone ?? null,
                                 items: [{ equipmentId: quickItem.id, quantity: 1 }],
                             };
                             const res = await fetch("/api/borrow", {
@@ -393,6 +378,19 @@ export default function ExternalBorrowPage() {
                             await load();
                         }}
                     />
+                </div>
+            )}
+            {recentlyRemoved && (
+                <div className="fixed bottom-4 right-4 bg-green-500 text-white px-4 py-3 rounded-lg shadow-lg z-50 flex items-center gap-3">
+                    <span className="text-sm">ลบ “{recentlyRemoved.name}” แล้ว</span>
+                    <button
+                        onClick={() => {
+                            setCartItems((prev) => [...prev, recentlyRemoved]);
+                            setRecentlyRemoved(null);
+                        }}
+                        className="bg-white text-green-600 px-3 py-1 rounded text-sm hover:bg-gray-100">
+                        เลิกทำ
+                    </button>
                 </div>
             )}
         </div>

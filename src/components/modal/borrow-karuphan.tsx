@@ -39,49 +39,33 @@ interface CartItem {
     name: string;
     category: string;
     quantity: number;
-
-    onClose?: () => void;
-    onBorrow?: (borrowData: {
-        returnDue: string;   // ควรเป็น YYYY-MM-DD
-        reason: string;
-        borrowerName?: string;
-        department?: string | null;
-    }) => void;
-    onSuccess?: () => void;
-    selectedEquipment?: {
-        id: number;
-        code: string;
-        name: string;
-        category: string;
-    } | null;
-    cartItems?: CartItem[];
 }
-
 
 type BorrowKaruphanProps = {
     onClose?: () => void;
+    /** ส่งค่าแบบ flatten เพื่อให้หน้า parent ยิง API ได้ตรงรูปแบบ */
     onBorrow?: (borrowData: {
-        [x: string]: boolean;
-        externalName: string;
-        externalDept: string;
-        externalPhone: string;
+        externalName: string | null;
+        externalDept: string | null;
+        externalPhone: string | null;
         notes: null;
-        returnDue: string;
+        returnDue: string; // YYYY-MM-DD (ค.ศ.)
         reason: string;
-        borrowerName?: string;
+        borrowerName?: string | null;
         department?: string | null;
     }) => void;
     onSuccess?: () => void;
-    selectedEquipment?: {
-        id: number;
-        code: string;
-        name: string;
-        category: string;
-    } | null;
+    selectedEquipment?: { id: number; code: string; name: string; category: string } | null;
     cartItems?: CartItem[];
 };
 
-const BorrowKaruphan = ({ onClose, onBorrow, onSuccess, selectedEquipment, cartItems }: BorrowKaruphanProps) => {
+const BorrowKaruphan = ({
+    onClose,
+    onBorrow,
+    onSuccess,
+    selectedEquipment,
+    cartItems,
+}: BorrowKaruphanProps) => {
     const router = useRouter();
     const [me, setMe] = useState<Me | null>(null);
     // ใช้ state แสดง/รับค่าเป็น พ.ศ. (string)
@@ -105,24 +89,30 @@ const BorrowKaruphan = ({ onClose, onBorrow, onSuccess, selectedEquipment, cartI
         return () => window.removeEventListener("me:updated", h);
     }, []);
 
-    const deptText =
-        me?.department?.name ??
-        (me?.role === "EXTERNAL" ? "บุคคลภายนอก" : "-");
+    const deptText = me?.department?.name ?? (me?.role === "EXTERNAL" ? "บุคคลภายนอก" : "-");
 
     const handleClose = () => onClose?.();
 
-    // เพิ่มฟังก์ชัน handleBorrow สำหรับการส่งคำขอยืม
-    async function handleBorrow({ borrowDate, returnDue, reason }: { borrowDate: string; returnDue: string; reason: string }) {
+    // ยิง API เอง (กรณี parent ไม่ได้ส่ง onBorrow มา)
+    async function handleBorrowDirect({
+        borrowDate,
+        returnDue,
+        reason,
+    }: {
+        borrowDate: string;
+        returnDue: string;
+        reason: string;
+    }) {
         if (!cartItems || cartItems.length === 0) {
             alert("ไม่มีรายการในตะกร้า");
             return;
         }
-        const items = cartItems.map(ci => ({
+        const items = cartItems.map((ci) => ({
             equipmentId: ci.id,
             quantity: Number(ci.quantity ?? 1),
         }));
         const borrowerType: "INTERNAL" | "EXTERNAL" = me?.role === "EXTERNAL" ? "EXTERNAL" : "INTERNAL";
-        let body: any = {
+        const body: any = {
             borrowerType,
             borrowDate,
             returnDue,
@@ -131,7 +121,7 @@ const BorrowKaruphan = ({ onClose, onBorrow, onSuccess, selectedEquipment, cartI
         };
         if (borrowerType === "EXTERNAL") {
             body.externalName = me?.fullName?.trim() || null;
-            body.externalDept = me?.department?.name?.trim() || null;
+            body.externalDept = me?.department?.name?.trim() || "ภายนอกกลุ่มงาน"; // ป้องกันว่าง
             body.externalPhone = me?.phone?.toString().trim() || null;
         } else if (borrowerType === "INTERNAL" && me) {
             body.requesterId = (me as any).id ?? null;
@@ -149,9 +139,7 @@ const BorrowKaruphan = ({ onClose, onBorrow, onSuccess, selectedEquipment, cartI
                 setSubmitting(false);
                 return;
             }
-
-            //  สำเร็จ: ปิดโมดอล + เคลียร์ตะกร้า (ให้ parent ทำ) + รีเฟรชหน้า
-            window.dispatchEvent(new Event("cart:clear")); // ถ้า parent ฟัง event นี้อยู่
+            window.dispatchEvent(new Event("cart:clear"));
             onSuccess?.();
             onClose?.();
             router.refresh();
@@ -166,20 +154,18 @@ const BorrowKaruphan = ({ onClose, onBorrow, onSuccess, selectedEquipment, cartI
         e.preventDefault();
         if (!borrowDateBE || !returnDateBE) return;
 
-        // ถ้า parent ส่ง onBorrow มา ให้เรียกอันนั้น (parent จะเคลียร์ตะกร้า/รีโหลดเอง)
-        const borrowerType: "INTERNAL" | "EXTERNAL" = me?.role === "EXTERNAL" ? "EXTERNAL" : "INTERNAL";
+        // ถ้า parent ส่ง onBorrow มา → ส่งแบบ flatten + กันค่า externalDept ว่าง
         if (onBorrow) {
             try {
                 setSubmitting(true);
                 onBorrow({
-                    // ส่งแบบ top-level ให้ API รับตรง
-                    externalName: me?.fullName ?? "",
-                    externalDept: me?.department?.name ?? "",
-                    externalPhone: me?.phone ?? "",
+                    externalName: me?.fullName?.trim() || null,
+                    externalDept: (me?.department?.name?.trim() || "ภายนอกกลุ่มงาน"),
+                    externalPhone: me?.phone?.toString().trim() || null,
                     notes: null,
                     returnDue: thaiToCE(returnDateBE),
                     reason,
-                    borrowerName: me?.fullName,
+                    borrowerName: me?.fullName ?? null,
                     department: me?.department?.name ?? null,
                 });
                 onSuccess?.();
@@ -190,8 +176,12 @@ const BorrowKaruphan = ({ onClose, onBorrow, onSuccess, selectedEquipment, cartI
             return;
         }
 
-        // fallback เดิม: ยิง API ในโมดอลเอง (กรณีเรียกใช้โมดอลแบบ standalone)
-        await handleBorrow({ borrowDate: thaiToCE(borrowDateBE), returnDue: thaiToCE(returnDateBE), reason });
+        // fallback: ให้โมดอลยิง API เอง
+        await handleBorrowDirect({
+            borrowDate: thaiToCE(borrowDateBE),
+            returnDue: thaiToCE(returnDateBE),
+            reason,
+        });
     };
 
     return (
@@ -250,10 +240,10 @@ const BorrowKaruphan = ({ onClose, onBorrow, onSuccess, selectedEquipment, cartI
                         <input
                             type="date"
                             value={borrowDateBE}
-                            onChange={e => {
+                            onChange={(e) => {
                                 let v = e.target.value;
                                 if (/^\d{4}-\d{2}-\d{2}$/.test(v)) {
-                                    const [y, m, d] = v.split("-");
+                                    const [y] = v.split("-");
                                     if (Number(y) < 2500) v = ceToThai(v);
                                 }
                                 setBorrowDateBE(v);
@@ -268,10 +258,10 @@ const BorrowKaruphan = ({ onClose, onBorrow, onSuccess, selectedEquipment, cartI
                         <input
                             type="date"
                             value={returnDateBE}
-                            onChange={e => {
+                            onChange={(e) => {
                                 let v = e.target.value;
                                 if (/^\d{4}-\d{2}-\d{2}$/.test(v)) {
-                                    const [y, m, d] = v.split("-");
+                                    const [y] = v.split("-");
                                     if (Number(y) < 2500) v = ceToThai(v);
                                 }
                                 setReturnDateBE(v);
