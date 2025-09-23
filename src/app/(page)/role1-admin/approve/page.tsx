@@ -110,7 +110,7 @@ export default function ApprovePage() {
                                 <div><span className="font-medium">เหตุผลการยืม:</span> {row.reason || "-"}</div>
                             </div>
                             <div className="space-y-4">
-                                <div><span className="font-medium">วันที่ยืม:</span> {fmtTH(row.borrowDate)}</div>
+                                <div><span className="font-medium">วันที่ยืม(ใส่วันที่อนุญาตอัตโนมัต):</span> {fmtTH(row.borrowDate)}</div>
                                 <div><span className="font-medium">กำหนดคืน:</span> {fmtTH(row.returnDue)}</div>
                             </div>
                         </div>
