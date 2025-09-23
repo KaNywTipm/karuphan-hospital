@@ -33,9 +33,9 @@ function monthKey(d: Date) {
 }
 
 function monthLabel(d: Date) {
-    const y = d.getFullYear();
+    const y = d.getFullYear() + 543; // แปลงเป็นปี พ.ศ.
     const mIdx = d.getMonth();
-    return `${thMonths[mIdx]}-${y}`;
+    return `${thMonths[mIdx]} ${y}`;
 }
 
 function lastNMonths(n: number) {
@@ -75,7 +75,7 @@ export default function Dashboard() {
         (async () => {
             try {
                 setLoading(true);
-                const [uStats, c, e, b] = await Promise.all([
+                const [uStats, c, e, b, u] = await Promise.all([
                     fetch("/api/users/stats", { cache: "no-store" })
                         .then(async (r) => (r.ok ? r.json() : { data: { internal: 0, external: 0 } }))
                         .catch(() => ({ data: { internal: 0, external: 0 } })),
@@ -96,6 +96,13 @@ export default function Dashboard() {
                     })
                         .then(async (r) => (r.ok ? r.json() : { data: [] }))
                         .catch(() => ({ data: [] })),
+                    fetch("/api/users?page=1&pageSize=1000", {
+                        method: "GET",
+                        cache: "no-store",
+                        headers: { Accept: "application/json" }
+                    })
+                        .then(async (r) => (r.ok ? r.json() : { data: [] }))
+                        .catch(() => ({ data: [] })),
                 ]);
 
                 if (!alive) return;
@@ -103,6 +110,7 @@ export default function Dashboard() {
                 setCategories(Array.isArray(c?.data) ? c.data : []);
                 setEquipments(Array.isArray(e?.data) ? e.data : []);
                 setBorrows(Array.isArray(b?.data) ? b.data : []);
+                setUsers(Array.isArray(u?.data) ? u.data : []);
             } finally {
                 if (alive) setLoading(false);
             }
@@ -131,32 +139,87 @@ export default function Dashboard() {
     // --------- สร้างกราฟรายเดือนจาก "borrows" จริง (6 เดือนล่าสุด) ---------
     const monthlyBars = useMemo(() => {
         const months = lastNMonths(6);
-        const map: Record<string, number> = Object.fromEntries(months.map((m) => [m.key, 0]));
+
+        // สร้าง map สำหรับแต่ละประเภท
+        const approvedInternalMap: Record<string, number> = Object.fromEntries(months.map((m) => [m.key, 0]));
+        const approvedExternalMap: Record<string, number> = Object.fromEntries(months.map((m) => [m.key, 0]));
+        const rejectedMap: Record<string, number> = Object.fromEntries(months.map((m) => [m.key, 0]));
+
+        // สร้าง map ของ users เพื่อการค้นหาที่เร็วขึ้น
+        const userMap = new Map(users.map(user => [user.id, user]));
 
         for (const r of borrows) {
             const d = safeParseDate(r.borrowDate, (r as any).createdAt, r.returnDue);
             if (!d) continue;
             const key = monthKey(d);
-            if (key in map) map[key] += 1;
+
+            // รวมทั้ง APPROVED และ RETURNED เป็นรายการที่อนุมัติ
+            if (r.status === "APPROVED" || r.status === "RETURNED") {
+                // หา user จาก userId ในข้อมูล borrow
+                const userId = (r as any).userId || (r as any).requesterId;
+                const user = userMap.get(userId);
+
+                // ใช้ borrowerType เป็นหลัก แล้วค่อย fallback ไป role
+                const borrowerType = (r as any).borrowerType;
+                const userRole = user?.role || (r as any).user?.role || (r as any).requester?.role;
+
+                // ตรวจสอบทั้ง borrowerType และ role
+                if (borrowerType === "INTERNAL" || userRole === "INTERNAL") {
+                    if (key in approvedInternalMap) approvedInternalMap[key] += 1;
+                } else if (borrowerType === "EXTERNAL" || userRole === "EXTERNAL") {
+                    if (key in approvedExternalMap) approvedExternalMap[key] += 1;
+                } else {
+                    // ถ้าไม่สามารถระบุได้ ให้เป็น EXTERNAL
+                    if (key in approvedExternalMap) approvedExternalMap[key] += 1;
+                }
+            } else if (r.status === "REJECTED") {
+                if (key in rejectedMap) rejectedMap[key] += 1;
+            }
         }
 
-        // หาค่าสูงสุดจริงเพื่อขยายกราฟ
-        const values = Object.values(map);
-        const maxValue = Math.max(1, ...values);
-        // ขยายค่าสูงสุดให้กราฟดูสูงขึ้น (เช่น คูณ 1.5 หรือเพิ่ม offset)
+        // หาค่าสูงสุดรวมเพื่อปรับ scale
+        const allValues = months.flatMap(m => [
+            approvedInternalMap[m.key] || 0,
+            approvedExternalMap[m.key] || 0,
+            rejectedMap[m.key] || 0
+        ]);
+        const maxValue = Math.max(1, ...allValues);
         const scale = maxValue < 5 ? 2 : 1.5;
         const scaledMax = Math.ceil(maxValue * scale);
 
+        // กำหนดความสูงสูงสุดของแท่ง (px)
+        const BAR_MAX_PX = 260;      // สูงสุดแท่ง
+        const BAR_MIN_PX = 16;       // ขั้นต่ำให้พอมองเห็น
+
         return months.map((m) => {
-            const value = map[m.key] || 0;
+            const approvedInternal = approvedInternalMap[m.key] || 0;
+            const approvedExternal = approvedExternalMap[m.key] || 0;
+            const rejected = rejectedMap[m.key] || 0;
+            const totalApproved = approvedInternal + approvedExternal;
+            const totalAll = totalApproved + rejected;
+
+            const approvedBarPx = totalApproved === 0
+                ? BAR_MIN_PX
+                : Math.round(BAR_MIN_PX + (totalApproved / (scaledMax || 1)) * (BAR_MAX_PX - BAR_MIN_PX));
+
+            const rejectedBarPx = rejected === 0
+                ? BAR_MIN_PX
+                : Math.round(BAR_MIN_PX + (rejected / (scaledMax || 1)) * (BAR_MAX_PX - BAR_MIN_PX));
+
             return {
                 month: m.label,
-                value,
-                label: `${value} รายการ`,
-                scaledMax,
+                approvedInternal,
+                approvedExternal,
+                totalApproved,
+                rejected,
+                totalAll,
+                approvedLabel: `อนุมัติ: ${totalApproved} คำขอ (ใน: ${approvedInternal}, นอก: ${approvedExternal})`,
+                rejectedLabel: `ไม่อนุมัติ: ${rejected} คำขอ`,
+                approvedBarPx,
+                rejectedBarPx
             };
         });
-    }, [borrows]);
+    }, [borrows, users]);
 
     // ฟังก์ชันการนำทาง
     const handleNavigateToEquipment = () => {
@@ -166,11 +229,6 @@ export default function Dashboard() {
     const handleNavigateToUsers = (type: "internal" | "external") => {
         // นำทางไปหน้าจัดการบุคลากร
         router.push("/menu/manage-personnel");
-    };
-
-    const handleNavigateToBorrowHistory = () => {
-        // สมมติว่ามีหน้าประวัติการยืม
-        router.push("/menu/borrow-history");
     };
 
     const handleNavigateToReports = () => {
@@ -293,50 +351,97 @@ export default function Dashboard() {
                     <div className="bg-white rounded-xl shadow-lg p-6">
                         <div className="flex justify-between items-center mb-6">
                             <div>
-                                <h2 className="text-2xl font-bold text-gray-800">รายงานจำนวนการยืมครุภัณฑ์</h2>
-                                <p className="text-gray-600">จำนวนคำขอยืมต่อเดือน (6 เดือนล่าสุด)</p>
+                                <h2 className="text-2xl font-bold text-gray-800">รายงานการอนุมัติคำขอยืมครุภัณฑ์</h2>
+                                <p className="text-gray-600">จำนวนคำขอที่อนุมัติและไม่อนุมัติต่อเดือน (6 เดือนล่าสุด)</p>
+                                <div className="flex gap-4 mt-2 text-sm">
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-4 h-4 bg-green-500 rounded"></div>
+                                        <span>อนุมัติแล้ว (รวมที่คืนแล้ว)</span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-4 h-4 bg-red-500 rounded"></div>
+                                        <span>ไม่อนุมัติ/ยกเลิก</span>
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
                         <div className="relative">
-                            <div className="flex items-end justify-between h-80 mb-4">
+                            {/* กรอบกราฟกำหนดสูงตายตัวเพื่อให้แท่งไปชนขอบล่างได้พอดี */}
+                            <div className="flex items-end justify-between mb-4 h-[300px]">
                                 {monthlyBars.map((data, index) => {
-                                    const colors = [
-                                        "bg-blue-400",
-                                        "bg-purple-500",
-                                        "bg-green-500",
-                                        "bg-orange-500",
-                                        "bg-blue-600",
-                                        "bg-emerald-500",
-                                    ];
-                                    // ใช้ scaledMax เพื่อขยายกราฟ
-                                    const minBarHeight = 20;
-                                    const height = data.value === 0
-                                        ? minBarHeight
-                                        : minBarHeight + ((data.value / (data.scaledMax || 1)) * (100 - minBarHeight));
-
                                     return (
                                         <div key={index} className="flex flex-col items-center w-1/6">
-                                            <div className="relative mb-2">
-                                                <span className="text-sm font-semibold text-blue-600 mb-1 block">
-                                                    {data.label}
-                                                </span>
-                                                <div
-                                                    className={`w-16 ${colors[index % colors.length]} rounded-t-md transition-all duration-700 ease-out`}
-                                                    style={{ height: `${height}%`, minHeight: "16px" }}
-                                                    title={data.label}
-                                                />
+                                            {/* คอนเทนเนอร์ของแท่งคู่ */}
+                                            <div className="relative mb-2 h-[260px] w-20 flex flex-col justify-end items-center group">
+                                                {/* Tooltip แสดงเมื่อ hover */}
+                                                <div className="absolute -top-16 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs rounded py-2 px-3 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10 whitespace-nowrap">
+                                                    <div>อนุมัติ: {data.totalApproved} คำขอ</div>
+                                                    <div className="text-gray-300">• ภายใน: {data.approvedInternal}</div>
+                                                    <div className="text-gray-300">• ภายนอก: {data.approvedExternal}</div>
+                                                    {data.rejected > 0 && <div className="mt-1 text-red-300">ไม่อนุมัติ: {data.rejected} คำขอ</div>}
+                                                </div>
+
+                                                {/* แท่งคู่ */}
+                                                <div className="flex gap-1 items-end">
+                                                    {/* แท่งอนุมัติ (เขียว) */}
+                                                    <div
+                                                        className="w-8 bg-green-500 rounded-t-md transition-all duration-700 ease-out"
+                                                        style={{ height: `${data.approvedBarPx}px` }}
+                                                        title={data.approvedLabel}
+                                                    />
+                                                    {/* แท่งไม่อนุมัติ (แดง) */}
+                                                    <div
+                                                        className="w-8 bg-red-500 rounded-t-md transition-all duration-700 ease-out"
+                                                        style={{ height: `${data.rejectedBarPx}px` }}
+                                                        title={data.rejectedLabel}
+                                                    />
+                                                </div>
                                             </div>
                                             <span className="text-sm text-gray-600 font-medium">{data.month}</span>
                                         </div>
                                     );
                                 })}
-                            </div>
-
-                            {/* แกน Y คร่าว ๆ */}
-                            <div className="absolute left-0 top-0 h-64 flex flex-col justify-between text-sm text-gray-500">
+                            </div>                            {/* แกน Y คร่าว ๆ */}
+                            <div className="absolute left-0 top-0 h-[260px] flex flex-col justify-between text-sm text-gray-500">
                                 <span>สูงสุด</span>
                                 <span>ต่ำสุด</span>
+                            </div>
+                        </div>
+
+                        {/* สรุปข้อมูลรายเดือนแบบละเอียด */}
+                        <div className="mt-6 bg-gray-50 rounded-lg p-4">
+                            <h4 className="text-lg font-semibold text-gray-800 mb-3">สรุปข้อมูลรายเดือน</h4>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                {monthlyBars.map((data, index) => (
+                                    <div key={index} className="bg-white rounded-lg p-3 shadow-sm">
+                                        <h5 className="font-medium text-gray-800 mb-2">{data.month}</h5>
+                                        <div className="space-y-1 text-sm">
+                                            <div className="flex justify-between">
+                                                <span className="text-green-600">อนุมัติทั้งหมด:</span>
+                                                <span className="font-medium">{data.totalApproved} คำขอ</span>
+                                            </div>
+                                            {data.approvedInternal > 0 && (
+                                                <div className="flex justify-between pl-3">
+                                                    <span className="text-gray-600">• ภายใน:</span>
+                                                    <span>{data.approvedInternal} คำขอ</span>
+                                                </div>
+                                            )}
+                                            {data.approvedExternal > 0 && (
+                                                <div className="flex justify-between pl-3">
+                                                    <span className="text-gray-600">• ภายนอก:</span>
+                                                    <span>{data.approvedExternal} คำขอ</span>
+                                                </div>
+                                            )}
+                                            {data.rejected > 0 && (
+                                                <div className="flex justify-between">
+                                                    <span className="text-red-600">ไม่อนุมัติ:</span>
+                                                    <span className="font-medium">{data.rejected} คำขอ</span>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                ))}
                             </div>
                         </div>
                     </div>

@@ -92,7 +92,12 @@ function AdminPageInner() {
     async function fetchData(signal?: AbortSignal) {
         try {
             setLoading(true);
-            const res = await fetch("/api/borrow", { cache: "no-store", signal });
+            const res = await fetch("/api/borrow?page=1&pageSize=1000", {
+                method: "GET",
+                cache: "no-store",
+                signal,
+                headers: { Accept: "application/json" }
+            });
             const json = await res.json();
             const raw = Array.isArray(json?.data) ? json.data : [];
             const shaped = raw.map((r: any) => {
