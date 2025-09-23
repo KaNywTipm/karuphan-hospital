@@ -61,6 +61,7 @@ interface CartItem {
 type BorrowKaruphanProps = {
     onClose?: () => void;
     onBorrow?: (borrowData: {
+        [x: string]: boolean;
         externalName: string;
         externalDept: string;
         externalPhone: string;

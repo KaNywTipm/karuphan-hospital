@@ -371,9 +371,9 @@ export default function ExternalBorrowPage() {
                                 returnDue: form.returnDue,
                                 reason: form.reason ?? null,
                                 notes: form.notes ?? null,
-                                externalName: (form.external && 'name' in form.external) ? (form.external as any).name ?? null : null,
-                                externalDept: (form.external && 'dept' in form.external) ? (form.external as any).dept ?? null : null,
-                                externalPhone: (form.external && 'phone' in form.external) ? (form.external as any).phone ?? null : null,
+                                externalName: (form.external && typeof form.external === "object" && 'name' in form.external) ? (form.external as any).name ?? null : null,
+                                externalDept: (form.external && typeof form.external === "object" && 'dept' in form.external) ? (form.external as any).dept ?? null : null,
+                                externalPhone: (form.external && typeof form.external === "object" && 'phone' in form.external) ? (form.external as any).phone ?? null : null,
                                 items: [{ equipmentId: quickItem.id, quantity: 1 }],
                             };
                             const res = await fetch("/api/borrow", {
