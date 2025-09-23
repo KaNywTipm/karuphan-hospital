@@ -130,8 +130,14 @@ export default function TotalAmountReport() {
                         </div>
                     </div>
 
-                    <button onClick={() => setSort(s => s === "newest" ? "oldest" : "newest")} className="p-2 border border-Grey rounded-lg hover:bg-gray-100">
-                        <Image src="/HamBmenu.png" alt="sort" width={20} height={20} />
+                    <button
+                        onClick={() => setSort(s => s === "newest" ? "oldest" : "newest")}
+                        className={`p-2 border border-Grey rounded-lg hover:bg-gray-100 transition duration-150 flex items-center justify-center ${sort === "newest" ? "bg-blue-50" : "bg-pink-50"
+                            }`}
+                        title={sort === "newest" ? "เรียงจากใหม่ไปเก่า" : "เรียงจากเก่าไปใหม่"}
+                    >
+                        <Image src="/HamBmenu.png" alt="เรียงข้อมูล" width={20} height={20} />
+                        <span className="sr-only">เรียงข้อมูล</span>
                     </button>
                 </div>
             </div>
@@ -180,7 +186,7 @@ export default function TotalAmountReport() {
             </div>
 
             <div className="flex items-center justify-between px-4 py-3 border-t mt-4">
-                <span className="text-sm text-gray-700">แสดง {filtered.length} รายการ จากทั้งหมด {rows.length} รายการ</span>  
+                <span className="text-sm text-gray-700">แสดง {filtered.length} รายการ จากทั้งหมด {rows.length} รายการ</span>
             </div>
         </div>
     );

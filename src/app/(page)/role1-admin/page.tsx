@@ -277,10 +277,12 @@ export default function AdminPage() {
                             </div>
                             <button
                                 onClick={() => setSortOrder((p) => (p === "newest" ? "oldest" : "newest"))}
-                                className="p-2 border border-gray-300 rounded-lg hover:bg-gray-100"
+                                className={`p-2 border border-gray-300 rounded-lg hover:bg-gray-100 transition duration-150 flex items-center justify-center ${sortOrder === "newest" ? "bg-blue-50" : "bg-pink-50"
+                                    }`}
                                 title={sortOrder === "newest" ? "เรียงจากใหม่ไปเก่า" : "เรียงจากเก่าไปใหม่"}
                             >
-                                <Image src="/HamBmenu.png" alt="sort" width={20} height={20} />
+                                <Image src="/HamBmenu.png" alt="เรียงข้อมูล" width={20} height={20} />
+                                <span className="sr-only">เรียงข้อมูล</span>
                             </button>
                         </div>
                     </div>
@@ -461,8 +463,8 @@ export default function AdminPage() {
                                         key={pageNum}
                                         onClick={() => setCurrentPage(pageNum)}
                                         className={`w-8 h-8 flex items-center justify-center rounded text-sm ${currentPage === pageNum
-                                                ? 'bg-gray-800 text-white'
-                                                : 'text-gray-700 hover:bg-gray-100'
+                                            ? 'bg-gray-800 text-white'
+                                            : 'text-gray-700 hover:bg-gray-100'
                                             }`}
                                     >
                                         {pageNum}

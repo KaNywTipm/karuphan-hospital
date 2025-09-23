@@ -221,28 +221,14 @@ export default function ListKaruphan() {
                             </div>
                         </div>
 
-                        {/*  ปุ่มสลับเรียงแบบเข้าใจง่าย + ไอคอนลูกศร */}
                         <button
                             onClick={() => setSortOrder((p) => (p === "newest" ? "oldest" : "newest"))}
-                            className="px-3 py-2 border border-Grey rounded-lg hover:bg-gray-100 flex items-center gap-2"
+                            className={`p-2 border border-gray-300 rounded-lg hover:bg-gray-100 transition duration-150 flex items-center justify-center ${sortOrder === "newest" ? "bg-blue-50" : "bg-pink-50"
+                                }`}
                             title={sortOrder === "newest" ? "เรียงจากใหม่ไปเก่า" : "เรียงจากเก่าไปใหม่"}
-                            aria-label="สลับการเรียงตามวันที่ได้รับ"
                         >
-                            <svg
-                                width="18"
-                                height="18"
-                                viewBox="0 0 24 24"
-                                className={`transition-transform ${sortOrder === "newest" ? "" : "rotate-180"}`}
-                            >
-                                <path
-                                    d="M7 10l5-5 5 5M7 14l5 5 5-5"
-                                    stroke="currentColor"
-                                    strokeWidth="2"
-                                    fill="none"
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                />
-                            </svg>
+                            <Image src="/HamBmenu.png" alt="เรียงข้อมูล" width={20} height={20} />
+                            <span className="sr-only">เรียงข้อมูล</span>
                         </button>
                     </div>
                 </div>

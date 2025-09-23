@@ -105,7 +105,7 @@ export default function ExternalBorrowPage() {
         setLoading(true);
         const [catRes, eqRes] = await Promise.all([
             fetch("/api/categories", { cache: "no-store" }),
-            fetch(`/api/equipment?sort=receivedDate:${sortOrder === "newest" ? "desc" : "asc"}&page=1&pageSize=1000`, { cache: "no-store" }),
+            fetch(`/api/equipment?page=1&pageSize=1000`, { cache: "no-store" }),
         ]);
         const cats: Category[] = await catRes.json();
         const eqJson = await eqRes.json();
@@ -114,7 +114,7 @@ export default function ExternalBorrowPage() {
         setItems(rows);
         setLoading(false);
         setCurrentPage(1);
-    }, [sortOrder]);
+    }, []);
 
     useEffect(() => { load(); }, [load]);
 
@@ -237,10 +237,12 @@ export default function ExternalBorrowPage() {
                             </div>
                             <button
                                 onClick={() => setSortOrder(p => p === "newest" ? "oldest" : "newest")}
-                                className="p-2 border border-gray-300 rounded-lg hover:bg-gray-100"
+                                className={`p-2 border border-gray-300 rounded-lg hover:bg-gray-100 transition duration-150 flex items-center justify-center ${sortOrder === "newest" ? "bg-blue-50" : "bg-pink-50"
+                                    }`}
                                 title={sortOrder === "newest" ? "เรียงจากใหม่ไปเก่า" : "เรียงจากเก่าไปใหม่"}
                             >
-                                <Image src="/HamBmenu.png" alt="sort" width={20} height={20} />
+                                <Image src="/HamBmenu.png" alt="เรียงข้อมูล" width={20} height={20} />
+                                <span className="sr-only">เรียงข้อมูล</span>
                             </button>
                         </div>
                     </div>

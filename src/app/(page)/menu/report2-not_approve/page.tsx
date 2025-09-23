@@ -80,10 +80,9 @@ export default function NotApproveReport() {
             (r.equipmentCode || "").toLowerCase().includes(q) ||
             (r.equipmentName || "").toLowerCase().includes(q)
         );
+        // เรียงตาม id (รายการที่เข้ามาใหม่หรือเก่า) แทนการเรียงตาม borrowDate
         return data.sort((a, b) => {
-            const da = new Date(a.borrowDate || "").getTime();
-            const db = new Date(b.borrowDate || "").getTime();
-            return sort === "newest" ? db - da : da - db;
+            return sort === "newest" ? b.id - a.id : a.id - b.id;
         });
     }, [rows, search, sort]);
 
@@ -154,8 +153,14 @@ export default function NotApproveReport() {
                             <Image src="/search.png" alt="search" width={20} height={20} className="opacity-50" />
                         </div>
                     </div>
-                    <button onClick={() => setSort(s => s === "newest" ? "oldest" : "newest")} className="p-2 border border-Grey rounded-lg hover:bg-gray-100">
-                        <Image src="/HamBmenu.png" alt="sort" width={20} height={20} />
+                    <button
+                        onClick={() => setSort(s => s === "newest" ? "oldest" : "newest")}
+                        className={`p-2 border border-Grey rounded-lg hover:bg-gray-100 transition duration-150 flex items-center justify-center ${sort === "newest" ? "bg-blue-50" : "bg-pink-50"
+                            }`}
+                        title={sort === "newest" ? "เรียงจากใหม่ไปเก่า" : "เรียงจากเก่าไปใหม่"}
+                    >
+                        <Image src="/HamBmenu.png" alt="เรียงข้อมูล" width={20} height={20} />
+                        <span className="sr-only">เรียงข้อมูล</span>
                     </button>
                 </div>
             </div>

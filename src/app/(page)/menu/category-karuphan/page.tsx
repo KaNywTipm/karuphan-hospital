@@ -57,7 +57,7 @@ export default function CategoryKaruphan() {
 
     useEffect(() => {
         load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     const filteredData = useMemo(() => {
@@ -188,7 +188,8 @@ export default function CategoryKaruphan() {
                         </div>
                         <button
                             onClick={() => setSortOrder(prev => prev === "newest" ? "oldest" : "newest")}
-                            className={`p-2 border border-gray-300 rounded-lg hover:bg-gray-100 transition duration-150 flex items-center justify-center ${sortOrder === "newest" ? "bg-blue-50" : "bg-pink-50"}`}
+                            className={`p-2 border border-gray-300 rounded-lg hover:bg-gray-100 transition duration-150 flex items-center justify-center ${sortOrder === "newest" ? "bg-blue-50" : "bg-pink-50"
+                                }`}
                             title={sortOrder === "newest" ? "เรียงจากใหม่ไปเก่า" : "เรียงจากเก่าไปใหม่"}
                         >
                             <Image src="/HamBmenu.png" alt="เรียงข้อมูล" width={20} height={20} />
