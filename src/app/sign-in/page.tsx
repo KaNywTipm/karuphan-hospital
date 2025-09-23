@@ -1,20 +1,19 @@
 "use client";
 import Image from "next/image";
-import { useState } from "react";
+import { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
 import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 
-import { useEffect } from "react";
-// eslint-disable-next-line @next/next/no-async-client-component
-export default function SignInPage() {
+export const dynamic = "force-dynamic";
+
+function SignInInner() {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [show, setShow] = useState(false);
     const [loading, setLoading] = useState(false);
     const [msg, setMsg] = useState<string | null>(null);
     const router = useRouter();
-
     const sp = useSearchParams();
 
     useEffect(() => {
@@ -91,5 +90,13 @@ export default function SignInPage() {
             </form>
             <div className="absolute inset-0 bg-white/60 z-0" />
         </div>
+    );
+}
+
+export default function SignInPage() {
+    return (
+        <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-cover bg-center"><div className="w-[360px] bg-white/90 p-6 rounded-2xl shadow relative z-10 text-center">กำลังโหลด...</div></div>}>
+            <SignInInner />
+        </Suspense>
     );
 }

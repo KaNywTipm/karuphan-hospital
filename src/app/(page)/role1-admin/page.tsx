@@ -1,8 +1,9 @@
 
 "use client";
 import Image from "next/image";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, Suspense } from "react";
 import { useRouter } from "next/navigation";
+export const dynamic = "force-dynamic";
 
 // ---------- Types ----------
 type RowStatus = "PENDING" | "APPROVED" | "RETURNED" | "REJECTED";
@@ -77,7 +78,7 @@ function getActionButtonTextByStatus(status: RowStatus) {
     }
 }
 
-export default function AdminPage() {
+function AdminPageInner() {
     const router = useRouter();
     const [activeTab, setActiveTab] = useState("รออนุมัติ");
     const [searchTerm, setSearchTerm] = useState("");
@@ -506,5 +507,13 @@ export default function AdminPage() {
                 </div>
             </div>
         </div>
+    );
+}
+
+export default function AdminPage() {
+    return (
+        <Suspense fallback={<div className="p-6">กำลังโหลด...</div>}>
+            <AdminPageInner />
+        </Suspense>
     );
 }
