@@ -99,17 +99,18 @@ export default function AdminPage() {
                 let returnCondition = null;
                 if (r.status === "RETURNED" && Array.isArray(r.items)) {
                     const arr = r.items.map((it: any) => {
-                        if (!it?.returnCondition) return "-";
+                        if (!it?.returnCondition) return { text: "-", condition: "UNKNOWN" };
                         switch (it.returnCondition) {
-                            case "NORMAL": return "ปกติ";
-                            case "BROKEN": return "ชำรุด";
-                            case "LOST": return "สูญหาย";
-                            case "WAIT_DISPOSE": return "รอจำหน่าย";
-                            case "DISPOSED": return "จำหน่ายแล้ว";
-                            default: return it.returnCondition;
+                            case "NORMAL": return { text: "ปกติ", condition: "NORMAL" };
+                            case "BROKEN": return { text: "ชำรุด", condition: "BROKEN" };
+                            case "LOST": return { text: "สูญหาย", condition: "LOST" };
+                            case "WAIT_DISPOSE": return { text: "รอจำหน่าย", condition: "WAIT_DISPOSE" };
+                            case "DISPOSED": return { text: "จำหน่ายแล้ว", condition: "DISPOSED" };
+                            default: return { text: it.returnCondition, condition: "UNKNOWN" };
                         }
                     });
-                    returnCondition = arr.join(", ");
+                    // เก็บ array ของ conditions เพื่อใช้แสดงผลแบบมีสี
+                    returnCondition = arr;
                 } else {
                     returnCondition = r.returnCondition ?? null;
                 }
@@ -375,7 +376,22 @@ export default function AdminPage() {
                                             <>
                                                 <td className="border border-gray-300 px-4 py-3 text-center">{item.adminName}</td>
                                                 <td className="border border-gray-300 px-4 py-3 text-center">
-                                                    <span className={`px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap ${returnConditionColor(item.returnCondition)}`}>{returnConditionLabelTH(item.returnCondition)}</span>
+                                                    {Array.isArray(item.returnCondition) ? (
+                                                        <div className="flex flex-wrap gap-1 justify-center">
+                                                            {item.returnCondition.map((cond: any, idx: number) => (
+                                                                <span
+                                                                    key={idx}
+                                                                    className={`px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap ${returnConditionColor(cond.condition)}`}
+                                                                >
+                                                                    {cond.text}
+                                                                </span>
+                                                            ))}
+                                                        </div>
+                                                    ) : (
+                                                        <span className={`px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap ${returnConditionColor(item.returnCondition)}`}>
+                                                            {returnConditionLabelTH(item.returnCondition)}
+                                                        </span>
+                                                    )}
                                                 </td>
                                             </>
                                         )}

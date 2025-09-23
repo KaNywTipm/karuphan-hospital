@@ -357,42 +357,42 @@ export default function Dashboard() {
                                 <div className="flex flex-wrap gap-4 justify-center">
                                     <div
                                         onClick={() => router.push("/menu/list-karuphan?status=NORMAL")}
-                                        className="flex flex-col items-center bg-blue-100 text-blue-800 rounded-lg px-4 py-3 min-w-[150px] cursor-pointer hover:bg-blue-200 transition-colors duration-200 transform hover:scale-105"
+                                        className="flex flex-col items-center bg-blue-200 text-blue-800 rounded-lg px-4 py-3 min-w-[150px] cursor-pointer hover:bg-blue-300 transition-colors duration-200 transform hover:scale-105"
                                     >
                                         <span className="font-semibold text-lg">{normalEquipment}</span>
                                         <span className="text-sm">ปกติ</span>
                                     </div>
                                     <div
                                         onClick={() => router.push("/menu/list-karuphan?status=IN_USE")}
-                                        className="flex flex-col items-center bg-yellow-100 text-yellow-800 rounded-lg px-4 py-3 min-w-[150px] cursor-pointer hover:bg-yellow-200 transition-colors duration-200 transform hover:scale-105"
+                                        className="flex flex-col items-center bg-orange-200 text-orange-800 rounded-lg px-4 py-3 min-w-[150px] cursor-pointer hover:bg-orange-300 transition-colors duration-200 transform hover:scale-105"
                                     >
                                         <span className="font-semibold text-lg">{borrowedEquipment}</span>
                                         <span className="text-sm">กำลังยืม</span>
                                     </div>
                                     <div
                                         onClick={() => router.push("/menu/list-karuphan?status=BROKEN")}
-                                        className="flex flex-col items-center bg-red-100 text-red-800 rounded-lg px-4 py-3 min-w-[150px] cursor-pointer hover:bg-red-200 transition-colors duration-200 transform hover:scale-105"
+                                        className="flex flex-col items-center bg-red-200 text-red-800 rounded-lg px-4 py-3 min-w-[150px] cursor-pointer hover:bg-red-300 transition-colors duration-200 transform hover:scale-105"
                                     >
                                         <span className="font-semibold text-lg">{damagedEquipment}</span>
                                         <span className="text-sm">ชำรุด</span>
                                     </div>
                                     <div
                                         onClick={() => router.push("/menu/list-karuphan?status=LOST")}
-                                        className="flex flex-col items-center bg-pink-100 text-pink-800 rounded-lg px-4 py-3 min-w-[150px] cursor-pointer hover:bg-pink-200 transition-colors duration-200 transform hover:scale-105"
+                                        className="flex flex-col items-center bg-gray-200 text-gray-800 rounded-lg px-4 py-3 min-w-[150px] cursor-pointer hover:bg-gray-300 transition-colors duration-200 transform hover:scale-105"
                                     >
                                         <span className="font-semibold text-lg">{lostEquipment}</span>
                                         <span className="text-sm">สูญหาย</span>
                                     </div>
                                     <div
                                         onClick={() => router.push("/menu/list-karuphan?status=WAIT_DISPOSE")}
-                                        className="flex flex-col items-center bg-gray-200 text-gray-800 rounded-lg px-4 py-3 min-w-[150px] cursor-pointer hover:bg-gray-300 transition-colors duration-200 transform hover:scale-105"
+                                        className="flex flex-col items-center bg-yellow-200 text-yellow-800 rounded-lg px-4 py-3 min-w-[150px] cursor-pointer hover:bg-yellow-300 transition-colors duration-200 transform hover:scale-105"
                                     >
                                         <span className="font-semibold text-lg">{waitDisposeEquipment}</span>
                                         <span className="text-sm">รอจำหน่าย</span>
                                     </div>
                                     <div
                                         onClick={() => router.push("/menu/list-karuphan?status=DISPOSED")}
-                                        className="flex flex-col items-center bg-gray-400 text-white rounded-lg px-4 py-3 min-w-[150px] cursor-pointer hover:bg-gray-500 transition-colors duration-200 transform hover:scale-105"
+                                        className="flex flex-col items-center bg-purple-200 text-purple-800 rounded-lg px-4 py-3 min-w-[150px] cursor-pointer hover:bg-purple-300 transition-colors duration-200 transform hover:scale-105"
                                     >
                                         <span className="font-semibold text-lg">{disposedEquipment}</span>
                                         <span className="text-sm">จำหน่ายแล้ว</span>
