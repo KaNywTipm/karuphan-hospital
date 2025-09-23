@@ -1,6 +1,6 @@
 "use client";
 import React, { useEffect, useMemo, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 
 /* ---------- helpers ---------- */
 // แปลงวัน ค.ศ. -> yyyy-MM-dd (พ.ศ.) สำหรับ <input type="date">
@@ -54,10 +54,13 @@ type BorrowRequest = {
     approvedBy?: { fullName?: string } | null;
 };
 
-export default function ReturnPage() {
+export default function ReturnPage({
+    searchParams,
+}: {
+    searchParams: { [key: string]: string | string[] | undefined };
+}) {
     const router = useRouter();
-    const searchParams = useSearchParams();
-    const id = Number(searchParams.get("id"));
+    const id = Number(searchParams.id);
 
     const [borrowRequest, setBorrowRequest] = useState<BorrowRequest | null>(null);
     // it.id -> condition
@@ -327,8 +330,8 @@ export default function ReturnPage() {
                                 onClick={handleReturn}
                                 disabled={(borrowRequest.items ?? []).some((it) => !returnConditions[it.id])}
                                 className={`px-6 py-2 rounded-lg font-medium transition-colors ${(borrowRequest.items ?? []).every((it) => returnConditions[it.id])
-                                        ? "bg-blue-500 hover:bg-blue-600 text-white"
-                                        : "bg-gray-300 text-gray-500 cursor-not-allowed"
+                                    ? "bg-blue-500 hover:bg-blue-600 text-white"
+                                    : "bg-gray-300 text-gray-500 cursor-not-allowed"
                                     }`}
                             >
                                 บันทึก
