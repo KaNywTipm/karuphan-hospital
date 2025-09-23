@@ -209,53 +209,40 @@ export default function Managepersonnel() {
 
             {/* ส่วนค้นหาและกรอง */}
             <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between">
-              <div className="flex flex-col sm:flex-row gap-3 flex-1">
-                {/* ช่องค้นหา */}
-                <div className="relative flex-1 max-w-md">
-                  <input
-                    type="text"
-                    placeholder="ค้นหาบุคลากร (ชื่อ/เบอร์/หน่วยงาน)"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  />
-                  <Image
-                    src="/search.png"
-                    alt="search"
-                    width={20}
-                    height={20}
-                    className="absolute left-3 top-1/2 -translate-y-1/2 opacity-60"
-                  />
-                </div>
-
-                {/* Dropdown กรองกลุ่มงาน */}
-                <div className="w-full sm:w-80">
-                  <UnitFilterDropdown
-                    selectedUnit={selectedUnit}
-                    onUnitChange={setSelectedUnit}
-                    placeholder="กรองตามกลุ่มงาน"
-                    showAllOption={true}
-                    className="w-full"
-                  />
-                </div>
+              {/* Dropdown กรองกลุ่มงาน */}
+              <div className="w-full lg:w-80">
+                <UnitFilterDropdown
+                  selectedUnit={selectedUnit}
+                  onUnitChange={setSelectedUnit}
+                  placeholder="กรองตามกลุ่มงาน"
+                  showAllOption={true}
+                  className="w-full"
+                />
               </div>
 
-              {/* ปุ่มเรียงลำดับ */}
-              <div className="flex items-center gap-2">
-                {/* ปุ่มล้างตัวกรอง */}
-                {(searchTerm || selectedUnit) && (
-                  <button
-                    onClick={() => {
-                      setSearchTerm("");
-                      setSelectedUnit("");
-                    }}
-                    className="px-3 py-2 text-sm text-blue-600 hover:text-blue-800 hover:bg-blue-50 border border-blue-200 rounded-lg transition-colors"
-                    title="ล้างตัวกรอง"
-                  >
-                    ล้างตัวกรอง
+              {/* ช่องค้นหาและปุ่มเมนู */}
+              <div className="flex items-center gap-2 flex-1 lg:flex-none lg:w-auto">
+                {/* ช่องค้นหา */}
+                <div className="relative flex-1 lg:w-96">
+                  <input
+                    type="text"
+                    placeholder="ค้นหาบุคลากร"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full pl-4 pr-12 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                  <button className="absolute right-3 top-1/2 -translate-y-1/2 p-1">
+                    <Image
+                      src="/search.png"
+                      alt="search"
+                      width={20}
+                      height={20}
+                      className="opacity-60"
+                    />
                   </button>
-                )}
+                </div>
 
+                {/* ปุ่มเมนู (แฮมเบอร์เกอร์) */}
                 <button
                   onClick={() => setSortOrder((p) => (p === "newest" ? "oldest" : "newest"))}
                   className={`p-2 border border-gray-300 rounded-lg hover:bg-gray-100 transition-colors flex items-center justify-center ${sortOrder === "newest" ? "bg-blue-50" : "bg-pink-50"
@@ -267,6 +254,22 @@ export default function Managepersonnel() {
                 </button>
               </div>
             </div>
+
+            {/* ปุ่มล้างตัวกรอง */}
+            {(searchTerm || selectedUnit) && (
+              <div className="flex justify-start mt-3">
+                <button
+                  onClick={() => {
+                    setSearchTerm("");
+                    setSelectedUnit("");
+                  }}
+                  className="px-3 py-2 text-sm text-blue-600 hover:text-blue-800 hover:bg-blue-50 border border-blue-200 rounded-lg transition-colors"
+                  title="ล้างตัวกรอง"
+                >
+                  ล้างตัวกรอง
+                </button>
+              </div>
+            )}
 
             {/* แสดงสถานะการกรอง */}
             {(searchTerm || selectedUnit) && (

@@ -57,11 +57,13 @@ export default function Addkaruphan({ onClose, onAdd }: Props) {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        const desc = (form.description ?? "").trim();
         const payload = {
             code: form.code.trim(),
             idnum: form.idnum?.trim() || null,
             name: form.name.trim(),
-            description: form.description || null,
+            description: desc || null,   // เผื่อฝั่ง API ใช้ description
+            details: desc || null,       // เผื่อฝั่ง API ใช้ details
             price: form.price ? Number(String(form.price).replace(/,/g, "")) : null,
             receivedDate: thaiToCE(form.receivedDateBE), // ส่งเป็น ค.ศ.
             categoryId: Number(form.categoryId),

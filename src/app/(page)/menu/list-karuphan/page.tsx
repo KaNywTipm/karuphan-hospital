@@ -205,7 +205,7 @@ export default function ListKaruphan() {
                             เพิ่มข้อมูลครุภัณฑ์
                         </button>
 
-                        <div className="relative w-72">
+                        <div className="relative w-80">
                             <input
                                 type="text"
                                 placeholder="ค้นหาครุภัณฑ์"

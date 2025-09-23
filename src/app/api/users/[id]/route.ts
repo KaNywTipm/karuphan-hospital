@@ -135,7 +135,7 @@ export async function PATCH(
             );
         data.department = { connect: { id: depIdFromBody } };
     } else if (targetRole === "ADMIN") {
-        // ✅ แอดมิน: ผูกกับกลุ่มงานที่กำหนดไว้เสมอ
+        // แอดมิน: ผูกกับกลุ่มงานที่กำหนดไว้เสมอ
         const depId = await ensureDepartmentIdByName(ADMIN_DEPT_NAME);
         data.department = { connect: { id: depId } };
     }

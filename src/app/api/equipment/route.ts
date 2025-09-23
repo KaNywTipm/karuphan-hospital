@@ -25,9 +25,7 @@ function buildOrderBy(sortParam: string | null): any[] {
     if (!sortParam) return [{ status: "asc" as const }, { name: "asc" as const }];
     const [fieldRaw, dirRaw] = String(sortParam).split(":");
     const field = fieldRaw?.trim();
-    const dir = (dirRaw?.toLowerCase() === "desc" ? "desc" : "asc") as
-        | "asc"
-        | "desc";
+    const dir = (dirRaw?.toLowerCase() === "desc" ? "desc" : "asc") as "asc" | "desc";
     if (!field || !allowed.has(field))
         return [{ status: "asc" as const }, { name: "asc" as const }];
     return [{ [field]: dir } as any];
@@ -37,11 +35,9 @@ function buildOrderBy(sortParam: string | null): any[] {
 export async function GET(req: Request) {
     try {
         const sp = new URL(req.url).searchParams;
-
         const q = sp.get("q")?.trim() || undefined;
         const categoryId = sp.get("categoryId");
         const categoryIdNum = categoryId ? Number(categoryId) : undefined;
-
         const status = pickStatus(sp.get("status")); // ถ้าค่าว่าง/ผิด จะเมิน
         const page = Math.max(1, Number(sp.get("page") || "1"));
         const rawSize = Math.max(1, Number(sp.get("pageSize") || "20"));
@@ -96,56 +92,42 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
     const session: any = await auth();
     if (!session)
-        return NextResponse.json(
-            { ok: false, error: "unauthorized" },
-            { status: 401 }
-        );
+        return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
+
     const role = String(session.role ?? session.user?.role ?? "").toUpperCase();
     if (role !== "ADMIN")
-        return NextResponse.json(
-            { ok: false, error: "forbidden" },
-            { status: 403 }
-        );
+        return NextResponse.json({ ok: false, error: "forbidden" }, { status: 403 });
 
     let body: any = {};
     try {
         body = await req.json();
     } catch {
-        return NextResponse.json(
-            { ok: false, error: "invalid-json" },
-            { status: 400 }
-        );
+        return NextResponse.json({ ok: false, error: "invalid-json" }, { status: 400 });
     }
 
     const {
         code,
         name,
-        description,
+        description,       // อาจมากับชื่อนี้
+        details,           // หรืออาจมากับ alias นี้
         categoryId,
-        receivedDate, // "YYYY-MM-DD" หรือ ISO
-        price, // string/number ก็ได้ (Decimal)
-        idnum, // optional
-        status, // optional -> default NORMAL
-        statusNote, // optional
+        receivedDate,      // "YYYY-MM-DD" หรือ ISO
+        price,             // string/number ก็ได้ (Decimal)
+        idnum,             // optional
+        status,            // optional -> default NORMAL
+        statusNote,        // optional
     } = body ?? {};
 
     if (!code || !name || !categoryId || !receivedDate) {
         return NextResponse.json(
-            {
-                ok: false,
-                error: "missing-fields",
-                require: ["code", "name", "categoryId", "receivedDate"],
-            },
+            { ok: false, error: "missing-fields", require: ["code", "name", "categoryId", "receivedDate"] },
             { status: 400 }
         );
     }
 
     const statusFinal = String(status ?? "NORMAL").toUpperCase();
     if (!ALLOWED_STATUS.has(statusFinal)) {
-        return NextResponse.json(
-            { ok: false, error: "invalid-status" },
-            { status: 400 }
-        );
+        return NextResponse.json({ ok: false, error: "invalid-status" }, { status: 400 });
     }
     if (statusFinal === "IN_USE") {
         // กันการสร้างเป็น IN_USE ด้วยมือ (ให้เกิดจาก borrow เท่านั้น)
@@ -155,15 +137,24 @@ export async function POST(req: Request) {
         );
     }
 
+    // ---- map/normalize fields ----
+    const descRaw =
+        (typeof description === "string" ? description : undefined) ??
+        (typeof details === "string" ? details : undefined) ??
+        null;
+    const desc =
+        descRaw && descRaw.trim().length > 0 ? descRaw.trim() : null;
+
     const data: any = {
         code: String(code).trim(),
         name: String(name).trim(),
         categoryId: Number(categoryId),
         receivedDate: new Date(receivedDate),
         status: statusFinal as any,
+        description: desc, // ← บันทึกรายละเอียดลงฟิลด์เดียวให้ชัด
     };
-    if (idnum != null && String(idnum).trim() !== "")
-        data.idnum = String(idnum).trim();
+
+    if (idnum != null && String(idnum).trim() !== "") data.idnum = String(idnum).trim();
     if (price != null && String(price).trim() !== "") data.price = String(price); // Prisma Decimal รองรับ string
     if (statusNote != null) data.statusNote = String(statusNote);
 
