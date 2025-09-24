@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Image from "next/image";
 import BorrowKaruphan from "@/components/modal/borrow-karuphan";
+import { useModal } from "@/components/Modal-Notification/ModalProvider";
 
 interface CartItem {
     id: number;
@@ -31,6 +32,7 @@ const BorrowCart = ({
     borrowerType,
     onBorrowSubmit,
 }: BorrowCartProps) => {
+    const { alert } = useModal();
     const [showBorrowModal, setShowBorrowModal] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -144,7 +146,7 @@ const BorrowCart = ({
                                     (typeof res === "object" && res && "ok" in res ? (res as any).ok : true) === true;
 
                                 if (!ok) {
-                                    alert("ยืนยันการยืมไม่สำเร็จ กรุณาลองใหม่อีกครั้ง");
+                                    alert.error("ยืนยันการยืมไม่สำเร็จ กรุณาลองใหม่อีกครั้ง");
                                     return;
                                 }
 
@@ -153,7 +155,7 @@ const BorrowCart = ({
                                 setShowBorrowModal(false);
                             } catch (e) {
                                 console.error("borrow submit failed", e);
-                                alert("เกิดข้อผิดพลาดในการยืม กรุณาติดต่อผู้ดูแลระบบ");
+                                alert.error("เกิดข้อผิดพลาดในการยืม กรุณาติดต่อผู้ดูแลระบบ");
                             } finally {
                                 setIsSubmitting(false);
                             }

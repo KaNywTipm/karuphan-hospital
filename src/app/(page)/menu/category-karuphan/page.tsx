@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
+import { useUserModals } from "@/components/modal/UserModalSystem";
 
 const itemsPerPage = 5; //fucn. all
 
@@ -13,6 +14,8 @@ type Category = {
 };
 
 export default function CategoryKaruphan() {
+    const { alert, confirm, AlertModal, ConfirmModal } = useUserModals();
+
     // data state
     const [items, setItems] = useState<Category[]>([]);
     const [loading, setLoading] = useState(true);
@@ -42,13 +45,21 @@ export default function CategoryKaruphan() {
     const load = async () => {
         try {
             setLoading(true);
-            const res = await fetch("/api/categories", { cache: "no-store" });
+            const url = `/api/categories?sort=id:${sortOrder === "newest" ? "desc" : "asc"}&page=1&pageSize=500`;
+            console.log("Loading categories with URL:", url);
+            const res = await fetch(url, {
+                cache: "no-store",
+                headers: { Accept: "application/json" }
+            });
             const data = await safeJson(res);
             if (!res.ok) throw new Error(data?.error || "โหลดข้อมูลไม่สำเร็จ");
             // API now returns { ok: true, data: [...] }
-            setItems(Array.isArray(data.data) ? data.data : []);
+            const categoryData = Array.isArray(data.data) ? data.data : Array.isArray(data) ? data : [];
+            console.log("Categories loaded:", categoryData.length, "items");
+            setItems(categoryData);
             setError(null);
         } catch (e: any) {
+            console.error("Load categories error:", e);
             setError(e.message);
         } finally {
             setLoading(false);
@@ -58,23 +69,29 @@ export default function CategoryKaruphan() {
     useEffect(() => {
         load();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
+    }, [sortOrder]);
 
     const filteredData = useMemo(() => {
+        console.log("Filtering data, sortOrder:", sortOrder, "items count:", items.length);
         const term = searchTerm.trim().toLowerCase();
         let filtered = items.filter(
             (i) =>
                 i.name.toLowerCase().includes(term) ||
                 (i.description ?? "").toLowerCase().includes(term)
         );
-        // sort by createdAt
-        filtered = filtered.sort((a, b) => {
-            if (sortOrder === "newest") {
-                return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-            } else {
-                return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
-            }
-        });
+
+        // If API doesn't support sorting, fall back to client-side sorting
+        if (filtered.length > 0) {
+            filtered = filtered.sort((a, b) => {
+                if (sortOrder === "newest") {
+                    return b.id - a.id; // Sort by ID descending (newest first)
+                } else {
+                    return a.id - b.id; // Sort by ID ascending (oldest first)
+                }
+            });
+        }
+
+        console.log("Filtered and sorted data:", filtered.length, "items");
         return filtered;
     }, [items, searchTerm, sortOrder]);
 
@@ -103,12 +120,12 @@ export default function CategoryKaruphan() {
             setNewDesc("");
             await load();
             // แจ้งเตือนการเพิ่มหมวดหมู่สำเร็จ
-            alert("เพิ่มหมวดหมู่เรียบร้อยแล้ว");
+            alert.success("เพิ่มหมวดหมู่เรียบร้อยแล้ว");
             // กระโดดไปหน้าสุดท้ายหลังเพิ่ม
             const count = filteredData.length + 1;
             setCurrentPage(Math.ceil(count / itemsPerPage));
         } catch (e: any) {
-            alert(e.message);
+            alert.error(e.message);
         }
     };
 
@@ -139,28 +156,59 @@ export default function CategoryKaruphan() {
             if (!res.ok) throw new Error(data?.error || "ไม่สามารถบันทึกการแก้ไขได้ กรุณาลองใหม่อีกครั้ง");
             await load();
             cancelEdit();
-            alert("แก้ไขข้อมูลหมวดหมู่เรียบร้อยแล้ว");
+            alert.success("แก้ไขข้อมูลหมวดหมู่เรียบร้อยแล้ว");
         } catch (e: any) {
-            alert(e.message);
+            alert.error(e.message);
         }
     };
 
     const removeItem = async (id: number) => {
-        if (!confirm("ยืนยันการลบหมวดหมู่นี้?")) return;
-        try {
-            const res = await fetch(`/api/categories/${id}`, { method: "DELETE" });
-            const data = await safeJson(res);
-            if (!res.ok) throw new Error(data?.error || "ไม่สามารถลบหมวดหมู่ได้ กรุณาลองใหม่อีกครั้ง");
-            await load();
-            alert("ลบหมวดหมู่เรียบร้อยแล้ว");
-            // ถ้าลบแล้วหน้าปัจจุบันไม่มีรายการ ให้ถอยหน้าลง
-            setCurrentPage((p) => {
-                const after = Math.ceil((filteredData.length - 1) / itemsPerPage) || 1;
-                return Math.min(p, after);
-            });
-        } catch (e: any) {
-            alert(e.message);
-        }
+        confirm.show(
+            "ยืนยันการลบหมวดหมู่นี้?",
+            async () => {
+                try {
+                    // ตรวจสอบว่าหมวดหมู่นี้มีครุภัณฑ์อยู่หรือไม่
+                    const checkRes = await fetch(`/api/categories/${id}/equipment-count`, { cache: "no-store" });
+                    const checkData = await safeJson(checkRes);
+
+                    if (checkRes.ok && checkData?.count > 0) {
+                        confirm.show(
+                            `หมวดหมู่นี้มีครุภัณฑ์ ${checkData.count} รายการ\nต้องการลบแบบ Hard Delete หรือไม่?\n(ครุภัณฑ์ทั้งหมดในหมวดนี้จะถูกลบด้วย)`,
+                            async () => {
+                                // ส่ง query parameter hardDelete=true เพื่อบอก API ให้ลบแบบ hard delete
+                                const res = await fetch(`/api/categories/${id}?hardDelete=true`, { method: "DELETE" });
+                                const data = await safeJson(res);
+                                if (!res.ok) throw new Error(data?.error || "ไม่สามารถลบหมวดหมู่ได้ กรุณาลองใหม่อีกครั้ง");
+                                await load();
+                                alert.success("ลบหมวดหมู่และครุภัณฑ์ทั้งหมดเรียบร้อยแล้ว");
+                                // ถ้าลบแล้วหน้าปัจจุบันไม่มีรายการ ให้ถอยหน้าลง
+                                setCurrentPage((p) => {
+                                    const after = Math.ceil((filteredData.length - 1) / itemsPerPage) || 1;
+                                    return Math.min(p, after);
+                                });
+                            },
+                            { type: "danger", title: "คำเตือน: การลบแบบ Hard Delete" }
+                        );
+                        return;
+                    }
+
+                    // ถ้าไม่มีครุภัณฑ์ในหมวดนี้ ลบได้เลย
+                    const res = await fetch(`/api/categories/${id}`, { method: "DELETE" });
+                    const data = await safeJson(res);
+                    if (!res.ok) throw new Error(data?.error || "ไม่สามารถลบหมวดหมู่ได้ กรุณาลองใหม่อีกครั้ง");
+                    await load();
+                    alert.success("ลบหมวดหมู่เรียบร้อยแล้ว");
+                    // ถ้าลบแล้วหน้าปัจจุบันไม่มีรายการ ให้ถอยหน้าลง
+                    setCurrentPage((p) => {
+                        const after = Math.ceil((filteredData.length - 1) / itemsPerPage) || 1;
+                        return Math.min(p, after);
+                    });
+                } catch (e: any) {
+                    alert.error(e.message);
+                }
+            },
+            { type: "danger", title: "ยืนยันการลบ" }
+        );
     };
 
     // ====== render ======
@@ -191,13 +239,20 @@ export default function CategoryKaruphan() {
                             />
                         </div>
                         <button
-                            onClick={() => setSortOrder(prev => prev === "newest" ? "oldest" : "newest")}
-                            className={`p-2 border border-gray-300 rounded-lg hover:bg-gray-100 transition duration-150 flex items-center justify-center ${sortOrder === "newest" ? "bg-blue-50" : "bg-pink-50"
+                            onClick={() => {
+                                console.log("Sort button clicked! Current order:", sortOrder);
+                                const newOrder = sortOrder === "newest" ? "oldest" : "newest";
+                                console.log("Changing to:", newOrder);
+                                setSortOrder(newOrder);
+                            }}
+                            className={`p-2 border border-gray-300 rounded-lg hover:bg-gray-100 transition duration-150 flex items-center justify-center
                                 }`}
                             title={sortOrder === "newest" ? "เรียงจากใหม่ไปเก่า" : "เรียงจากเก่าไปใหม่"}
                         >
                             <Image src="/HamBmenu.png" alt="เรียงข้อมูล" width={20} height={20} />
                             <span className="sr-only">เรียงข้อมูล</span>
+                            <span className="ml-1 text-xs font-medium">
+                            </span>
                         </button>
                     </div>
                 </div>
@@ -369,6 +424,10 @@ export default function CategoryKaruphan() {
                     </div>
                 </form>
             </section>
+
+            {/* Modal Components */}
+            <AlertModal />
+            <ConfirmModal />
         </div>
     );
 }

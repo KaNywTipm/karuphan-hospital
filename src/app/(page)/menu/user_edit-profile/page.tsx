@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useUserModals } from "@/components/Modal-Notification/UserModalSystem";
 
 type Dept = { id: number; name: string };
 type Me = {
@@ -10,6 +11,7 @@ type Me = {
 };
 
 export default function UserEditProfile() {
+    const { alert, AlertModal } = useUserModals();
     const [me, setMe] = useState<Me | null>(null);
     const [depts, setDepts] = useState<Dept[]>([]);
     const [isEditing, setIsEditing] = useState(false);
@@ -35,15 +37,16 @@ export default function UserEditProfile() {
                 });
             } else {
                 console.error("users/me failed", a);
-                alert("ไม่สามารถโหลดข้อมูลผู้ใช้ได้ กรุณาลองใหม่อีกครั้ง");
+                alert.error("ไม่สามารถโหลดข้อมูลผู้ใช้ได้ กรุณาลองใหม่อีกครั้ง");
             }
 
             if (b.ok) setDepts(b.items);
             else {
                 console.error("departments failed", b);
-                alert("ไม่สามารถโหลดรายการหน่วยงานได้ กรุณาลองใหม่อีกครั้ง");
+                alert.error("ไม่สามารถโหลดรายการหน่วยงานได้ กรุณาลองใหม่อีกครั้ง");
             }
         })();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     async function safeJSON(res: Response) {
@@ -61,25 +64,53 @@ export default function UserEditProfile() {
 
     async function save(e: React.FormEvent<HTMLFormElement>) {
         e.preventDefault();
-        // Example: send updated profile to API
-        const res = await fetch("/api/users/me", {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                fullName: form.fullName,
-                phone: form.phone,
-                departmentId: form.departmentId ? Number(form.departmentId) : null,
-            }),
-        });
-        const result = await safeJSON(res);
-        if (result.ok) {
-            setMe(result.user);
-            setIsEditing(false);
-            await fetch("/api/auth/session?update", { method: "POST" }).catch(() => { });
-            window.dispatchEvent(new Event("me:updated"));
-            alert("บันทึกข้อมูลเรียบร้อยแล้ว");
-        } else {
-            alert("ไม่สามารถบันทึกข้อมูลได้ กรุณาลองใหม่อีกครั้ง");
+
+        try {
+            // Example: send updated profile to API
+            const res = await fetch("/api/users/me", {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    fullName: form.fullName,
+                    phone: form.phone,
+                    departmentId: form.departmentId ? Number(form.departmentId) : null,
+                }),
+            });
+
+            const result = await safeJSON(res);
+
+            if (result.ok) {
+                setMe(result.user);
+                setIsEditing(false);
+
+                // ปรับปรุงการ update form กลับไปใช้ข้อมูลใหม่
+                setForm({
+                    fullName: result.user.fullName ?? "",
+                    phone: result.user.phone ?? "",
+                    departmentId: result.user.departmentId ? String(result.user.departmentId) : "",
+                });
+
+                // อัปเดต session โดยการ refresh หน้าเบาๆ (ไม่บังคับ)
+                try {
+                    // ใช้วิธี force refresh session แทนการเรียก update API
+                    if (typeof window !== 'undefined') {
+                        const event = new CustomEvent('session:refresh');
+                        window.dispatchEvent(event);
+                    }
+                } catch (sessionError) {
+                    console.warn("Session refresh failed, but profile was saved:", sessionError);
+                }
+
+                // ส่ง event เพื่อแจ้งให้ components อื่นๆ รู้ว่าข้อมูลอัปเดตแล้ว
+                window.dispatchEvent(new Event("me:updated"));
+
+                alert.success("บันทึกข้อมูลเรียบร้อยแล้ว");
+            } else {
+                alert.error("ไม่สามารถบันทึกข้อมูลได้ กรุณาลองใหม่อีกครั้ง");
+            }
+        } catch (error) {
+            console.error("Save profile error:", error);
+            alert.error("เกิดข้อผิดพลาดในการบันทึกข้อมูล กรุณาลองใหม่อีกครั้ง");
         }
     }
 
@@ -155,6 +186,9 @@ export default function UserEditProfile() {
                         </div>
                     )}
                 </form>
+
+                {/* Render the user-specific alert modal */}
+                <AlertModal />
             </div>
         </div>
     );

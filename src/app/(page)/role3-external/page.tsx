@@ -58,6 +58,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import BorrowCart from "@/components/BorrowCart";
 import BorrowKaruphan from "@/components/modal/borrow-karuphan";
+import { useModal } from "@/components/Modal-Notification/ModalProvider";
 
 type Category = { id: number | string; name: string };
 function asList<T = any>(v: any): T[] {
@@ -96,6 +97,7 @@ type CartItem = {
 const itemsPerPage = 5;
 
 export default function ExternalBorrowPage() {
+    const { alert, confirm } = useModal();
     const [categories, setCategories] = useState<Category[]>([]);
     const list: Category[] = asList(categories);
     const [items, setItems] = useState<RowUI[]>([]);
@@ -176,7 +178,7 @@ export default function ExternalBorrowPage() {
         setCartItems((prev) => {
             const exist = prev.find((x) => x.id === equipment.id);
             if (exist) {
-                alert("ครุภัณฑ์ชิ้นนี้อยู่ในรายการยืมแล้ว");
+                alert.warning("ครุภัณฑ์ชิ้นนี้อยู่ในรายการยืมแล้ว");
                 return prev;
             }
             return [
@@ -194,10 +196,21 @@ export default function ExternalBorrowPage() {
     };
     const handleRemoveFromCart = (id: number) => {
         const it = cartItems.find((x) => x.id === id);
-        if (it && confirm(`ต้องการลบ "${it.name}" ออกจากรายการยืมหรือไม่?`)) {
-            setCartItems((prev) => prev.filter((x) => x.id !== id));
-            setRecentlyRemoved(it);
-            setTimeout(() => setRecentlyRemoved(null), 5000);
+        if (it) {
+            confirm(
+                `ต้องการลบ "${it.name}" ออกจากรายการยืมหรือไม่?`,
+                () => {
+                    setCartItems((prev) => prev.filter((x) => x.id !== id));
+                    setRecentlyRemoved(it);
+                    setTimeout(() => setRecentlyRemoved(null), 5000);
+                },
+                {
+                    title: "ยืนยันการลบรายการ",
+                    type: "warning",
+                    confirmText: "ลบ",
+                    cancelText: "ยกเลิก"
+                }
+            );
         }
     };
     const handleUpdateQuantity = () => { };
@@ -249,12 +262,12 @@ export default function ExternalBorrowPage() {
         });
         const json = await res.json();
         if (!res.ok) {
-            alert(json?.error || "ไม่สามารถส่งคำขอยืมได้ กรุณาลองใหม่อีกครั้ง");
+            alert.error(json?.error || "ไม่สามารถส่งคำขอยืมได้ กรุณาลองใหม่อีกครั้ง");
             return;
         }
         await load();
         setCartItems([]);
-        alert("ส่งคำขอยืมเรียบร้อยแล้ว รอผู้ดูแลระบบอนุมัติ");
+        alert.success("ส่งคำขอยืมเรียบร้อยแล้ว รอผู้ดูแลระบบอนุมัติ");
     };
 
     return (
@@ -498,7 +511,7 @@ export default function ExternalBorrowPage() {
                             });
                             const json = await res.json().catch(() => ({}));
                             if (!res.ok || json?.ok !== true) {
-                                alert(json?.error || "ไม่สามารถยืมครุภัณฑ์ได้ กรุณาลองใหม่อีกครั้ง");
+                                alert.error(json?.error || "ไม่สามารถยืมครุภัณฑ์ได้ กรุณาลองใหม่อีกครั้ง");
                                 return;
                             }
                             setShowQuickBorrow(false);

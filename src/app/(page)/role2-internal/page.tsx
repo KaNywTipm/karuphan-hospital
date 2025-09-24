@@ -41,6 +41,7 @@ function BorrowButton({ disabled, onClick }: { disabled?: boolean; onClick: () =
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Image from "next/image";
+import { useAlert } from "@/hooks/useModals";
 import BorrowCart from "@/components/BorrowCart";
 import BorrowKaruphan from "@/components/modal/borrow-karuphan";
 
@@ -80,6 +81,7 @@ const itemsPerPage = 5;
 
 
 export default function InternalBorrowPage() {
+    const alert = useAlert();
     const [categories, setCategories] = useState<Category[]>([]);
     const [items, setItems] = useState<RowUI[]>([]);
     const [loading, setLoading] = useState(true);
@@ -215,12 +217,12 @@ export default function InternalBorrowPage() {
         });
         const json = await res.json();
         if (!res.ok) {
-            alert(json?.error || "ไม่สามารถยืมครุภัณฑ์ได้ กรุณาลองใหม่อีกครั้ง");
+            alert.error(json?.error || "ไม่สามารถยืมครุภัณฑ์ได้ กรุณาลองใหม่อีกครั้ง");
             return;
         }
         await load();
         setCartItems([]);
-        alert("ยืมครุภัณฑ์สำเร็จ รอแอดมินจ่ายของ");
+        alert.success("ยืมครุภัณฑ์สำเร็จ รอแอดมินจ่ายของ");
     };
 
     return (
@@ -396,7 +398,7 @@ export default function InternalBorrowPage() {
                             });
                             const json = await res.json().catch(() => ({}));
                             if (!res.ok || json?.ok !== true) {
-                                alert(json?.error || "ไม่สามารถยืมครุภัณฑ์ได้ กรุณาลองใหม่อีกครั้ง");
+                                alert.error(json?.error || "ไม่สามารถยืมครุภัณฑ์ได้ กรุณาลองใหม่อีกครั้ง");
                                 return;
                             }
                             setShowQuickBorrow(false);

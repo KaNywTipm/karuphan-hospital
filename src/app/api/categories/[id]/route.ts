@@ -8,24 +8,46 @@ export const dynamic = "force-dynamic";
 async function requireAdmin() {
   const session: any = await auth();
   if (!session) {
-    return { ok: false, res: NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 }) };
+    return {
+      ok: false,
+      res: NextResponse.json(
+        { ok: false, error: "unauthorized" },
+        { status: 401 }
+      ),
+    };
   }
   const role = String(session.role ?? session.user?.role ?? "").toUpperCase();
   if (role !== "ADMIN") {
-    return { ok: false, res: NextResponse.json({ ok: false, error: "forbidden" }, { status: 403 }) };
+    return {
+      ok: false,
+      res: NextResponse.json(
+        { ok: false, error: "forbidden" },
+        { status: 403 }
+      ),
+    };
   }
   return { ok: true, session };
 }
 
 function parseId(params: { id?: string }) {
   const id = Number(params?.id);
-  if (!Number.isFinite(id)) return { ok: false as const, error: NextResponse.json({ ok: false, error: "invalid-id" }, { status: 400 }) };
+  if (!Number.isFinite(id))
+    return {
+      ok: false as const,
+      error: NextResponse.json(
+        { ok: false, error: "invalid-id" },
+        { status: 400 }
+      ),
+    };
   return { ok: true as const, id };
 }
 
 // PATCH /api/categories/:id
 // body: { name: string; description?: string | null }
-export async function PATCH(req: Request, { params }: { params: { id: string } }) {
+export async function PATCH(
+  req: Request,
+  { params }: { params: { id: string } }
+) {
   const gate = await requireAdmin();
   if (!gate.ok) return gate.res;
 
@@ -37,14 +59,21 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
   try {
     payload = await req.json();
   } catch {
-    return NextResponse.json({ ok: false, error: "invalid-json" }, { status: 400 });
+    return NextResponse.json(
+      { ok: false, error: "invalid-json" },
+      { status: 400 }
+    );
   }
 
   const nameRaw = String(payload?.name ?? "").trim();
-  const description = payload?.description == null ? null : String(payload.description).trim();
+  const description =
+    payload?.description == null ? null : String(payload.description).trim();
 
   if (!nameRaw) {
-    return NextResponse.json({ ok: false, error: "name-required" }, { status: 400 });
+    return NextResponse.json(
+      { ok: false, error: "name-required" },
+      { status: 400 }
+    );
   }
 
   try {
@@ -61,21 +90,33 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
   } catch (e: any) {
     // not found
     if (e?.code === "P2025") {
-      return NextResponse.json({ ok: false, error: "not-found" }, { status: 404 });
+      return NextResponse.json(
+        { ok: false, error: "not-found" },
+        { status: 404 }
+      );
     }
     // unique conflict (เช่นชื่อซ้ำ)
     if (e?.code === "P2002") {
-      return NextResponse.json({ ok: false, error: "duplicate-name" }, { status: 409 });
+      return NextResponse.json(
+        { ok: false, error: "duplicate-name" },
+        { status: 409 }
+      );
     }
     console.error("PATCH /api/categories/:id error:", e);
-    return NextResponse.json({ ok: false, error: "server-error" }, { status: 500 });
+    return NextResponse.json(
+      { ok: false, error: "server-error" },
+      { status: 500 }
+    );
   }
 }
 
 // DELETE /api/categories/:id
 // ?hard=1 -> ลบจริง (ยอมเมื่อไม่มีอุปกรณ์อ้างถึงเท่านั้น)
 // ไม่ส่ง -> soft delete โดย set isActive=false (ถ้ามีฟิลด์นี้ใน schema)
-export async function DELETE(req: Request, { params }: { params: { id: string } }) {
+export async function DELETE(
+  req: Request,
+  { params }: { params: { id: string } }
+) {
   const gate = await requireAdmin();
   if (!gate.ok) return gate.res;
 
@@ -90,10 +131,16 @@ export async function DELETE(req: Request, { params }: { params: { id: string } 
     await prisma.category.findUniqueOrThrow({ where: { id } });
 
     // กันการลบถ้ามีอุปกรณ์อ้างถึง
-    const equipmentCount = await prisma.equipment.count({ where: { categoryId: id } });
+    const equipmentCount = await prisma.equipment.count({
+      where: { categoryId: id },
+    });
     if (equipmentCount > 0) {
       return NextResponse.json(
-        { ok: false, error: "category-in-use", detail: { equipmentCount } },
+        {
+          ok: false,
+          error: "มีรายการครุภัณฑ์ใช้งานอยู่",
+          detail: { equipmentCount },
+        },
         { status: 409 }
       );
     }
@@ -101,8 +148,14 @@ export async function DELETE(req: Request, { params }: { params: { id: string } 
     if (!hard) {
       // Soft delete (ถ้า schema ไม่มี isActive ให้เปลี่ยนมาใช้ delete แทน)
       try {
-        await prisma.category.update({ where: { id }, data: { isActive: false as any } });
-        return NextResponse.json({ ok: true, id, hard: false }, { status: 200 });
+        await prisma.category.update({
+          where: { id },
+          data: { isActive: false as any },
+        });
+        return NextResponse.json(
+          { ok: true, id, hard: false },
+          { status: 200 }
+        );
       } catch {
         // กรณีไม่มีฟิลด์ isActive ให้ fallback เป็น hard delete
         await prisma.category.delete({ where: { id } });
@@ -115,19 +168,30 @@ export async function DELETE(req: Request, { params }: { params: { id: string } 
     return NextResponse.json({ ok: true, id, hard: true }, { status: 200 });
   } catch (e: any) {
     if (e?.code === "P2025") {
-      return NextResponse.json({ ok: false, error: "not-found" }, { status: 404 });
+      return NextResponse.json(
+        { ok: false, error: "not-found" },
+        { status: 404 }
+      );
     }
     if (e?.code === "P2003" || /Foreign key/i.test(e?.message ?? "")) {
       const equipmentCount =
-        (await prisma.equipment.count({ where: { categoryId: id } }).catch(() => undefined)) ??
-        undefined;
+        (await prisma.equipment
+          .count({ where: { categoryId: id } })
+          .catch(() => undefined)) ?? undefined;
       return NextResponse.json(
-        { ok: false, error: "category-in-use", detail: { equipmentCount } },
+        {
+          ok: false,
+          error: "มีรายการครุภัณฑ์ใช้งานอยู่",
+          detail: { equipmentCount },
+        },
         { status: 409 }
       );
     }
     console.error("DELETE /api/categories/:id error:", e);
-    return NextResponse.json({ ok: false, error: "server-error" }, { status: 500 });
+    return NextResponse.json(
+      { ok: false, error: "server-error" },
+      { status: 500 }
+    );
   }
 }
 

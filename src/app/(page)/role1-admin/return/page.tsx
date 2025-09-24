@@ -1,6 +1,7 @@
 "use client";
 import React, { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useAlert } from "@/hooks/useModals";
 
 /* ---------- helpers ---------- */
 // แปลงวัน ค.ศ. -> yyyy-MM-dd (พ.ศ.) สำหรับ <input type="date">
@@ -60,6 +61,7 @@ export default function ReturnPage({
     searchParams: { [key: string]: string | string[] | undefined };
 }) {
     const router = useRouter();
+    const alert = useAlert();
     const id = Number(searchParams.id);
 
     const [borrowRequest, setBorrowRequest] = useState<BorrowRequest | null>(null);
@@ -101,15 +103,15 @@ export default function ReturnPage({
                         setReturnConditions(rc);
                     }
                 } else {
-                    alert(j?.error ?? "ไม่สามารถโหลดข้อมูลการยืมได้ กรุณาลองใหม่อีกครั้ง");
+                    alert.error(j?.error ?? "ไม่สามารถโหลดข้อมูลการยืมได้ กรุณาลองใหม่อีกครั้ง");
                 }
             } catch {
-                alert("ไม่สามารถโหลดข้อมูลการยืมได้ กรุณาตรวจสอบการเชื่อมต่อ");
+                alert.error("ไม่สามารถโหลดข้อมูลการยืมได้ กรุณาตรวจสอบการเชื่อมต่อ");
             } finally {
                 setLoading(false);
             }
         })();
-    }, [id]);
+    }, [id, alert]);
 
     // ผู้ยืม/หน่วยงาน
     const { borrowerName, department } = useMemo(() => {
@@ -147,7 +149,7 @@ export default function ReturnPage({
 
         const items = borrowRequest.items || [];
         const missing = items.some((it: any) => !returnConditions[it.id]);
-        if (missing) return alert("กรุณาเลือกสภาพคืนให้ครบทุกชิ้น");
+        if (missing) return alert.warning("กรุณาเลือกสภาพคืนให้ครบทุกชิ้น");
 
         try {
             const payload = {
@@ -165,12 +167,12 @@ export default function ReturnPage({
                 body: JSON.stringify(payload),
             });
             const j = await r.json().catch(() => ({}));
-            if (!r.ok || !j?.ok) return alert(j?.error ?? "ไม่สามารถบันทึกการรับคืนได้ กรุณาลองใหม่อีกครั้ง");
+            if (!r.ok || !j?.ok) return alert.error(j?.error ?? "ไม่สามารถบันทึกการรับคืนได้ กรุณาลองใหม่อีกครั้ง");
 
-            alert("บันทึกการรับคืนครุภัณฑ์เรียบร้อยแล้ว");
+            alert.success("บันทึกการรับคืนครุภัณฑ์เรียบร้อยแล้ว");
             router.push("/role1-admin");
         } catch {
-            alert("ไม่สามารถบันทึกการรับคืนได้ กรุณาตรวจสอบการเชื่อมต่อ");
+            alert.error("ไม่สามารถบันทึกการรับคืนได้ กรุณาตรวจสอบการเชื่อมต่อ");
         }
     };
 
@@ -335,7 +337,7 @@ export default function ReturnPage({
                                     : "bg-gray-300 text-gray-500 cursor-not-allowed"
                                     }`}
                             >
-                                บันทึก
+                                บันทึกรับคืน
                             </button>
                             <button
                                 onClick={handleCancel}

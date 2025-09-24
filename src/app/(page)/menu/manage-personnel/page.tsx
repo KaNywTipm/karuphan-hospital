@@ -3,6 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useUserModals } from "@/components/Modal-Notification/UserModalSystem";
 import Editpersonnel from "@/components/modal/Edit-personnel";
 import { displayUnitLabel, UnitFilterDropdown, useUnitFilter, allUnits } from "@/components/dropdown/Unit";
 
@@ -20,6 +21,7 @@ type UserRow = {
 
 export default function Managepersonnel() {
   const router = useRouter();
+  const { alert, confirm, AlertModal, ConfirmModal } = useUserModals();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedUnit, setSelectedUnit] = useState(""); // เพิ่ม state สำหรับกรองกลุ่มงาน
   const [sortOrder, setSortOrder] = useState<"newest" | "oldest">("newest");
@@ -56,12 +58,12 @@ export default function Managepersonnel() {
       });
 
       if (r.status === 401) {
-        alert("เซสชันของคุณหมดอายุแล้ว กรุณาเข้าสู่ระบบใหม่");
+        alert.warning("เซสชันของคุณหมดอายุแล้ว กรุณาเข้าสู่ระบบใหม่");
         router.replace("/sign-in");
         return;
       }
       if (r.status === 403) {
-        alert("คุณไม่มีสิทธิ์เข้าถึงข้อมูลนี้ (เฉพาะผู้ดูแลระบบเท่านั้น)");
+        alert.warning("คุณไม่มีสิทธิ์เข้าถึงข้อมูลนี้ (เฉพาะผู้ดูแลระบบเท่านั้น)");
         return;
       }
 
@@ -75,13 +77,13 @@ export default function Managepersonnel() {
         setUsers(list);
       } else {
         console.warn("load users failed:", j);
-        alert("ไม่สามารถโหลดรายชื่อผู้ใช้ได้ กรุณาลองใหม่อีกครั้ง");
+        alert.error("ไม่สามารถโหลดรายชื่อผู้ใช้ได้ กรุณาลองใหม่อีกครั้ง");
       }
     } catch (err: any) {
       // ถ้าเป็นการ abort จะไม่ต้องเตือน
       if (err?.name !== "AbortError") {
         console.error(err);
-        alert("เชื่อมต่อไม่สำเร็จ กรุณาตรวจสอบการเชื่อมต่ออินเทอร์เน็ต");
+        alert.error("เชื่อมต่อไม่สำเร็จ กรุณาตรวจสอบการเชื่อมต่ออินเทอร์เน็ต");
       }
     } finally {
       setLoading(false);
@@ -169,35 +171,36 @@ export default function Managepersonnel() {
       body: JSON.stringify(body),
     })
       .then(async (r) => {
-        if (r.status === 401) { alert("เซสชันของคุณหมดอายุแล้ว กรุณาเข้าสู่ระบบใหม่"); router.replace("/sign-in"); return null; }
-        if (r.status === 403) { alert("คุณไม่มีสิทธิ์แก้ไขข้อมูลผู้ใช้"); return null; }
+        if (r.status === 401) { alert.warning("เซสชันของคุณหมดอายุแล้ว กรุณาเข้าสู่ระบบใหม่"); router.replace("/sign-in"); return null; }
+        if (r.status === 403) { alert.warning("คุณไม่มีสิทธิ์แก้ไขข้อมูลผู้ใช้"); return null; }
         return safeJSON(r);
       })
       .then((j: any) => {
         if (!j) return;
         const updated = j.item ?? j.data ?? j.user;
-        if (!j.ok || !updated) return alert("ไม่สามารถบันทึกข้อมูลได้ กรุณาลองใหม่อีกครั้ง");
+        if (!j.ok || !updated) return alert.error("ไม่สามารถบันทึกข้อมูลได้ กรุณาลองใหม่อีกครั้ง");
         // ดึง users ใหม่จาก backend เพื่อให้ข้อมูลล่าสุดเสมอ (เช่น กลุ่มงานที่ disconnect แล้ว)
         load("");
         closeModal();
-        alert("บันทึกข้อมูลบุคลากรเรียบร้อยแล้ว");
+        alert.success("บันทึกข้อมูลบุคลากรเรียบร้อยแล้ว");
       })
-      .catch(() => alert("ไม่สามารถบันทึกข้อมูลได้ กรุณาตรวจสอบการเชื่อมต่อ"));
+      .catch(() => alert.error("ไม่สามารถบันทึกข้อมูลได้ กรุณาตรวจสอบการเชื่อมต่อ"));
   };
 
   const handleDeleteItem = async (id: number) => {
-    if (!confirm("ยืนยันการลบผู้ใช้นี้?")) return;
-    const r = await fetch(`/api/users/${id}`, { method: "DELETE" });
-    const j = await safeJSON(r);
-    if (r.status === 401) { alert("เซสชันของคุณหมดอายุแล้ว กรุณาเข้าสู่ระบบใหม่"); router.replace("/sign-in"); return; }
-    if (r.status === 403) { alert("คุณไม่มีสิทธิ์ลบผู้ใช้"); return; }
-    if (!j?.ok) return alert("ไม่สามารถลบผู้ใช้ได้ กรุณาลองใหม่อีกครั้ง");
+    confirm.show("ยืนยันการลบผู้ใช้นี้?", async () => {
+      const r = await fetch(`/api/users/${id}`, { method: "DELETE" });
+      const j = await safeJSON(r);
+      if (r.status === 401) { alert.warning("เซสชันของคุณหมดอายุแล้ว กรุณาเข้าสู่ระบบใหม่"); router.replace("/sign-in"); return; }
+      if (r.status === 403) { alert.warning("คุณไม่มีสิทธิ์ลบผู้ใช้"); return; }
+      if (!j?.ok) return alert.error("ไม่สามารถลบผู้ใช้ได้ กรุณาลองใหม่อีกครั้ง");
 
-    const updated = users.filter((u) => u.id !== id);
-    setUsers(updated);
-    const newTotalPages = Math.ceil(updated.length / ITEMS_PER_PAGE);
-    if (currentPage > newTotalPages) setCurrentPage(newTotalPages > 0 ? newTotalPages : 1);
-    alert("ลบบุคลากรเรียบร้อยแล้ว");
+      const updated = users.filter((u) => u.id !== id);
+      setUsers(updated);
+      const newTotalPages = Math.ceil(updated.length / ITEMS_PER_PAGE);
+      if (currentPage > newTotalPages) setCurrentPage(newTotalPages > 0 ? newTotalPages : 1);
+      alert.success("ลบบุคลากรเรียบร้อยแล้ว");
+    }, { type: "danger", confirmText: "ลบ", cancelText: "ยกเลิก" });
   };
 
   return (
@@ -389,6 +392,10 @@ export default function Managepersonnel() {
           onSave={handleSave}
         />
       )}
+
+      {/* Render the user-specific modals */}
+      <AlertModal />
+      <ConfirmModal />
     </div>
   );
 } 

@@ -2,6 +2,7 @@
 
 import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useModal } from "@/components/Modal-Notification/ModalProvider";
 
 // ให้หน้ารันแบบ dynamic เวลา export
 export const dynamic = "force-dynamic";
@@ -21,6 +22,7 @@ const fmtTH = (iso?: string | null) => {
 };
 
 function ApprovePageInner() {
+    const { alert } = useModal();
     const router = useRouter();
     const search = useSearchParams();
     const id = Number(search.get("id"));
@@ -59,14 +61,14 @@ function ApprovePageInner() {
                             .filter(Boolean),
                     };
                     setRow(shaped);
-                } else alert(j?.error ?? "ไม่สามารถโหลดข้อมูลคำขอได้ กรุณาลองใหม่อีกครั้ง");
+                } else alert.error(j?.error ?? "ไม่สามารถโหลดข้อมูลคำขอได้ กรุณาลองใหม่อีกครั้ง");
             } catch {
-                alert("ไม่สามารถโหลดข้อมูลคำขอได้ กรุณาตรวจสอบการเชื่อมต่อ");
+                alert.error("ไม่สามารถโหลดข้อมูลคำขอได้ กรุณาตรวจสอบการเชื่อมต่อ");
             } finally {
                 setLoading(false);
             }
         })();
-    }, [id]);
+    }, [id, alert]);
 
     async function onApprove() {
         try {
@@ -76,19 +78,19 @@ function ApprovePageInner() {
                 body: JSON.stringify({}),
             });
             const j = await r.json().catch(() => ({}));
-            if (!r.ok || !j?.ok) return alert(j?.error ?? "ไม่สามารถอนุมัติคำขอได้ กรุณาลองใหม่อีกครั้ง");
+            if (!r.ok || !j?.ok) return alert.error(j?.error ?? "ไม่สามารถอนุมัติคำขอได้ กรุณาลองใหม่อีกครั้ง");
 
             // แสดงข้อความสำเร็จที่ละเอียดขึ้น
             const successMessage = j?.message || "อนุมัติคำขอเรียบร้อยแล้ว";
-            alert(successMessage);
+            alert.success(successMessage);
             router.push("/role1-admin");
         } catch {
-            alert("ไม่สามารถอนุมัติคำขอได้ กรุณาตรวจสอบการเชื่อมต่อ");
+            alert.error("ไม่สามารถอนุมัติคำขอได้ กรุณาตรวจสอบการเชื่อมต่อ");
         }
     }
 
     async function onReject() {
-        if (!rejectReason.trim()) return alert("กรุณากรอกเหตุผลไม่อนุมัติ");
+        if (!rejectReason.trim()) return alert.warning("กรุณากรอกเหตุผลไม่อนุมัติ");
         try {
             const r = await fetch(`/api/borrow/${id}/reject`, {
                 method: "PATCH",
@@ -96,14 +98,14 @@ function ApprovePageInner() {
                 body: JSON.stringify({ rejectReason }),
             });
             const j = await r.json().catch(() => ({}));
-            if (!r.ok || !j?.ok) return alert(j?.error ?? "ไม่สามารถไม่อนุมัติคำขอได้ กรุณาลองใหม่อีกครั้ง");
+            if (!r.ok || !j?.ok) return alert.error(j?.error ?? "ไม่สามารถไม่อนุมัติคำขอได้ กรุณาลองใหม่อีกครั้ง");
 
             // แสดงข้อความสำเร็จที่ละเอียดขึ้น
             const successMessage = j?.message || "ไม่อนุมัติคำขอเรียบร้อยแล้ว";
-            alert(successMessage);
+            alert.success(successMessage);
             router.push("/role1-admin");
         } catch {
-            alert("ไม่สามารถไม่อนุมัติคำขอได้ กรุณาตรวจสอบการเชื่อมต่อ");
+            alert.error("ไม่สามารถไม่อนุมัติคำขอได้ กรุณาตรวจสอบการเชื่อมต่อ");
         }
     }
 
@@ -178,7 +180,7 @@ function ApprovePageInner() {
                             <input
                                 value={rejectReason}
                                 onChange={(e) => setRejectReason(e.target.value)}
-                                placeholder="เหตุผลไม่อนุมัติ"
+                                placeholder="กรอกเหตุผลที่ไม่อนุมัติ"
                                 className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                             />
                         </div>

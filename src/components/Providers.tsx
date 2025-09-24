@@ -1,4 +1,5 @@
 import { SessionProvider } from "next-auth/react";
+import { ModalProvider } from "@/components/Modal-Notification/ModalProvider";
 
 export default function Providers({ children }: { children: React.ReactNode }) {
     return (
@@ -7,7 +8,9 @@ export default function Providers({ children }: { children: React.ReactNode }) {
             refetchInterval={0}
             refetchWhenOffline={false}
         >
-            {children}
+            <ModalProvider>
+                {children}
+            </ModalProvider>
         </SessionProvider>
     );
 }
