@@ -104,7 +104,7 @@ const BorrowKaruphan = ({
         reason: string;
     }) {
         if (!cartItems || cartItems.length === 0) {
-            alert("ไม่มีรายการในตะกร้า");
+            alert("ไม่มีรายการครุภัณฑ์ในตะกร้า กรุณาเลือกครุภัณฑ์ก่อน");
             return;
         }
         const items = cartItems.map((ci) => ({
@@ -135,7 +135,7 @@ const BorrowKaruphan = ({
             });
             const j = await res.json().catch(() => ({}));
             if (!res.ok || !j?.ok) {
-                alert(typeof j?.error === "string" ? j.error : "บันทึกไม่สำเร็จ");
+                alert(typeof j?.error === "string" ? j.error : "ไม่สามารถบันทึกการยืมได้ กรุณาลองใหม่อีกครั้ง");
                 setSubmitting(false);
                 return;
             }

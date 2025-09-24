@@ -129,7 +129,7 @@ export default function EditPersonnel({ user, onClose, onSave }: Props) {
 
         // Custom validation: INTERNAL must have departmentId
         if (form.role === "INTERNAL" && !form.departmentId) {
-            alert("กรุณาเลือกกลุ่มงานสำหรับผู้ใช้ภายใน");
+            alert("กรุณาเลือกกลุ่มงานสำหรับผู้ใช้ภายในองค์กร");
             return;
         }
 

@@ -32,13 +32,16 @@ export default function BorrowReturnReport() {
     const [rows, setRows] = useState<Row[]>([]);
     const [loading, setLoading] = useState(true);
     const [sort, setSort] = useState<"newest" | "oldest">("newest");
+    const [dateFilter, setDateFilter] = useState<"all" | "last-month" | "last-3-months" | "last-6-months" | "last-year" | "custom">("all");
+    const [customStartDate, setCustomStartDate] = useState("");
+    const [customEndDate, setCustomEndDate] = useState("");
 
     useEffect(() => {
         let alive = true;
         (async () => {
             try {
                 setLoading(true);
-                const bRes = await fetch("/api/borrow", { cache: "no-store" });
+                const bRes = await fetch("/api/borrow?pageSize=1000", { cache: "no-store" });
                 const bJson = await bRes.json().catch(() => ({ data: [] }));
                 if (!alive) return;
                 // Map ข้อมูลให้ครบทุกช่องเหมือนหน้า admin (with improved categoryNames logic)
@@ -90,8 +93,39 @@ export default function BorrowReturnReport() {
 
     const filtered = useMemo(() => {
         const q = (search || "").toLowerCase();
+
+        // กำหนดช่วงวันที่ตามตัวเลือก
+        let startDate: Date | null = null;
+        let endDate: Date | null = null;
+        const now = new Date();
+
+        if (dateFilter === "last-month") {
+            startDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+            endDate = new Date(now.getFullYear(), now.getMonth(), 0);
+        } else if (dateFilter === "last-3-months") {
+            startDate = new Date(now.getFullYear(), now.getMonth() - 3, 1);
+            endDate = now;
+        } else if (dateFilter === "last-6-months") {
+            startDate = new Date(now.getFullYear(), now.getMonth() - 6, 1);
+            endDate = now;
+        } else if (dateFilter === "last-year") {
+            startDate = new Date(now.getFullYear() - 1, now.getMonth(), now.getDate());
+            endDate = now;
+        } else if (dateFilter === "custom" && customStartDate && customEndDate) {
+            startDate = new Date(customStartDate);
+            endDate = new Date(customEndDate);
+        }
+
         return (rows || [])
             .filter(r => !statusFilter || r.status === statusFilter)
+            .filter(r => {
+                // กรองตามวันที่ยืม
+                if (startDate && endDate && r.borrowDate) {
+                    const borrowDate = new Date(r.borrowDate);
+                    return borrowDate >= startDate && borrowDate <= endDate;
+                }
+                return true;
+            })
             .filter(r =>
                 (r.borrowerName || "").toLowerCase().includes(q) ||
                 (r.department || "").toLowerCase().includes(q) ||
@@ -103,7 +137,7 @@ export default function BorrowReturnReport() {
                 const db = new Date(b.borrowDate || "").getTime();
                 return sort === "newest" ? db - da : da - db;
             });
-    }, [rows, search, sort, statusFilter]);
+    }, [rows, search, sort, statusFilter, dateFilter, customStartDate, customEndDate]);
 
     function toDate(s?: string | null) {
         return s ? new Date(s).toLocaleDateString("th-TH") : "-";
@@ -180,6 +214,45 @@ export default function BorrowReturnReport() {
                         {/* <option value="OVERDUE">เกินกำหนด</option> */}
                     </select>
                 </div>
+
+                <div className="flex items-center gap-2">
+                    <label className="text-sm font-medium text-NavyBlue">ช่วงเวลา:</label>
+                    <select
+                        value={dateFilter}
+                        onChange={(e) => setDateFilter(e.target.value as any)}
+                        className="px-3 py-2 border border-Grey rounded-lg"
+                    >
+                        <option value="all">ทั้งหมด</option>
+                        <option value="last-month">เดือนล่าสุด</option>
+                        <option value="last-3-months">3 เดือนล่าสุด</option>
+                        <option value="last-6-months">6 เดือนล่าสุด</option>
+                        <option value="last-year">1 ปีล่าสุด</option>
+                        <option value="custom">กำหนดเอง</option>
+                    </select>
+                </div>
+
+                {dateFilter === "custom" && (
+                    <>
+                        <div className="flex items-center gap-2">
+                            <label className="text-sm font-medium text-NavyBlue">จากวันที่:</label>
+                            <input
+                                type="date"
+                                value={customStartDate}
+                                onChange={(e) => setCustomStartDate(e.target.value)}
+                                className="px-3 py-2 border border-Grey rounded-lg"
+                            />
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <label className="text-sm font-medium text-NavyBlue">ถึงวันที่:</label>
+                            <input
+                                type="date"
+                                value={customEndDate}
+                                onChange={(e) => setCustomEndDate(e.target.value)}
+                                className="px-3 py-2 border border-Grey rounded-lg"
+                            />
+                        </div>
+                    </>
+                )}
                 <div className="relative w-80 ml-auto">
                     <input
                         type="text"

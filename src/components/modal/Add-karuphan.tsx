@@ -75,11 +75,12 @@ export default function Addkaruphan({ onClose, onAdd }: Props) {
             body: JSON.stringify(payload),
         });
         const json = await res.json();
-        if (!res.ok) return alert(json?.error || "บันทึกไม่สำเร็จ");
+        if (!res.ok) return alert(json?.error || "ไม่สามารถบันทึกข้อมูลครุภัณฑ์ได้ กรุณาลองใหม่อีกครั้ง");
         // ถ้า response ส่ง receivedDate เป็นวันเดือนปีไทย (string) ให้ setForm ใหม่ด้วย
         if (json?.data?.receivedDate) {
             setForm(s => ({ ...s, receivedDateBE: json.data.receivedDate }));
         }
+        alert("เพิ่มข้อมูลครุภัณฑ์เรียบร้อยแล้ว");
         onClose?.();
         onAdd?.();
     };

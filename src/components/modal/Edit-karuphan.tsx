@@ -98,7 +98,7 @@ export default function Editkaruphan({
             body: JSON.stringify(payload),
         });
         const json = await res.json();
-        if (!res.ok) return alert(json?.error || "อัปเดตไม่สำเร็จ");
+        if (!res.ok) return alert(json?.error || "ไม่สามารถอัปเดตข้อมูลได้ กรุณาลองใหม่อีกครั้ง");
         // ถ้า response ส่ง receivedDate เป็นวันเดือนปีไทย (string) ให้ setForm ใหม่ด้วย
         if (json?.data?.receivedDate) {
             // รองรับทั้งกรณี API ส่งกลับเป็น พ.ศ. หรือ ค.ศ.
@@ -110,6 +110,7 @@ export default function Editkaruphan({
             }
             setForm(s => ({ ...s, receivedDateBE: be }));
         }
+        alert("แก้ไขข้อมูลครุภัณฑ์เรียบร้อยแล้ว");
         onClose?.();
         onUpdate?.();
     };

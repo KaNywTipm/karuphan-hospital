@@ -144,7 +144,7 @@ const BorrowCart = ({
                                     (typeof res === "object" && res && "ok" in res ? (res as any).ok : true) === true;
 
                                 if (!ok) {
-                                    alert("ยืนยันการยืมไม่สำเร็จ");
+                                    alert("ยืนยันการยืมไม่สำเร็จ กรุณาลองใหม่อีกครั้ง");
                                     return;
                                 }
 
@@ -153,7 +153,7 @@ const BorrowCart = ({
                                 setShowBorrowModal(false);
                             } catch (e) {
                                 console.error("borrow submit failed", e);
-                                alert("เกิดข้อผิดพลาดในการยืม");
+                                alert("เกิดข้อผิดพลาดในการยืม กรุณาติดต่อผู้ดูแลระบบ");
                             } finally {
                                 setIsSubmitting(false);
                             }

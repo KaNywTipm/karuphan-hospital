@@ -98,10 +98,12 @@ export default function CategoryKaruphan() {
                 body: JSON.stringify({ name: newName.trim(), description: newDesc || null }),
             });
             const data = await safeJson(res);
-            if (!res.ok) throw new Error(data?.error || "เพิ่มข้อมูลไม่สำเร็จ");
+            if (!res.ok) throw new Error(data?.error || "ไม่สามารถเพิ่มหมวดหมู่ได้ กรุณาลองใหม่อีกครั้ง");
             setNewName("");
             setNewDesc("");
             await load();
+            // แจ้งเตือนการเพิ่มหมวดหมู่สำเร็จ
+            alert("เพิ่มหมวดหมู่เรียบร้อยแล้ว");
             // กระโดดไปหน้าสุดท้ายหลังเพิ่ม
             const count = filteredData.length + 1;
             setCurrentPage(Math.ceil(count / itemsPerPage));
@@ -134,9 +136,10 @@ export default function CategoryKaruphan() {
                 }),
             });
             const data = await safeJson(res);
-            if (!res.ok) throw new Error(data?.error || "บันทึกไม่สำเร็จ");
+            if (!res.ok) throw new Error(data?.error || "ไม่สามารถบันทึกการแก้ไขได้ กรุณาลองใหม่อีกครั้ง");
             await load();
             cancelEdit();
+            alert("แก้ไขข้อมูลหมวดหมู่เรียบร้อยแล้ว");
         } catch (e: any) {
             alert(e.message);
         }
@@ -147,8 +150,9 @@ export default function CategoryKaruphan() {
         try {
             const res = await fetch(`/api/categories/${id}`, { method: "DELETE" });
             const data = await safeJson(res);
-            if (!res.ok) throw new Error(data?.error || "ลบไม่สำเร็จ");
+            if (!res.ok) throw new Error(data?.error || "ไม่สามารถลบหมวดหมู่ได้ กรุณาลองใหม่อีกครั้ง");
             await load();
+            alert("ลบหมวดหมู่เรียบร้อยแล้ว");
             // ถ้าลบแล้วหน้าปัจจุบันไม่มีรายการ ให้ถอยหน้าลง
             setCurrentPage((p) => {
                 const after = Math.ceil((filteredData.length - 1) / itemsPerPage) || 1;

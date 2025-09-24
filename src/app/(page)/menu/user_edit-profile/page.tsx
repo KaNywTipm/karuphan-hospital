@@ -35,13 +35,13 @@ export default function UserEditProfile() {
                 });
             } else {
                 console.error("users/me failed", a);
-                alert("โหลดข้อมูลผู้ใช้ไม่สำเร็จ");
+                alert("ไม่สามารถโหลดข้อมูลผู้ใช้ได้ กรุณาลองใหม่อีกครั้ง");
             }
 
             if (b.ok) setDepts(b.items);
             else {
                 console.error("departments failed", b);
-                alert("โหลดรายการหน่วยงานไม่สำเร็จ");
+                alert("ไม่สามารถโหลดรายการหน่วยงานได้ กรุณาลองใหม่อีกครั้ง");
             }
         })();
     }, []);
@@ -77,8 +77,9 @@ export default function UserEditProfile() {
             setIsEditing(false);
             await fetch("/api/auth/session?update", { method: "POST" }).catch(() => { });
             window.dispatchEvent(new Event("me:updated"));
+            alert("บันทึกข้อมูลเรียบร้อยแล้ว");
         } else {
-            alert("บันทึกข้อมูลไม่สำเร็จ");
+            alert("ไม่สามารถบันทึกข้อมูลได้ กรุณาลองใหม่อีกครั้ง");
         }
     }
 

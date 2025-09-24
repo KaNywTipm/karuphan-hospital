@@ -67,7 +67,14 @@ export async function GET(req: Request) {
 
                     items: {
                         include: {
-                            equipment: { select: { number: true, code: true, name: true } },
+                            equipment: {
+                                select: {
+                                    number: true,
+                                    code: true,
+                                    name: true,
+                                    category: { select: { name: true } },
+                                },
+                            },
                         },
                     },
                 },
@@ -94,7 +101,7 @@ export async function GET(req: Request) {
     } catch (e) {
         console.error("[GET /api/borrow] error:", e);
         return NextResponse.json(
-            { ok: false, error: "server-error" },
+            { ok: false, error: "เกิดข้อผิดพลาดในการโหลดข้อมูลการยืม" },
             { status: 500 }
         );
     }
@@ -116,7 +123,7 @@ export async function POST(req: Request) {
     const me = await auth();
     if (!me)
         return NextResponse.json(
-            { ok: false, error: "unauthorized" },
+            { ok: false, error: "กรุณาเข้าสู่ระบบก่อนดำเนินการ" },
             { status: 401 }
         );
 
@@ -131,7 +138,10 @@ export async function POST(req: Request) {
         externalPhone,
     } = body as PostBody;
     if (!items?.length)
-        return NextResponse.json({ ok: false, error: "no-items" }, { status: 400 });
+        return NextResponse.json(
+            { ok: false, error: "กรุณาเลือกครุภัณฑ์ที่ต้องการยืม" },
+            { status: 400 }
+        );
 
     const isInternal = borrowerType === "INTERNAL";
     const isExternal = borrowerType === "EXTERNAL";
@@ -154,7 +164,7 @@ export async function POST(req: Request) {
             return NextResponse.json(
                 {
                     ok: false,
-                    error: "external-dept-required",
+                    error: "กรุณาระบุชื่อหน่วยงานสำหรับผู้ยืมภายนอก",
                 },
                 { status: 400 }
             );

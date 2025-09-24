@@ -14,7 +14,7 @@ export async function PATCH(req: Request, { params }: Params) {
   const session = await auth();
   if (!session || session.user.role !== "ADMIN")
     return NextResponse.json(
-      { ok: false, error: "forbidden" },
+      { ok: false, error: "คุณไม่มีสิทธิ์ดำเนินการนี้ (เฉพาะผู้ดูแลระบบ)" },
       { status: 403 }
     );
 
@@ -25,12 +25,12 @@ export async function PATCH(req: Request, { params }: Params) {
   });
   if (!reqRow)
     return NextResponse.json(
-      { ok: false, error: "not-found" },
+      { ok: false, error: "ไม่พบคำขอยืมครุภัณฑ์นี้" },
       { status: 404 }
     );
   if (reqRow.status !== "PENDING")
     return NextResponse.json(
-      { ok: false, error: "invalid-status" },
+      { ok: false, error: "คำขอนี้ดำเนินการไปแล้ว ไม่สามารถอนุมัติได้" },
       { status: 400 }
     );
 
@@ -53,8 +53,8 @@ export async function PATCH(req: Request, { params }: Params) {
 
   const adminId = await resolveAdminId(session, prisma);
 
-  await prisma.$transaction(async (tx) => {
-    await tx.borrowRequest.update({
+  const updatedRequest = await prisma.$transaction(async (tx) => {
+    const updated = await tx.borrowRequest.update({
       where: { id },
       data: {
         status: "APPROVED",
@@ -63,12 +63,28 @@ export async function PATCH(req: Request, { params }: Params) {
         // สำหรับ INTERNAL อาจมี borrowDate อยู่แล้ว; เติม borrowDate ที่นี่
         borrowDate: new Date(),
       },
+      include: {
+        requester: {
+          select: { id: true, fullName: true, email: true },
+        },
+        items: {
+          include: {
+            equipment: {
+              select: { name: true, code: true },
+            },
+          },
+        },
+      },
     });
     await tx.equipment.updateMany({
       where: { currentRequestId: id },
       data: { status: "IN_USE", statusChangedAt: new Date() },
     });
+    return updated;
   });
 
-  return NextResponse.json({ ok: true });
+  return NextResponse.json({
+    ok: true,
+    message: "อนุมัติคำขอเรียบร้อยแล้ว",
+  });
 }

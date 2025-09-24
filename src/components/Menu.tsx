@@ -29,13 +29,12 @@ const MENU: { title: string; items: MenuItem[] }[] = [
         visible: ["ADMIN"],
         subItems: [
           { icon: "/plus.png", label: "รายงานการยืมคืน", href: "/menu/report1-borrow_return", visible: ["ADMIN"] },
-          { icon: "/plus.png", label: "รายงานครุภัณฑ์ที่ถูกยกเลิก", href: "/menu/report2-not_approve", visible: ["ADMIN"] },
-          { icon: "/plus.png", label: "รายงานสถานะของครุภัณฑ์", href: "/menu/report3-status_karuphan", visible: ["ADMIN"] },
-          { icon: "/plus.png", label: "สรุปยอดครุภัณฑ์", href: "/menu/report4-total_amount", visible: ["ADMIN"] },
+          { icon: "/plus.png", label: "รายงานสถานะของครุภัณฑ์", href: "/menu/report2-status_karuphan", visible: ["ADMIN"] },
+          { icon: "/plus.png", label: "สรุปยอดครุภัณฑ์", href: "/menu/report3-total_amount", visible: ["ADMIN"] },
         ],
       },
-      { icon: "/report.png", label: "ประวัติการยืมครุภัณฑ์", href: "/menu/user_history", visible: ["INTERNAL", "EXTERNAL"] },
       { icon: "/status.png", label: "สถานะการยืมครุภัณฑ์", href: "/menu/userExternal-status-borrow", visible: ["EXTERNAL"] },
+      { icon: "/report.png", label: "ประวัติการยืมครุภัณฑ์", href: "/menu/user_history", visible: ["INTERNAL", "EXTERNAL"] },
       {
         icon: "/data.png",
         label: "จัดการครุภัณฑ์",
@@ -149,7 +148,7 @@ export default function Menu() {
                     <button
                       type="button"
                       onClick={async () => {
-                        if (confirm("ยืนยันออกจากระบบ?")) {
+                        if (confirm("คุณต้องการออกจากระบบใช่หรือไม่?")) {
                           await signOut({ redirect: true, callbackUrl: "/sign-in" });
                         }
                       }}

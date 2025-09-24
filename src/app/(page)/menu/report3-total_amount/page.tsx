@@ -24,6 +24,9 @@ export default function TotalAmountReport() {
     const [search, setSearch] = useState("");
     const [cat, setCat] = useState("");
     const [sort, setSort] = useState<"newest" | "oldest">("newest");
+    const [dateFilter, setDateFilter] = useState<"all" | "last-month" | "last-3-months" | "last-6-months" | "last-year" | "custom">("all");
+    const [customStartDate, setCustomStartDate] = useState("");
+    const [customEndDate, setCustomEndDate] = useState("");
 
     useEffect(() => {
         (async () => {
@@ -51,6 +54,29 @@ export default function TotalAmountReport() {
 
     const filtered = useMemo(() => {
         const q = (search || "").toLowerCase();
+
+        // กำหนดช่วงวันที่ตามตัวเลือก
+        let startDate: Date | null = null;
+        let endDate: Date | null = null;
+        const now = new Date();
+
+        if (dateFilter === "last-month") {
+            startDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+            endDate = new Date(now.getFullYear(), now.getMonth(), 0);
+        } else if (dateFilter === "last-3-months") {
+            startDate = new Date(now.getFullYear(), now.getMonth() - 3, 1);
+            endDate = now;
+        } else if (dateFilter === "last-6-months") {
+            startDate = new Date(now.getFullYear(), now.getMonth() - 6, 1);
+            endDate = now;
+        } else if (dateFilter === "last-year") {
+            startDate = new Date(now.getFullYear() - 1, now.getMonth(), now.getDate());
+            endDate = now;
+        } else if (dateFilter === "custom" && customStartDate && customEndDate) {
+            startDate = new Date(customStartDate);
+            endDate = new Date(customEndDate);
+        }
+
         return (rows || [])
             .filter(it =>
                 (it.code || "").toLowerCase().includes(q) ||
@@ -60,12 +86,20 @@ export default function TotalAmountReport() {
                 ((it.category?.name || "").toLowerCase().includes(q))
             )
             .filter(it => (cat ? (it.category?.name === cat) : true))
+            .filter(it => {
+                // กรองตามวันที่ได้รับครุภัณฑ์
+                if (startDate && endDate && it.receivedDate) {
+                    const receivedDate = new Date(it.receivedDate);
+                    return receivedDate >= startDate && receivedDate <= endDate;
+                }
+                return true;
+            })
             .sort((a, b) => {
                 const da = new Date(a.receivedDate || "").getTime();
                 const db = new Date(b.receivedDate || "").getTime();
                 return sort === "newest" ? db - da : da - db;
             });
-    }, [rows, search, cat, sort]);
+    }, [rows, search, cat, sort, dateFilter, customStartDate, customEndDate]);
 
     const totalAmount = filtered.reduce((sum, it) => {
         const n = typeof it.price === "number" ? it.price : Number(it.price ?? 0) || 0;
@@ -108,12 +142,53 @@ export default function TotalAmountReport() {
             </div>
 
             <div className="mb-6 flex justify-between items-center gap-4">
-                <div className="flex items-center gap-2">
-                    <label className="text-sm font-medium text-NavyBlue">หมวดหมู่:</label>
-                    <select value={cat} onChange={(e) => setCat(e.target.value)} className="px-3 py-2 border border-Grey rounded-lg">
-                        <option value="">ทั้งหมด</option>
-                        {cats.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
-                    </select>
+                <div className="flex flex-wrap items-center gap-4">
+                    <div className="flex items-center gap-2">
+                        <label className="text-sm font-medium text-NavyBlue">หมวดหมู่:</label>
+                        <select value={cat} onChange={(e) => setCat(e.target.value)} className="px-3 py-2 border border-Grey rounded-lg">
+                            <option value="">ทั้งหมด</option>
+                            {cats.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
+                        </select>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                        <label className="text-sm font-medium text-NavyBlue">ช่วงเวลา:</label>
+                        <select
+                            value={dateFilter}
+                            onChange={(e) => setDateFilter(e.target.value as any)}
+                            className="px-3 py-2 border border-Grey rounded-lg"
+                        >
+                            <option value="all">ทั้งหมด</option>
+                            <option value="last-month">เดือนล่าสุด</option>
+                            <option value="last-3-months">3 เดือนล่าสุด</option>
+                            <option value="last-6-months">6 เดือนล่าสุด</option>
+                            <option value="last-year">1 ปีล่าสุด</option>
+                            <option value="custom">กำหนดเอง</option>
+                        </select>
+                    </div>
+
+                    {dateFilter === "custom" && (
+                        <>
+                            <div className="flex items-center gap-2">
+                                <label className="text-sm font-medium text-NavyBlue">จากวันที่:</label>
+                                <input
+                                    type="date"
+                                    value={customStartDate}
+                                    onChange={(e) => setCustomStartDate(e.target.value)}
+                                    className="px-3 py-2 border border-Grey rounded-lg"
+                                />
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <label className="text-sm font-medium text-NavyBlue">ถึงวันที่:</label>
+                                <input
+                                    type="date"
+                                    value={customEndDate}
+                                    onChange={(e) => setCustomEndDate(e.target.value)}
+                                    className="px-3 py-2 border border-Grey rounded-lg"
+                                />
+                            </div>
+                        </>
+                    )}
                 </div>
 
                 <div className="flex items-center gap-4">

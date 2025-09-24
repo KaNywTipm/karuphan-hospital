@@ -16,7 +16,7 @@ export default function ForgotPasswordPage() {
         const r = await fetch("/api/auth/password/request", {
             method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email })
         }).then(r => r.json());
-        if (r.ok) setStep(2); else alert(r.error || "ส่งรหัสไม่สำเร็จ");
+        if (r.ok) setStep(2); else alert(r.error || "ไม่สามารถส่งรหัสยืนยันได้ กรุณาลองใหม่อีกครั้ง");
     }
     async function resetPassword(e: React.FormEvent) {
         e.preventDefault();
@@ -24,7 +24,7 @@ export default function ForgotPasswordPage() {
             method: "POST", headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ email, code: code.join(""), password, confirmPassword: confirm })
         }).then(r => r.json());
-        if (r.ok) { setStep(3); } else alert(r.error || "รีเซ็ตรหัสผ่านไม่สำเร็จ");
+        if (r.ok) { setStep(3); } else alert(r.error || "ไม่สามารถรีเซ็ตรหัสผ่านได้ กรุณาตรวจสอบข้อมูลและลองใหม่อีกครั้ง");
     }
 
     return (

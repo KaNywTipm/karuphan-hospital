@@ -71,7 +71,7 @@ function getActionButtonStyleByStatus(status: RowStatus) {
 function getActionButtonTextByStatus(status: RowStatus) {
     switch (status) {
         case "PENDING": return "อนุมัติ";
-        case "APPROVED": return "คืน";
+        case "APPROVED": return "ตรวจสอบ";
         case "REJECTED": return "ไม่อนุมัติ";
         case "RETURNED": return "คืนแล้ว";
         default: return "ไม่พร้อมดำเนินการ";
@@ -175,7 +175,7 @@ function AdminPageInner() {
         // แปลง tab ไทย -> อังกฤษ
         const tabMap: Record<string, RowStatus | null> = {
             "รออนุมัติ": "PENDING",
-            "อนุมัติแล้ว/รอคืน": "APPROVED",
+            "อนุมัติแล้ว/รอตรวจสอบก่อนคืน": "APPROVED",
             "คืนแล้ว": "RETURNED",
             "ไม่อนุมัติ/ยกเลิก": "REJECTED",
             "ทั้งหมด": null,
@@ -222,7 +222,7 @@ function AdminPageInner() {
 
     const tabs = [
         { name: "รออนุมัติ", color: "bg-blue-400 text-white", count: counts.PENDING },
-        { name: "อนุมัติแล้ว/รอคืน", color: "bg-yellow-400 text-white", count: counts.APPROVED },
+        { name: "อนุมัติแล้ว/รอตรวจสอบก่อนคืน", color: "bg-yellow-400 text-white", count: counts.APPROVED },
         { name: "คืนแล้ว", color: "bg-green-500 text-white", count: counts.RETURNED },
         { name: "ไม่อนุมัติ/ยกเลิก", color: "bg-red-500 text-white", count: counts.REJECTED },
     ];
@@ -269,7 +269,7 @@ function AdminPageInner() {
                             <div className="relative">
                                 <input
                                     type="text"
-                                    placeholder="Search"
+                                    placeholder="ค้นหารายการ"
                                     value={searchTerm}
                                     onChange={(e) => setSearchTerm(e.target.value)}
                                     className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -310,7 +310,7 @@ function AdminPageInner() {
                                 )}
                                 <th className="border border-gray-300 px-4 py-3 text-center text-sm font-medium">กำหนดคืน</th>
 
-                                {activeTab === "อนุมัติแล้ว/รอคืน" && (
+                                {activeTab === "อนุมัติแล้ว/รอตรวจสอบก่อนคืน" && (
                                     <th className="border border-gray-300 px-4 py-3 text-center text-sm font-medium">ผู้รับคืน</th>
                                 )}
                                 {activeTab === "คืนแล้ว" && (
@@ -328,8 +328,8 @@ function AdminPageInner() {
                                 {activeTab === "รออนุมัติ" && (
                                     <th className="border border-gray-300 px-4 py-3 text-center text-sm font-medium">การอนุมัติ</th>
                                 )}
-                                {activeTab === "อนุมัติแล้ว/รอคืน" && (
-                                    <th className="border border-gray-300 px-4 py-3 text-center text-sm font-medium">การคืน</th>
+                                {activeTab === "อนุมัติแล้ว/รอตรวจสอบก่อนคืน" && (
+                                    <th className="border border-gray-300 px-4 py-3 text-center text-sm font-medium">การตรวจสอบ</th>
                                 )}
                                 {activeTab === "คืนแล้ว" && (
                                     <th className="border border-gray-300 px-4 py-3 text-center text-sm font-medium">วันที่คืน</th>
@@ -375,7 +375,7 @@ function AdminPageInner() {
                                         )}
                                         <td className="border border-gray-300 px-4 py-3 text-center">{returnDue}</td>
 
-                                        {activeTab === "อนุมัติแล้ว/รอคืน" && (
+                                        {activeTab === "อนุมัติแล้ว/รอตรวจสอบก่อนคืน" && (
                                             <td className="border border-gray-300 px-4 py-3 text-center">{item.adminName}</td>
                                         )}
                                         {activeTab === "คืนแล้ว" && (
@@ -424,7 +424,7 @@ function AdminPageInner() {
                                             </td>
                                         )}
 
-                                        {activeTab === "อนุมัติแล้ว/รอคืน" && (
+                                        {activeTab === "อนุมัติแล้ว/รอตรวจสอบก่อนคืน" && (
                                             <td className="border border-gray-300 px-4 py-3 text-center">
                                                 <button
                                                     className={getActionButtonStyleByStatus(item.status)}

@@ -101,10 +101,10 @@ export default function ReturnPage({
                         setReturnConditions(rc);
                     }
                 } else {
-                    alert(j?.error ?? "โหลดคำขอไม่สำเร็จ");
+                    alert(j?.error ?? "ไม่สามารถโหลดข้อมูลการยืมได้ กรุณาลองใหม่อีกครั้ง");
                 }
             } catch {
-                alert("โหลดคำขอไม่สำเร็จ");
+                alert("ไม่สามารถโหลดข้อมูลการยืมได้ กรุณาตรวจสอบการเชื่อมต่อ");
             } finally {
                 setLoading(false);
             }
@@ -165,11 +165,12 @@ export default function ReturnPage({
                 body: JSON.stringify(payload),
             });
             const j = await r.json().catch(() => ({}));
-            if (!r.ok || !j?.ok) return alert(j?.error ?? "บันทึกรับคืนไม่สำเร็จ");
+            if (!r.ok || !j?.ok) return alert(j?.error ?? "ไม่สามารถบันทึกการรับคืนได้ กรุณาลองใหม่อีกครั้ง");
 
+            alert("บันทึกการรับคืนครุภัณฑ์เรียบร้อยแล้ว");
             router.push("/role1-admin");
         } catch {
-            alert("บันทึกรับคืนไม่สำเร็จ");
+            alert("ไม่สามารถบันทึกการรับคืนได้ กรุณาตรวจสอบการเชื่อมต่อ");
         }
     };
 

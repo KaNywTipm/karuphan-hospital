@@ -54,7 +54,8 @@ export default function SignUpPage() {
             const data = await res.json();
 
             if (!res.ok || !data.ok) {
-                setMsg(data.error || "สมัครไม่สำเร็จ");
+                const errorMsg = data.error || "ไม่สามารถสมัครสมาชิกได้ กรุณาลองใหม่อีกครั้ง";
+                setMsg(errorMsg);
                 setLoading(false);
                 return;
             }

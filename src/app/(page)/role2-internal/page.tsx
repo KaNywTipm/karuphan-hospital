@@ -33,9 +33,7 @@ function BorrowButton({ disabled, onClick }: { disabled?: boolean; onClick: () =
             title={disabled ? "สถานะนี้ยืมไม่ได้" : "ยืมครุภัณฑ์ชิ้นนี้"}
             aria-disabled={disabled ? 'true' : undefined}
         >
-            <svg width="16" height="16" viewBox="0 0 24 24" className="opacity-90">
-                <path d="M3 3h2l.4 2M7 13h10l3-8H6.4M7 13l-2 6h13" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" />
-            </svg>
+            <Image src="/cart.png" alt="cart" width={16} height={16} className="opacity-90" />
             ยืม
         </button>
     );
@@ -217,12 +215,12 @@ export default function InternalBorrowPage() {
         });
         const json = await res.json();
         if (!res.ok) {
-            alert(json?.error || "ยืมไม่สำเร็จ");
+            alert(json?.error || "ไม่สามารถยืมครุภัณฑ์ได้ กรุณาลองใหม่อีกครั้ง");
             return;
         }
         await load();
         setCartItems([]);
-        alert("ยืมครุภัณฑ์สำเร็จ");
+        alert("ยืมครุภัณฑ์สำเร็จ รอแอดมินจ่ายของ");
     };
 
     return (
@@ -398,7 +396,7 @@ export default function InternalBorrowPage() {
                             });
                             const json = await res.json().catch(() => ({}));
                             if (!res.ok || json?.ok !== true) {
-                                alert(json?.error || "ยืมไม่สำเร็จ");
+                                alert(json?.error || "ไม่สามารถยืมครุภัณฑ์ได้ กรุณาลองใหม่อีกครั้ง");
                                 return;
                             }
                             setShowQuickBorrow(false);

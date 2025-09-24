@@ -59,9 +59,9 @@ function ApprovePageInner() {
                             .filter(Boolean),
                     };
                     setRow(shaped);
-                } else alert(j?.error ?? "โหลดคำขอไม่สำเร็จ");
+                } else alert(j?.error ?? "ไม่สามารถโหลดข้อมูลคำขอได้ กรุณาลองใหม่อีกครั้ง");
             } catch {
-                alert("โหลดคำขอไม่สำเร็จ");
+                alert("ไม่สามารถโหลดข้อมูลคำขอได้ กรุณาตรวจสอบการเชื่อมต่อ");
             } finally {
                 setLoading(false);
             }
@@ -76,10 +76,14 @@ function ApprovePageInner() {
                 body: JSON.stringify({}),
             });
             const j = await r.json().catch(() => ({}));
-            if (!r.ok || !j?.ok) return alert(j?.error ?? "อนุมัติไม่สำเร็จ");
+            if (!r.ok || !j?.ok) return alert(j?.error ?? "ไม่สามารถอนุมัติคำขอได้ กรุณาลองใหม่อีกครั้ง");
+
+            // แสดงข้อความสำเร็จที่ละเอียดขึ้น
+            const successMessage = j?.message || "อนุมัติคำขอเรียบร้อยแล้ว";
+            alert(successMessage);
             router.push("/role1-admin");
         } catch {
-            alert("อนุมัติไม่สำเร็จ");
+            alert("ไม่สามารถอนุมัติคำขอได้ กรุณาตรวจสอบการเชื่อมต่อ");
         }
     }
 
@@ -92,10 +96,14 @@ function ApprovePageInner() {
                 body: JSON.stringify({ rejectReason }),
             });
             const j = await r.json().catch(() => ({}));
-            if (!r.ok || !j?.ok) return alert(j?.error ?? "ไม่อนุมัติไม่สำเร็จ");
+            if (!r.ok || !j?.ok) return alert(j?.error ?? "ไม่สามารถไม่อนุมัติคำขอได้ กรุณาลองใหม่อีกครั้ง");
+
+            // แสดงข้อความสำเร็จที่ละเอียดขึ้น
+            const successMessage = j?.message || "ไม่อนุมัติคำขอเรียบร้อยแล้ว";
+            alert(successMessage);
             router.push("/role1-admin");
         } catch {
-            alert("ไม่อนุมัติไม่สำเร็จ");
+            alert("ไม่สามารถไม่อนุมัติคำขอได้ กรุณาตรวจสอบการเชื่อมต่อ");
         }
     }
 
@@ -145,7 +153,7 @@ function ApprovePageInner() {
                             <div className="space-y-4">
                                 <div>
                                     <span className="font-medium">วันที่ยืม:</span>{" "}
-                                    {fmtTH(row.borrowDate)}
+                                    {row.actualBorrowDate ? fmtTH(row.actualBorrowDate) : fmtTH(new Date().toISOString())}
                                 </div>
                                 <div>
                                     <span className="font-medium">กำหนดคืน:</span>{" "}
@@ -181,7 +189,7 @@ function ApprovePageInner() {
     );
 }
 
-// ✅ ห่อด้วย Suspense เพื่อผ่าน build/export
+// ห่อด้วย Suspense เพื่อผ่าน build/export
 export default function ApprovePage() {
     return (
         <Suspense
