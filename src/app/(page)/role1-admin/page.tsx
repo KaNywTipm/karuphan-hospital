@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 export const dynamic = "force-dynamic";
 
 // ---------- Types ----------
-type RowStatus = "PENDING" | "APPROVED" | "RETURNED" | "REJECTED";
+type RowStatus = "PENDING" | "APPROVED" | "RETURNED" | "REJECTED" | "OVERDUE";
 type Row = {
     id: number;
     status: RowStatus;
@@ -30,7 +30,8 @@ const toThaiStatus = (s: RowStatus) =>
     s === "PENDING" ? "รออนุมัติ" :
         s === "APPROVED" ? "อนุมัติแล้ว/รอคืน" :
             s === "RETURNED" ? "คืนแล้ว" :
-                "ไม่อนุมัติ";
+                s === "OVERDUE" ? "เกินกำหนด" :
+                    "ไม่อนุมัติ";
 
 
 // สำหรับแปลสภาพ (returnCondition) เฉพาะในหน้าคืนแล้ว
@@ -158,12 +159,72 @@ function AdminPageInner() {
     }
 
     useEffect(() => {
-        const ctrl = new AbortController();
-        fetchData(ctrl.signal);
-        const itv = setInterval(() => fetchData(ctrl.signal), 5000);
+        let isActive = true;
+        let intervalId: NodeJS.Timeout | null = null;
+
+        const fetchDataSafely = async () => {
+            if (!isActive) return;
+
+            try {
+                const response = await fetch("/api/borrow", {
+                    cache: "no-store",
+                    signal: isActive ? undefined : new AbortController().signal
+                });
+
+                if (!isActive) return;
+
+                const json = await response.json();
+                const list = Array.isArray(json?.data) ? json.data : [];
+
+                const shaped = list.map((r: any) => {
+                    const requesterName = r.requester?.fullName || r.externalName || "ไม่ทราบ";
+                    let status: RowStatus = r.status as RowStatus;
+                    if (r.isOverdue) status = "OVERDUE";
+
+                    return {
+                        id: r.id,
+                        requesterName,
+                        borrowerType: r.borrowerType,
+                        borrowDate: r.borrowDate,
+                        returnDue: r.returnDue,
+                        actualReturnDate: r.actualReturnDate,
+                        status,
+                        reason: r.reason || "",
+                        externalDept: r.externalDept || "",
+                        externalPhone: r.externalPhone || "",
+                        equipmentCodes: (r.items || []).map((i: any) => i.equipment?.code || ""),
+                        equipmentNames: (r.items || []).map((i: any) => i.equipment?.name || ""),
+                        approverName: r.approvedBy?.fullName || "",
+                        receiverName: r.receivedBy?.fullName || "",
+                    };
+                });
+
+                if (isActive) {
+                    setRows(shaped);
+                }
+            } catch (error) {
+                if (isActive) {
+                    console.error("Error fetching borrow data:", error);
+                    setRows([]);
+                }
+            } finally {
+                if (isActive) {
+                    setLoading(false);
+                }
+            }
+        };
+
+        // Initial fetch
+        fetchDataSafely();
+
+        // Set up interval for subsequent fetches
+        intervalId = setInterval(fetchDataSafely, 10000); // เพิ่มเป็น 10 วินาที
+
         return () => {
-            ctrl.abort();
-            clearInterval(itv);
+            isActive = false;
+            if (intervalId) {
+                clearInterval(intervalId);
+            }
         };
     }, []);
 
