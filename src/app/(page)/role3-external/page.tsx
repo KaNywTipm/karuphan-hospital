@@ -42,7 +42,7 @@ function BorrowButton({
             disabled={disabled}
             className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-semibold
                         ${disabled
-                    ? "bg-gray-200 text-gray-500 cursor-not-allowed"
+                    ? "bg-gray-300 text-gray-500 cursor-not-allowed"
                     : "bg-emerald-600 text-white hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-300"
                 }`}
             title={disabled ? "สถานะนี้ยืมไม่ได้" : "ยืมครุภัณฑ์ชิ้นนี้"}
