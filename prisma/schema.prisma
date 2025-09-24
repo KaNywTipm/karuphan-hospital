@@ -9,8 +9,8 @@ generator client {
 }
 
 datasource db {
-    provider = "postgresql"
-    url      = env("DATABASE_URL")
+    provider  = "postgresql"
+    url       = env("DATABASE_URL")
     directUrl = env("DIRECT_URL")
 }
 
@@ -86,6 +86,8 @@ model User {
     returnReceipts BorrowRequest[] @relation("Receiver")
     approvals      BorrowRequest[] @relation("Approver")
     rejected       BorrowRequest[] @relation("Rejector")
+
+    passwordResetRequests PasswordResetRequest[]
 
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
@@ -216,13 +218,15 @@ model BorrowItem {
 }
 
 model PasswordResetRequest {
-    id        Int       @id @default(autoincrement())
-    email     String
-    code      String // OTP 6 หลัก
-    expiresAt DateTime
-    usedAt    DateTime?
-    createdAt DateTime  @default(now())
+    id          Int      @id @default(autoincrement())
+    user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+    userId      Int
+    otpHash     String
+    expiresAt   DateTime
+    attempts    Int      @default(0)
+    maxAttempts Int      @default(5)
+    consumed    Boolean  @default(false)
+    createdAt   DateTime @default(now())
 
-    @@index([email])
-    @@index([expiresAt])
+    @@index([userId, expiresAt, consumed])
 }
