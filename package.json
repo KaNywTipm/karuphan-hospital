@@ -30,7 +30,7 @@
     "react-datepicker": "^8.7.0",
     "react-dom": "^18",
     "react-hook-form": "^7.62.0",
-    "sharp": "^0.33.4",
+    "sharp": "^0.33.5",
     "zod": "^4.1.4"
   },
   "devDependencies": {
