@@ -49,6 +49,7 @@ type BorrowKaruphanProps = {
         externalDept: string | null;
         externalPhone: string | null;
         notes: null;
+        borrowDate: string; // YYYY-MM-DD (ค.ศ.)
         returnDue: string; // YYYY-MM-DD (ค.ศ.)
         reason: string;
         borrowerName?: string | null;
@@ -68,8 +69,8 @@ const BorrowKaruphan = ({
 }: BorrowKaruphanProps) => {
     const router = useRouter();
     const [me, setMe] = useState<Me | null>(null);
-    // ใช้ state แสดง/รับค่าเป็น พ.ศ. (string)
-    const [borrowDateBE, setBorrowDateBE] = useState<string>(ceToThai(toInputDate(new Date())));
+    // ใช้ state แสดง/รับค่าเป็น พ.ศ. (string) - ไม่มีค่า default
+    const [borrowDateBE, setBorrowDateBE] = useState<string>("");
     const [returnDateBE, setReturnDateBE] = useState<string>("");
     const [reason, setReason] = useState<string>("");
     const [submitting, setSubmitting] = useState(false);
@@ -154,6 +155,30 @@ const BorrowKaruphan = ({
         e.preventDefault();
         if (!borrowDateBE || !returnDateBE) return;
 
+        // Validation: ไม่ให้เลือกวันที่ยืมในอดีต
+        const borrowDateCE = thaiToCE(borrowDateBE);
+        const today = new Date();
+        const selectedBorrowDate = new Date(borrowDateCE);
+
+        // ตั้งเวลาเป็น 00:00:00 เพื่อเปรียบเทียบแค่วันที่
+        today.setHours(0, 0, 0, 0);
+        selectedBorrowDate.setHours(0, 0, 0, 0);
+
+        if (selectedBorrowDate < today) {
+            alert("ไม่สามารถเลือกวันที่ยืมในอดีตได้ กรุณาเลือกวันที่วันนี้หรือในอนาคต");
+            return;
+        }
+
+        // Validation: วันที่คืนต้องเป็นวันเดียวกันหรือหลังจากวันที่ยืม
+        const returnDateCE = thaiToCE(returnDateBE);
+        const selectedReturnDate = new Date(returnDateCE);
+        selectedReturnDate.setHours(0, 0, 0, 0);
+
+        if (selectedReturnDate < selectedBorrowDate) {
+            alert("วันที่คืนต้องเป็นวันเดียวกันหรือหลังจากวันที่ยืม กรุณาเลือกวันที่ใหม่");
+            return;
+        }
+
         // ถ้า parent ส่ง onBorrow มา → ส่งแบบ flatten + กันค่า externalDept ว่าง
         if (onBorrow) {
             try {
@@ -163,6 +188,7 @@ const BorrowKaruphan = ({
                     externalDept: (me?.department?.name?.trim() || "ภายนอกกลุ่มงาน"),
                     externalPhone: me?.phone?.toString().trim() || null,
                     notes: null,
+                    borrowDate: thaiToCE(borrowDateBE), // เพิ่มวันที่ยืม
                     returnDue: thaiToCE(returnDateBE),
                     reason,
                     borrowerName: me?.fullName ?? null,
@@ -240,6 +266,7 @@ const BorrowKaruphan = ({
                         <input
                             type="date"
                             value={borrowDateBE}
+                            min={ceToThai(toInputDate(new Date()))}
                             onChange={(e) => {
                                 let v = e.target.value;
                                 if (/^\d{4}-\d{2}-\d{2}$/.test(v)) {
@@ -247,17 +274,33 @@ const BorrowKaruphan = ({
                                     if (Number(y) < 2500) v = ceToThai(v);
                                 }
                                 setBorrowDateBE(v);
+
+                                // ถ้าวันที่คืนที่เลือกอยู่มาก่อนวันที่ยืมใหม่ ให้ reset วันที่คืน
+                                if (returnDateBE && v) {
+                                    const borrowDateCE = thaiToCE(v);
+                                    const returnDateCE = thaiToCE(returnDateBE);
+                                    const borrowDate = new Date(borrowDateCE);
+                                    const returnDate = new Date(returnDateCE);
+
+                                    if (returnDate < borrowDate) {
+                                        setReturnDateBE("");
+                                    }
+                                }
                             }}
                             className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none transition-colors bg-white text-gray-700"
                             placeholder="2568-09-11"
                             required
                         />
+                        <p className="text-xs text-gray-500 mt-1">
+                            * สามารถเลือกวันที่วันนี้หรือในอนาคตเท่านั้น (สำหรับการจองล่วงหน้า)
+                        </p>
                     </FormRow>
 
                     <FormRow label="กำหนดคืน">
                         <input
                             type="date"
                             value={returnDateBE}
+                            min={borrowDateBE || ceToThai(toInputDate(new Date()))}
                             onChange={(e) => {
                                 let v = e.target.value;
                                 if (/^\d{4}-\d{2}-\d{2}$/.test(v)) {
@@ -270,6 +313,9 @@ const BorrowKaruphan = ({
                             placeholder="2568-09-11"
                             required
                         />
+                        <p className="text-xs text-gray-500 mt-1">
+                            * วันที่คืนต้องเป็นวันเดียวกันหรือหลังจากวันที่ยืม
+                        </p>
                     </FormRow>
 
                     <FormRow label="เหตุผลที่ยืม">

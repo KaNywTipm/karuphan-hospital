@@ -156,7 +156,7 @@ function ApprovePageInner() {
                             <div className="space-y-4">
                                 <div>
                                     <span className="font-medium">วันที่ยืม:</span>{" "}
-                                    {row.actualBorrowDate ? fmtTH(row.actualBorrowDate) : fmtTH(new Date().toISOString())}
+                                    {fmtTH(row.borrowDate)}
                                 </div>
                                 <div>
                                     <span className="font-medium">กำหนดคืน:</span>{" "}

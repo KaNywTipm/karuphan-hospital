@@ -49,7 +49,7 @@ export async function PATCH(req: Request, { params }: Params) {
         status: "REJECTED",
         rejectedById: adminId,
         rejectedAt: new Date(),
-        rejectReason: body?.reason ?? null,
+        rejectReason: body?.rejectReason ?? null, // แก้ไข: ใช้ rejectReason แทน reason
       },
       include: {
         requester: {

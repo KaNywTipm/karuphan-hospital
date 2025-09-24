@@ -222,6 +222,7 @@ export default function InternalBorrowPage() {
     const handleBorrowSubmit = async (borrowData: any) => {
         const payload = {
             borrowerType: BORROWER_TYPE,
+            borrowDate: borrowData?.borrowDate, // เพิ่มวันที่ยืม
             returnDue: borrowData?.returnDue,
             reason: borrowData?.reason ?? null,
             notes: borrowData?.notes ?? null,
@@ -403,6 +404,7 @@ export default function InternalBorrowPage() {
                         onBorrow={async (form) => {
                             const payload = {
                                 borrowerType: BORROWER_TYPE,
+                                borrowDate: form.borrowDate, // เพิ่มวันที่ยืม
                                 returnDue: form.returnDue,
                                 reason: form.reason ?? null,
                                 notes: form.notes ?? null,

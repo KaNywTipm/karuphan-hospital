@@ -342,7 +342,16 @@ export default function UserHistory() {
                                                     r.status === "REJECTED" ? "ไม่อนุมัติ" : "รออนุมัติ"}
                                         </span>
                                     </td>
-                                    <td className="px-4 py-3 text-sm">{r.reason || "-"}</td>
+                                    <td className="px-4 py-3 text-sm">
+                                        {r.status === "REJECTED" && r.reason ? (
+                                            <div>
+                                                <span className="text-red-600 font-medium">เหตุผลไม่อนุมัติ: </span>
+                                                <span>{r.reason}</span>
+                                            </div>
+                                        ) : (
+                                            r.reason || "-"
+                                        )}
+                                    </td>
                                 </tr>
                             ))}
                             {!current.length && (

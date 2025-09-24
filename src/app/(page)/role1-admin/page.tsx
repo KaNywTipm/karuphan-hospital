@@ -23,6 +23,8 @@ type Row = {
     receivedBy?: string | null;         // ถ้ามีใน API
     returnCondition?: string | null;    // ถ้ามีใน API
     adminName?: string | null;          // ชื่อแอดมินผู้รับคืน
+    rejectReason?: string | null;       // เหตุผลที่ไม่อนุมัติ
+    rejectedAt?: string | null;         // วันที่ปฏิเสธ
 };
 
 // ---------- Helpers ----------
@@ -147,6 +149,8 @@ function AdminPageInner() {
                     returnNotes: r.returnNotes ?? null,
                     receivedBy: r.receivedBy?.fullName ?? null,
                     returnCondition,
+                    rejectReason: r.rejectReason ?? null, // เหตุผลที่ไม่อนุมัติ
+                    rejectedAt: r.rejectedAt ?? null, // วันที่ปฏิเสธ สำหรับการเรียงลำดับ
                 };
             });
             setRows(shaped);
@@ -191,8 +195,23 @@ function AdminPageInner() {
                 (item.department || "").toLowerCase().includes(q)
             )
             .sort((a, b) => {
-                const aDate = new Date(a.borrowDate || a.returnDue || "").getTime();
-                const bDate = new Date(b.borrowDate || b.returnDue || "").getTime();
+                // ใช้วันที่ที่เหมาะสมกับแต่ละสถานะ
+                let aDate, bDate;
+
+                if (statusFilter === "REJECTED") {
+                    // สำหรับรายการไม่อนุมัติ ใช้วันที่ปฏิเสธ
+                    aDate = new Date(a.rejectedAt || a.borrowDate || "").getTime();
+                    bDate = new Date(b.rejectedAt || b.borrowDate || "").getTime();
+                } else if (statusFilter === "RETURNED") {
+                    // สำหรับรายการคืนแล้ว ใช้วันที่คืนจริง
+                    aDate = new Date(a.actualReturnDate || a.returnDue || "").getTime();
+                    bDate = new Date(b.actualReturnDate || b.returnDue || "").getTime();
+                } else {
+                    // สำหรับรายการอื่นๆ ใช้วันที่ยืม
+                    aDate = new Date(a.borrowDate || a.returnDue || "").getTime();
+                    bDate = new Date(b.borrowDate || b.returnDue || "").getTime();
+                }
+
                 return sortOrder === "newest" ? bDate - aDate : aDate - bDate;
             });
     }, [rows, searchTerm, activeTab, sortOrder]);
@@ -305,9 +324,7 @@ function AdminPageInner() {
                                 <th className="border border-gray-300 px-4 py-3 text-center text-sm font-medium">บุคลากร</th>
                                 <th className="border border-gray-300 px-4 py-3 text-center text-sm font-medium">เลขครุภัณฑ์</th>
                                 <th className="border border-gray-300 px-4 py-3 text-center text-sm font-medium">ชื่อครุภัณฑ์</th>
-                                {activeTab !== "รออนุมัติ" && (
-                                    <th className="border border-gray-300 px-4 py-3 text-center text-sm font-medium">วันที่ยืม</th>
-                                )}
+                                <th className="border border-gray-300 px-4 py-3 text-center text-sm font-medium">วันที่ยืม</th>
                                 <th className="border border-gray-300 px-4 py-3 text-center text-sm font-medium">กำหนดคืน</th>
 
                                 {activeTab === "อนุมัติแล้ว/รอตรวจสอบก่อนคืน" && (
@@ -320,10 +337,18 @@ function AdminPageInner() {
                                     </>
                                 )}
                                 {activeTab === "ไม่อนุมัติ/ยกเลิก" && (
-                                    <th className="border border-gray-300 px-4 py-3 text-center text-sm font-medium">ผู้รับคืน</th>
+                                    <>
+                                        <th className="border border-gray-300 px-4 py-3 text-center text-sm font-medium">ผู้รับคืน</th>
+                                        <th className="border border-gray-300 px-4 py-3 text-center text-sm font-medium">เหตุผลไม่อนุมัติ</th>
+                                    </>
                                 )}
 
-                                <th className="border border-gray-300 px-4 py-3 text-center text-sm font-medium">เหตุผลที่ยืม</th>
+                                {/* เหตุผลที่ยืม / เหตุผลที่คืน */}
+                                {activeTab === "คืนแล้ว" ? (
+                                    <th className="border border-gray-300 px-4 py-3 text-center text-sm font-medium">เหตุผลที่คืน</th>
+                                ) : (
+                                    <th className="border border-gray-300 px-4 py-3 text-center text-sm font-medium">เหตุผลที่ยืม</th>
+                                )}
 
                                 {activeTab === "รออนุมัติ" && (
                                     <th className="border border-gray-300 px-4 py-3 text-center text-sm font-medium">การอนุมัติ</th>
@@ -332,7 +357,7 @@ function AdminPageInner() {
                                     <th className="border border-gray-300 px-4 py-3 text-center text-sm font-medium">การตรวจสอบ</th>
                                 )}
                                 {activeTab === "คืนแล้ว" && (
-                                    <th className="border border-gray-300 px-4 py-3 text-center text-sm font-medium">วันที่คืน</th>
+                                    <th className="border border-gray-300 px-4 py-3 text-center text-sm font-medium">วันที่ตรวจสอบคืน</th>
                                 )}
                                 {activeTab === "ไม่อนุมัติ/ยกเลิก" && (
                                     <th className="border border-gray-300 px-4 py-3 text-center text-sm font-medium">สถานะการยืม</th>
@@ -370,9 +395,7 @@ function AdminPageInner() {
                                         <td className="border border-gray-300 px-4 py-3 text-center">{personnel}</td>
                                         <td className="border border-gray-300 px-4 py-3 text-center">{item.equipmentCode ?? "-"}</td>
                                         <td className="border border-gray-300 px-4 py-3 text-center">{item.equipmentName || "-"}</td>
-                                        {activeTab !== "รออนุมัติ" && (
-                                            <td className="border border-gray-300 px-4 py-3 text-center">{item.borrowDate ? new Date(item.borrowDate).toLocaleDateString("th-TH") : "-"}</td>
-                                        )}
+                                        <td className="border border-gray-300 px-4 py-3 text-center">{item.borrowDate ? new Date(item.borrowDate).toLocaleDateString("th-TH") : "-"}</td>
                                         <td className="border border-gray-300 px-4 py-3 text-center">{returnDue}</td>
 
                                         {activeTab === "อนุมัติแล้ว/รอตรวจสอบก่อนคืน" && (
@@ -402,7 +425,10 @@ function AdminPageInner() {
                                             </>
                                         )}
                                         {activeTab === "ไม่อนุมัติ/ยกเลิก" && (
-                                            <td className="border border-gray-300 px-4 py-3 text-center">{item.adminName}</td>
+                                            <>
+                                                <td className="border border-gray-300 px-4 py-3 text-center">{item.adminName}</td>
+                                                <td className="border border-gray-300 px-4 py-3 text-center">{item.rejectReason || "-"}</td>
+                                            </>
                                         )}
 
                                         {/* เหตุผลที่ยืม */}
