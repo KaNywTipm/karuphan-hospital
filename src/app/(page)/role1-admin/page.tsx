@@ -57,7 +57,28 @@ function returnConditionColor(s?: string | null) {
     }
 }
 
-function getActionButtonStyleByStatus(status: RowStatus) {
+function getActionButtonStyleByStatus(status: RowStatus, returnDue?: string | null) {
+    if (status === "APPROVED" && returnDue) {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const dueDate = new Date(returnDue);
+        dueDate.setHours(0, 0, 0, 0);
+
+        const diffTime = dueDate.getTime() - today.getTime();
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+        if (diffDays > 0) {
+            // เหลือง - ยังไม่ถึงวันกำหนด
+            return "bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-1 rounded text-sm cursor-pointer";
+        } else if (diffDays === 0) {
+            // เขียว - วันกำหนดคืน
+            return "bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded text-sm cursor-pointer";
+        } else {
+            // แดง - เกินกำหนด
+            return "bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-sm cursor-pointer";
+        }
+    }
+
     switch (status) {
         case "PENDING":
             return "bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-1 rounded text-sm cursor-pointer";
@@ -70,13 +91,44 @@ function getActionButtonStyleByStatus(status: RowStatus) {
             return "bg-gray-500 text-white px-3 py-1 rounded text-sm cursor-not-allowed";
     }
 }
-function getActionButtonTextByStatus(status: RowStatus) {
+
+function getActionButtonTextByStatus(status: RowStatus, returnDue?: string | null) {
     switch (status) {
         case "PENDING": return "อนุมัติ";
         case "APPROVED": return "ตรวจสอบ";
         case "REJECTED": return "ไม่อนุมัติ";
         case "RETURNED": return "คืนแล้ว";
         default: return "ไม่พร้อมดำเนินการ";
+    }
+}
+
+// ฟังก์ชันสำหรับแสดงสถานะวันที่ในตาราง
+function getDateStatus(returnDue?: string | null) {
+    if (!returnDue) return { text: "-", color: "text-gray-500" };
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const dueDate = new Date(returnDue);
+    dueDate.setHours(0, 0, 0, 0);
+
+    const diffTime = dueDate.getTime() - today.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+    if (diffDays > 0) {
+        return {
+            text: `ถึงกำหนดคืนในอีก ${diffDays} วัน`,
+            color: "text-yellow-600 font-medium"
+        };
+    } else if (diffDays === 0) {
+        return {
+            text: "ถึงกำหนดวันที่คืน",
+            color: "text-green-600 font-medium"
+        };
+    } else {
+        return {
+            text: `คืนเกินกำหนด ${Math.abs(diffDays)} วัน`,
+            color: "text-red-600 font-medium"
+        };
     }
 }
 
@@ -239,6 +291,39 @@ function AdminPageInner() {
         return c;
     }, [rows]);
 
+    // นับจำนวนตามสีของปุ่มตรวจสอบในแท็บอนุมัติแล้ว
+    const approvedCounts = useMemo(() => {
+        if (activeTab !== "อนุมัติแล้ว/รอตรวจสอบก่อนคืน") {
+            return { yellow: 0, green: 0, red: 0 };
+        }
+
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        let yellow = 0, green = 0, red = 0;
+
+        const approvedRows = rows.filter(r => r.status === "APPROVED");
+
+        for (const r of approvedRows) {
+            if (r.returnDue) {
+                const dueDate = new Date(r.returnDue);
+                dueDate.setHours(0, 0, 0, 0);
+
+                const diffTime = dueDate.getTime() - today.getTime();
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+                if (diffDays > 0) {
+                    yellow++;
+                } else if (diffDays === 0) {
+                    green++;
+                } else {
+                    red++;
+                }
+            }
+        }
+
+        return { yellow, green, red };
+    }, [rows, activeTab]);
+
     const tabs = [
         { name: "รออนุมัติ", color: "bg-blue-400 text-white", count: counts.PENDING },
         { name: "อนุมัติแล้ว/รอตรวจสอบก่อนคืน", color: "bg-yellow-400 text-white", count: counts.APPROVED },
@@ -277,6 +362,27 @@ function AdminPageInner() {
                         </button>
                     ))}
                 </div>
+
+                {/* Color Legend for Approved Tab */}
+                {activeTab === "อนุมัติแล้ว/รอตรวจสอบก่อนคืน" && (
+                    <div className="mb-4 p-3 bg-gray-50 rounded-lg">
+                        <h3 className="text-sm font-medium text-gray-700 mb-2">สถานะปุ่มตรวจสอบ:</h3>
+                        <div className="flex gap-4 text-sm">
+                            <div className="flex items-center gap-2">
+                                <div className="w-4 h-4 bg-yellow-500 rounded"></div>
+                                <span>ยังไม่ถึงกำหนด ({approvedCounts.yellow})</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <div className="w-4 h-4 bg-green-500 rounded"></div>
+                                <span>ถึงกำหนดคืน ({approvedCounts.green})</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <div className="w-4 h-4 bg-red-500 rounded"></div>
+                                <span>เกินกำหนด ({approvedCounts.red})</span>
+                            </div>
+                        </div>
+                    </div>
+                )}
             </div>
 
             {/* Search + Sort */}
@@ -386,6 +492,11 @@ function AdminPageInner() {
                                     ? new Date(item.actualReturnDate).toLocaleDateString("th-TH")
                                     : returnDue;
 
+                                // สำหรับแสดงสถานะวันที่ในแท็บอนุมัติแล้ว
+                                const dateStatus = activeTab === "อนุมัติแล้ว/รอตรวจสอบก่อนคืน"
+                                    ? getDateStatus(item.returnDue)
+                                    : null;
+
                                 const thaiStatus = toThaiStatus(item.status);
 
                                 return (
@@ -396,7 +507,20 @@ function AdminPageInner() {
                                         <td className="border border-gray-300 px-4 py-3 text-center">{item.equipmentCode ?? "-"}</td>
                                         <td className="border border-gray-300 px-4 py-3 text-center">{item.equipmentName || "-"}</td>
                                         <td className="border border-gray-300 px-4 py-3 text-center">{item.borrowDate ? new Date(item.borrowDate).toLocaleDateString("th-TH") : "-"}</td>
-                                        <td className="border border-gray-300 px-4 py-3 text-center">{returnDue}</td>
+                                        <td className="border border-gray-300 px-4 py-3 text-center">
+                                            {activeTab === "อนุมัติแล้ว/รอตรวจสอบก่อนคืน" ? (
+                                                <div>
+                                                    <div>{returnDue}</div>
+                                                    {dateStatus && (
+                                                        <div className={`text-xs mt-1 ${dateStatus.color}`}>
+                                                            {dateStatus.text}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            ) : (
+                                                returnDue
+                                            )}
+                                        </td>
 
                                         {activeTab === "อนุมัติแล้ว/รอตรวจสอบก่อนคืน" && (
                                             <td className="border border-gray-300 px-4 py-3 text-center">{item.adminName}</td>
@@ -453,7 +577,7 @@ function AdminPageInner() {
                                         {activeTab === "อนุมัติแล้ว/รอตรวจสอบก่อนคืน" && (
                                             <td className="border border-gray-300 px-4 py-3 text-center">
                                                 <button
-                                                    className={getActionButtonStyleByStatus(item.status)}
+                                                    className={getActionButtonStyleByStatus(item.status, item.returnDue)}
                                                     onClick={() => handleStatusChange(item.id, item.status)}
                                                     disabled={item.status !== "APPROVED"}
                                                 >

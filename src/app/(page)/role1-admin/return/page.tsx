@@ -131,16 +131,35 @@ export default function ReturnPage({
     }, [borrowRequest]);
 
     // วันเกินกำหนด
-    const overdueDays = useMemo(() => {
+    const { daysDiff, statusMessage, statusColor } = useMemo(() => {
         try {
-            if (!borrowRequest?.returnDue) return 0;
+            if (!borrowRequest?.returnDue) return { daysDiff: 0, statusMessage: "", statusColor: "" };
             const due = new Date(borrowRequest.returnDue).getTime();
             const actIso = beToCE(actualReturnDate) || new Date().toISOString();
             const act = new Date(actIso).getTime();
             const diff = Math.floor((act - due) / (1000 * 60 * 60 * 24));
-            return diff > 0 ? diff : 0;
+
+            if (diff > 0) {
+                return {
+                    daysDiff: diff,
+                    statusMessage: `คืนเกินกำหนด ${diff} วัน`,
+                    statusColor: "text-red-600"
+                };
+            } else if (diff === 0) {
+                return {
+                    daysDiff: 0,
+                    statusMessage: "คืนตรงวันที่กำหนด",
+                    statusColor: "text-green-600"
+                };
+            } else {
+                return {
+                    daysDiff: Math.abs(diff),
+                    statusMessage: `คืนก่อนกำหนด ${Math.abs(diff)} วัน`,
+                    statusColor: "text-yellow-600"
+                };
+            }
         } catch {
-            return 0;
+            return { daysDiff: 0, statusMessage: "", statusColor: "" };
         }
     }, [borrowRequest?.returnDue, actualReturnDate]);
 
@@ -277,9 +296,12 @@ export default function ReturnPage({
                                 <div>วันที่ยืม {fmt(borrowRequest.requestedAt || borrowRequest.createdAt || borrowRequest.requestDate)}</div>
                                 <div>
                                     กำหนดคืน {fmt(borrowRequest.returnDue)}
-                                    {overdueDays > 0 && (
-                                        <span className="ml-2 inline-block text-red-600 bg-red-100 px-2 py-0.5 rounded text-xs">
-                                            คืนเกินกำหนด {overdueDays} วัน
+                                    {statusMessage && (
+                                        <span className={`ml-2 inline-block px-2 py-0.5 rounded text-xs font-medium ${statusColor === "text-red-600" ? "text-red-600 bg-red-100" :
+                                                statusColor === "text-green-600" ? "text-green-600 bg-green-100" :
+                                                    "text-yellow-600 bg-yellow-100"
+                                            }`}>
+                                            {statusMessage}
                                         </span>
                                     )}
                                 </div>
@@ -300,8 +322,10 @@ export default function ReturnPage({
                                         onChange={(e) => setActualReturnDate(e.target.value)}
                                         placeholder="2568-01-01"
                                     />
-                                    {overdueDays > 0 && (
-                                        <p className="mt-1 text-xs text-red-600">คืนเกินกำหนด {overdueDays} วัน</p>
+                                    {statusMessage && (
+                                        <p className={`mt-1 text-xs font-medium ${statusColor}`}>
+                                            {statusMessage}
+                                        </p>
                                     )}
                                 </div>
 
