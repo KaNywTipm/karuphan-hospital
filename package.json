@@ -11,7 +11,7 @@
     "db:migrate": "prisma migrate deploy",
     "db:seed": "ts-node --compiler-options '{\"module\":\"CommonJS\"}' prisma/seed.ts",
     "db:setup": "npm run db:migrate && npm run db:seed || true",
-    "deploy:railway": "npm ci || npm install && npm run build",
+    "deploy:railway": "npm install && npm run build",
     "lint": "next lint"
   },
   "dependencies": {
