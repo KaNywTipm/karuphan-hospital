@@ -199,6 +199,22 @@ export default function UserHistory() {
             });
     }, [STATUS_TEXT, rows, search, sort]);
 
+    // สรุปจำนวนตามสถานะ
+    const statusCounts = useMemo(() => {
+        const counts = {
+            PENDING: 0,
+            APPROVED: 0,
+            RETURNED: 0,
+            REJECTED: 0
+        };
+
+        filtered.forEach(row => {
+            counts[row.status]++;
+        });
+
+        return counts;
+    }, [filtered]);
+
     const totalPages = Math.max(1, Math.ceil(filtered.length / perPage));
     const start = (page - 1) * perPage;
     const current = filtered.slice(start, start + perPage);
@@ -239,6 +255,46 @@ export default function UserHistory() {
                             <Image src="/HamBmenu.png" alt="เรียงข้อมูล" width={20} height={20} />
                             <span className="sr-only">เรียงข้อมูล</span>
                         </button>
+                    </div>
+                </div>
+
+                {/* Summary Status Labels */}
+                <div className="px-4 py-3 bg-gray-50 border-b">
+                    <div className="flex flex-wrap gap-3 items-center">
+                        <span className="text-sm font-medium text-gray-700">สรุปรายการ:</span>
+
+                        {statusCounts.APPROVED > 0 && (
+                            <div className="flex items-center gap-1">
+                                <div className="w-3 h-3 bg-orange-500 rounded-full"></div>
+                                <span className="text-sm text-gray-600">
+                                    อนุมัติแล้ว/รอคืน ({statusCounts.APPROVED})
+                                </span>
+                            </div>
+                        )}
+
+                        {statusCounts.RETURNED > 0 && (
+                            <div className="flex items-center gap-1">
+                                <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                                <span className="text-sm text-gray-600">
+                                    คืนแล้ว ({statusCounts.RETURNED})
+                                </span>
+                            </div>
+                        )}
+
+                        {statusCounts.REJECTED > 0 && (
+                            <div className="flex items-center gap-1">
+                                <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+                                <span className="text-sm text-gray-600">
+                                    ไม่อนุมัติ ({statusCounts.REJECTED})
+                                </span>
+                            </div>
+                        )}
+
+                        <div className="flex items-center gap-1 ml-auto">
+                            <span className="text-sm font-medium text-gray-700">
+                                รวมทั้งหมด: {filtered.length} รายการ
+                            </span>
+                        </div>
                     </div>
                 </div>
 
