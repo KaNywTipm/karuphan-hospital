@@ -1,9 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import Addkaruphan from "@/components/modal/Add-karuphan";
 import Editkaruphan from "@/components/modal/Edit-karuphan";
+import { useUserModals } from "@/components/Modal-Notification/UserModalSystem";
 
 const itemsPerPage = 10;
 
@@ -77,20 +78,24 @@ export default function ListKaruphan() {
     const [showEditModal, setShowEditModal] = useState(false);
     const [selectedItem, setSelectedItem] = useState<Row | null>(null);
 
-    const load = useCallback(async () => {
-        setLoading(true);
-        const url = `/api/equipment?sort=receivedDate:${sortOrder === "newest" ? "desc" : "asc"}&page=1&pageSize=500`;
-        const res = await fetch(url, {
-            method: "GET",
-            cache: "no-store",
-            headers: { Accept: "application/json" },
-        });
+    // ใช้ระบบแจ้งเตือน
+    const modals = useUserModals();
 
+    const loadEquipment = async (currentSortOrder: typeof sortOrder) => {
+        setLoading(true);
         try {
+            const url = `/api/equipment?sort=receivedDate:${currentSortOrder === "newest" ? "desc" : "asc"}&page=1&pageSize=500`;
+            const res = await fetch(url, {
+                method: "GET",
+                cache: "no-store",
+                headers: { Accept: "application/json" },
+            });
+
             if (!res.ok) {
-                const raw = await res.text();
-                throw new Error(`HTTP ${res.status} ${res.statusText} :: ${raw?.slice(0, 200) || "no-body"}`);
+                const errorText = await res.text();
+                throw new Error(`HTTP ${res.status} ${res.statusText}: ${errorText}`);
             }
+
             const ct = res.headers.get("content-type") || "";
             if (res.status === 204 || res.status === 304 || !ct.includes("application/json")) {
                 setItems([]);
@@ -101,15 +106,23 @@ export default function ListKaruphan() {
         } catch (err) {
             console.error("[equipment] fetch failed:", err);
             setItems([]);
+            modals.alert.error("ไม่สามารถโหลดข้อมูลครุภัณฑ์ได้ กรุณาลองใหม่อีกครั้ง", "เกิดข้อผิดพลาด");
         } finally {
             setLoading(false);
             setCurrentPage(1);
         }
-    }, [sortOrder]);
+    };
 
+    // โหลดข้อมูลเมื่อ component mount หรือเมื่อ sortOrder เปลี่ยน
     useEffect(() => {
-        load();
-    }, [load, sortOrder]);
+        loadEquipment(sortOrder);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [sortOrder]); // ไม่ใส่ modals เป็น dependency
+
+    const load = useCallback(async () => {
+        await loadEquipment(sortOrder);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [sortOrder]);
 
     useEffect(() => {
         (async () => {
@@ -343,14 +356,18 @@ export default function ListKaruphan() {
             {/* โมดอล */}
             {showAddModal && (
                 <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
-                    <Addkaruphan onClose={handleCloseModal} onAdd={handleAdded} />
+                    <Addkaruphan onClose={handleCloseModal} onAdd={handleAdded} modals={modals} />
                 </div>
             )}
             {showEditModal && selectedItem && (
                 <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
-                    <Editkaruphan item={selectedItem} onClose={handleCloseModal} onUpdate={handleUpdated} />
+                    <Editkaruphan item={selectedItem} onClose={handleCloseModal} onUpdate={handleUpdated} modals={modals} />
                 </div>
             )}
+
+            {/* แสดง Modal แจ้งเตือน */}
+            <modals.AlertModal />
+            <modals.ConfirmModal />
         </div>
     );
 }

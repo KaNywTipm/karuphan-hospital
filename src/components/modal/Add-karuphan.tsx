@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
+import { useUserModals } from "@/components/Modal-Notification/UserModalSystem";
 
 
 // พ.ศ. → ค.ศ.
@@ -24,11 +25,16 @@ type Category = { id: number; name: string };
 interface Props {
     onClose?: () => void;
     onAdd?: () => void;   // จะเรียกหลังบันทึกสำเร็จ เพื่อให้หน้า list reload
+    modals?: ReturnType<typeof useUserModals>;  // Optional เพื่อรองรับเก่า
 }
 
-export default function Addkaruphan({ onClose, onAdd }: Props) {
+export default function Addkaruphan({ onClose, onAdd, modals }: Props) {
     const [categories, setCategories] = useState<Category[]>([]);
     const [loading, setLoading] = useState(true);
+
+    // สร้าง modal system ไว้ใช้เผื่อไม่ได้ส่งมา
+    const defaultModals = useUserModals();
+    const modalSystem = modals || defaultModals;
 
     const [form, setForm] = useState({
         categoryId: "",
@@ -48,12 +54,22 @@ export default function Addkaruphan({ onClose, onAdd }: Props) {
 
     useEffect(() => {
         (async () => {
-            const res = await fetch("/api/categories", { cache: "no-store" });
-            const list = await res.json();
-            setCategories(list || []);
-            setLoading(false);
+            try {
+                const res = await fetch("/api/categories", { cache: "no-store" });
+                if (!res.ok) {
+                    throw new Error(`HTTP ${res.status}`);
+                }
+                const list = await res.json();
+                setCategories(list || []);
+            } catch (error) {
+                console.error("Failed to load categories:", error);
+                modalSystem.alert.error("ไม่สามารถโหลดหมวดหมู่ได้ กรุณาลองใหม่อีกครั้ง", "เกิดข้อผิดพลาด");
+                setCategories([]);
+            } finally {
+                setLoading(false);
+            }
         })();
-    }, []);
+    }, [modalSystem.alert]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -75,12 +91,15 @@ export default function Addkaruphan({ onClose, onAdd }: Props) {
             body: JSON.stringify(payload),
         });
         const json = await res.json();
-        if (!res.ok) return alert(json?.error || "ไม่สามารถบันทึกข้อมูลครุภัณฑ์ได้ กรุณาลองใหม่อีกครั้ง");
+        if (!res.ok) {
+            modalSystem.alert.error(json?.error || "ไม่สามารถบันทึกข้อมูลครุภัณฑ์ได้ กรุณาลองใหม่อีกครั้ง", "เกิดข้อผิดพลาด");
+            return;
+        }
         // ถ้า response ส่ง receivedDate เป็นวันเดือนปีไทย (string) ให้ setForm ใหม่ด้วย
         if (json?.data?.receivedDate) {
             setForm(s => ({ ...s, receivedDateBE: json.data.receivedDate }));
         }
-        alert("เพิ่มข้อมูลครุภัณฑ์เรียบร้อยแล้ว");
+        modalSystem.alert.success("เพิ่มข้อมูลครุภัณฑ์เรียบร้อยแล้ว", "สำเร็จ");
         onClose?.();
         onAdd?.();
     };
@@ -164,7 +183,7 @@ export default function Addkaruphan({ onClose, onAdd }: Props) {
                             />
                         </FormRow>
 
-                        <FormRow label="วันที่ได้รับ (พ.ศ.)">
+                        <FormRow label="วันที่ได้รับ">
                             <div className="relative w-full flex items-center">
                                 <input
                                     type="date"
@@ -188,6 +207,14 @@ export default function Addkaruphan({ onClose, onAdd }: Props) {
                     </form>
                 )}
             </div>
+
+            {/* แสดง Modal แจ้งเตือนถ้าไม่ได้ส่งมาจากภายนอก */}
+            {!modals && (
+                <>
+                    <defaultModals.AlertModal />
+                    <defaultModals.ConfirmModal />
+                </>
+            )}
         </div>
     );
 }

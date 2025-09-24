@@ -41,7 +41,7 @@ function BorrowButton({ disabled, onClick }: { disabled?: boolean; onClick: () =
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Image from "next/image";
-import { useAlert } from "@/hooks/useModals";
+import { useUserModals } from "@/components/Modal-Notification/UserModalSystem";
 import BorrowCart from "@/components/BorrowCart";
 import BorrowKaruphan from "@/components/modal/borrow-karuphan";
 
@@ -81,7 +81,7 @@ const itemsPerPage = 5;
 
 
 export default function InternalBorrowPage() {
-    const alert = useAlert();
+    const { alert, confirm, AlertModal, ConfirmModal } = useUserModals();
     const [categories, setCategories] = useState<Category[]>([]);
     const [items, setItems] = useState<RowUI[]>([]);
     const [loading, setLoading] = useState(true);
@@ -91,6 +91,7 @@ export default function InternalBorrowPage() {
     const [currentPage, setCurrentPage] = useState(1);
     const [cartItems, setCartItems] = useState<CartItem[]>([]);
     const [selectedIds, setSelectedIds] = useState<number[]>([]);
+    const [recentlyRemoved, setRecentlyRemoved] = useState<CartItem | null>(null);
     // Quick borrow modal state
     const [showQuickBorrow, setShowQuickBorrow] = useState(false);
     const [quickItem, setQuickItem] = useState<RowUI | null>(null);
@@ -174,7 +175,23 @@ export default function InternalBorrowPage() {
         setCartItems((prev) => prev.map((x) => (x.id === id ? { ...x, quantity } : x)));
     };
     const handleRemoveFromCart = (id: number) => {
-        setCartItems((prev) => prev.filter((x) => x.id !== id));
+        const it = cartItems.find((x) => x.id === id);
+        if (it) {
+            confirm.show(
+                `ต้องการลบ "${it.name}" ออกจากรายการยืมหรือไม่?`,
+                () => {
+                    setCartItems((prev) => prev.filter((x) => x.id !== id));
+                    setRecentlyRemoved(it);
+                    setTimeout(() => setRecentlyRemoved(null), 5000);
+                },
+                {
+                    title: "ยืนยันการลบรายการ",
+                    type: "warning",
+                    confirmText: "ลบ",
+                    cancelText: "ยกเลิก"
+                }
+            );
+        }
     };
     const handleClearCart = () => setCartItems([]);
 
@@ -404,10 +421,31 @@ export default function InternalBorrowPage() {
                             setShowQuickBorrow(false);
                             setQuickItem(null);
                             await load();
+                            alert.success("ยืมครุภัณฑ์สำเร็จสามารถนำไปใช้งานได้ทันที");
                         }}
                     />
                 </div>
             )}
+
+            {/* Recently Removed Toast */}
+            {recentlyRemoved && (
+                <div className="fixed bottom-4 right-4 bg-green-500 text-white px-4 py-3 rounded-lg shadow-lg z-50 flex items-center gap-3">
+                    <span className="text-sm">ลบ &quot;{recentlyRemoved.name}&quot; แล้ว</span>
+                    <button
+                        onClick={() => {
+                            setCartItems((prev) => [...prev, recentlyRemoved]);
+                            setRecentlyRemoved(null);
+                        }}
+                        className="bg-white text-green-600 px-3 py-1 rounded text-sm hover:bg-gray-100"
+                    >
+                        เลิกทำ
+                    </button>
+                </div>
+            )}
+
+            {/* Modal Components */}
+            <AlertModal />
+            <ConfirmModal />
         </div>
     );
 }

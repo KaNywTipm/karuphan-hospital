@@ -111,7 +111,8 @@ export default function ReturnPage({
                 setLoading(false);
             }
         })();
-    }, [id, alert]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [id]);
 
     // ผู้ยืม/หน่วยงาน
     const { borrowerName, department } = useMemo(() => {

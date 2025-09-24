@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { signOut, useSession } from "next-auth/react";
 import { useEffect, useMemo, useState, useCallback } from "react";
+import { useUserModals } from "./Modal-Notification/UserModalSystem";
 
 type Role = "ADMIN" | "INTERNAL" | "EXTERNAL";
 type MenuItem = {
@@ -63,6 +64,7 @@ export default function Menu() {
   const { data: session, status } = useSession();
   const [me, setMe] = useState<Me | null>(null);
   const [openSubMenus, setOpenSubMenus] = useState<string[]>([]);
+  const { confirm, AlertModal, ConfirmModal } = useUserModals();
 
   // ดึงโปรไฟล์จริงจาก API
   const fetchMe = useCallback(async () => {
@@ -147,10 +149,19 @@ export default function Menu() {
                   ) : isLogout ? (
                     <button
                       type="button"
-                      onClick={async () => {
-                        if (confirm("คุณต้องการออกจากระบบใช่หรือไม่?")) {
-                          await signOut({ redirect: true, callbackUrl: "/sign-in" });
-                        }
+                      onClick={() => {
+                        confirm.show(
+                          "คุณต้องการออกจากระบบใช่หรือไม่?",
+                          async () => {
+                            await signOut({ redirect: true, callbackUrl: "/sign-in" });
+                          },
+                          {
+                            title: "ยืนยันการออกจากระบบ",
+                            type: "danger",
+                            confirmText: "ออกจากระบบ",
+                            cancelText: "ยกเลิก"
+                          }
+                        );
                       }}
                       className="flex items-center justify-center lg:justify-start gap-4 py-2 md:px-2 rounded-md text-White hover:bg-red-500 w-full"
                       aria-label="ออกจากระบบ"
@@ -188,6 +199,10 @@ export default function Menu() {
           </div>
         ))}
       </div>
+
+      {/* Modal Components */}
+      <AlertModal />
+      <ConfirmModal />
     </div>
   );
 }

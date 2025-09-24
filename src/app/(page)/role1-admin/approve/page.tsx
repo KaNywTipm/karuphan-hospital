@@ -68,7 +68,8 @@ function ApprovePageInner() {
                 setLoading(false);
             }
         })();
-    }, [id, alert]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [id]);
 
     async function onApprove() {
         try {

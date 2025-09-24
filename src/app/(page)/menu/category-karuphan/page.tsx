@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
-import { useUserModals } from "@/components/modal/UserModalSystem";
+import { useUserModals } from "@/components/Modal-Notification/UserModalSystem";
 
 const itemsPerPage = 5; //fucn. all
 

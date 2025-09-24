@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
+import { useUserModals } from "@/components/Modal-Notification/UserModalSystem";
 
 
 // ค.ศ. → พ.ศ. (YYYY-MM-DD)
@@ -47,12 +48,19 @@ export default function Editkaruphan({
     item,
     onClose,
     onUpdate,
+    modals,
 }: {
     item: Item;
     onClose?: () => void;
     onUpdate?: () => void; // reload จากหน้า list
+    modals?: ReturnType<typeof useUserModals>;  // Optional เพื่อรองรับเก่า
 }) {
     const [categories, setCategories] = useState<Category[]>([]);
+
+    // สร้าง modal system ไว้ใช้เผื่อไม่ได้ส่งมา
+    const defaultModals = useUserModals();
+    const modalSystem = modals || defaultModals;
+
     const [form, setForm] = useState({
         number: item.number,
         categoryId: item.category?.id || 0,
@@ -75,10 +83,11 @@ export default function Editkaruphan({
                 setCategories(list);
             } catch (e) {
                 console.error("load categories failed", e);
+                modalSystem.alert.error("ไม่สามารถโหลดหมวดหมู่ได้ กรุณาลองใหม่อีกครั้ง", "เกิดข้อผิดพลาด");
                 setCategories([]);
             }
         })();
-    }, []);
+    }, [modalSystem.alert]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -98,7 +107,10 @@ export default function Editkaruphan({
             body: JSON.stringify(payload),
         });
         const json = await res.json();
-        if (!res.ok) return alert(json?.error || "ไม่สามารถอัปเดตข้อมูลได้ กรุณาลองใหม่อีกครั้ง");
+        if (!res.ok) {
+            modalSystem.alert.error(json?.error || "ไม่สามารถอัปเดตข้อมูลได้ กรุณาลองใหม่อีกครั้ง", "เกิดข้อผิดพลาด");
+            return;
+        }
         // ถ้า response ส่ง receivedDate เป็นวันเดือนปีไทย (string) ให้ setForm ใหม่ด้วย
         if (json?.data?.receivedDate) {
             // รองรับทั้งกรณี API ส่งกลับเป็น พ.ศ. หรือ ค.ศ.
@@ -110,7 +122,7 @@ export default function Editkaruphan({
             }
             setForm(s => ({ ...s, receivedDateBE: be }));
         }
-        alert("แก้ไขข้อมูลครุภัณฑ์เรียบร้อยแล้ว");
+        modalSystem.alert.success("แก้ไขข้อมูลครุภัณฑ์เรียบร้อยแล้ว", "สำเร็จ");
         onClose?.();
         onUpdate?.();
     };
@@ -190,7 +202,7 @@ export default function Editkaruphan({
                         />
                     </FormRow>
 
-                    <FormRow label="วันที่ได้รับ (พ.ศ.)">
+                    <FormRow label="วันที่ได้รับ">
                         <div className="relative w-full flex items-center">
                             <input
                                 type="date"
@@ -234,6 +246,14 @@ export default function Editkaruphan({
                     </div>
                 </form>
             </div>
+
+            {/* แสดง Modal แจ้งเตือนถ้าไม่ได้ส่งมาจากภายนอก */}
+            {!modals && (
+                <>
+                    <defaultModals.AlertModal />
+                    <defaultModals.ConfirmModal />
+                </>
+            )}
         </div>
     );
 }
