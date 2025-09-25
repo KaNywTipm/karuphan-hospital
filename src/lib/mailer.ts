@@ -4,7 +4,7 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 
 // ค่าดีฟอลต์สำหรับ from (แก้ได้จาก .env)
 const DEFAULT_FROM =
-    process.env.RESEND_FROM || "ระบบครุภัณฑ์ <onboarding@resend.dev>";
+    process.env.RESEND_FROM || "PCU Asset <project@karuphan-hospital-productionuprailway.online>";
 
 export type MailInput = {
     to: string | string[];
