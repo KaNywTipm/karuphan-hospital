@@ -1,103 +1,29 @@
-/* Tailwind CSS directives */
-/* stylelint-disable at-rule-no-unknown */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-/* stylelint-enable at-rule-no-unknown */
 
 *,
 *::before,
 *::after {
-  box-sizing: border-box;
+    box-sizing: border-box;
 }
 
 html,
 body,
 #root,
 .app {
-  height: 100%;
-  width: 100%;
+    height: 100%;
+    width: 100%;
 }
 
-/* Responsive Table Utilities */
-@layer utilities {
-  /* stylelint-disable at-rule-no-unknown */
-  .table-responsive {
-    @apply overflow-x-auto;
-  }
-
-  .table-desktop {
-    @apply w-full border-collapse;
-    min-width: 800px;
-  }
-
-  .card-responsive {
-    @apply p-4 md:p-6 lg:p-8;
-  }
-
-  .grid-responsive-2 {
-    @apply grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6;
-  }
-
-  .grid-responsive-3 {
-    @apply grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6;
-  }
-
-  .grid-responsive-4 {
-    @apply grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6;
-  }
-  /* stylelint-enable at-rule-no-unknown */
-}
-
-/* Custom responsive breakpoints */
 @media (min-width: 768px) {
-  .custom-grid-rows {
-    grid-template-rows: repeat(8, 20vh);
-  }
-
-  /* Better desktop table display */
-  /* stylelint-disable at-rule-no-unknown */
-  .desktop-table th {
-    @apply px-6 py-4 text-sm font-semibold;
-  }
-
-  .desktop-table td {
-    @apply px-6 py-4 text-sm;
-  }
-  /* stylelint-enable at-rule-no-unknown */
-}
-
-@media (min-width: 1024px) {
-  .custom-grid-rows {
-    grid-template-rows: repeat(8, 15vh);
-  }
-
-  /* Larger desktop optimizations */
-  /* stylelint-disable at-rule-no-unknown */
-  .desktop-container {
-    @apply max-w-none mx-auto px-6;
-  }
-
-  .desktop-card {
-    @apply p-8;
-  }
-  /* stylelint-enable at-rule-no-unknown */
+    .custom-grid-rows {
+        grid-template-rows: repeat(8, 20vh);
+    }
 }
 
 @media (min-width: 1280px) {
-  .custom-grid-rows {
-    grid-template-rows: repeat(8, 7.5vh);
-  }
-
-  /* Extra large desktop */
-  /* stylelint-disable at-rule-no-unknown */
-  .xl-container {
-    @apply max-w-screen-2xl mx-auto;
-  }
-  /* stylelint-enable at-rule-no-unknown */
-}
-
-/* Smooth transitions for better UX */
-.transition-layout {
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    .custom-grid-rows {
+        grid-template-rows: repeat(8, 7.5vh);
+    }
 }

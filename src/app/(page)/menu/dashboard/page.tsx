@@ -241,83 +241,82 @@ export default function Dashboard() {
                 <div className="flex items-center justify-center min-h-[400px]">
                     <div className="text-center">
                         <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-500 mx-auto"></div>
-                        <p className="mt-4 text-gray-600">กำลังโหลดข้อมุล...</p>
+                        <p className="mt-4 text-gray-600">กำลังโหลดข้อมูล...</p>
                     </div>
                 </div>
             ) : (
-                <section className="flex flex-col gap-8 lg:gap-12">
-                    {/* Statistics Cards */}
-                    <div className="grid-responsive-3 xl:gap-8">
+                <section className="flex flex-col gap-8">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full">
                         {/* การ์ดครุภัณฑ์ทั้งหมด */}
                         <div
                             onClick={handleNavigateToEquipment}
-                            className="rounded-xl shadow-lg card-responsive text-left bg-gradient-to-br from-blue-400 to-blue-600 relative overflow-hidden cursor-pointer transform transition-all duration-200 hover:scale-105 hover:shadow-xl"
+                            className="rounded-xl shadow-lg p-6 text-left bg-gradient-to-br from-blue-400 to-blue-600 relative overflow-hidden cursor-pointer transform transition-all duration-200 hover:scale-105 hover:shadow-xl"
                         >
-                            <div className="absolute top-4 right-4 lg:top-6 lg:right-6 opacity-20">
-                                <Image src="/data.png" alt="Equipment" width={48} height={48} className="lg:w-16 lg:h-16" />
+                            <div className="absolute top-4 right-4 opacity-20">
+                                <Image src="/data.png" alt="Equipment" width={48} height={48} />
                             </div>
-                            <h3 className="text-lg lg:text-xl font-semibold text-white mb-2 lg:mb-3">จำนวนครุภัณฑ์ทั้งหมด</h3>
-                            <p className="text-3xl lg:text-4xl font-bold text-white mb-2">
+                            <h3 className="text-lg font-semibold text-white mb-2">จำนวนครุภัณฑ์ทั้งหมด</h3>
+                            <p className="text-3xl font-bold text-white">
                                 {loading ? "..." : totalEquipments.toLocaleString("th-TH")}
                             </p>
-                            <p className="text-sm text-blue-100">คลิกเพื่อดูรายละเอียด</p>
+                            <p className="text-sm text-blue-100 mt-2">คลิกเพื่อดูรายละเอียด</p>
                         </div>
 
                         {/* การ์ดพนักงานในแผนก */}
                         <div
                             onClick={() => handleNavigateToUsers("internal")}
-                            className="rounded-xl shadow-lg card-responsive text-left bg-gradient-to-br from-green-400 to-green-600 relative overflow-hidden cursor-pointer transform transition-all duration-200 hover:scale-105 hover:shadow-xl"
+                            className="rounded-xl shadow-lg p-6 text-left bg-gradient-to-br from-green-400 to-green-600 relative overflow-hidden cursor-pointer transform transition-all duration-200 hover:scale-105 hover:shadow-xl"
                         >
-                            <div className="absolute top-4 right-4 lg:top-6 lg:right-6 opacity-20">
-                                <Image src="/person.png" alt="Internal Users" width={48} height={48} className="lg:w-16 lg:h-16" />
+                            <div className="absolute top-4 right-4 opacity-20">
+                                <Image src="/person.png" alt="Internal Users" width={48} height={48} />
                             </div>
-                            <h3 className="text-lg lg:text-xl font-semibold text-white mb-2 lg:mb-3">จำนวนพนักงานในแผนก</h3>
-                            <p className="text-3xl lg:text-4xl font-bold text-white mb-2">
+                            <h3 className="text-lg font-semibold text-white mb-2">จำนวนพนักงานในแผนก</h3>
+                            <p className="text-3xl font-bold text-white">
                                 {loading ? "..." : totalInternalUsers.toLocaleString("th-TH")}
                             </p>
-                            <p className="text-sm text-green-100">คลิกเพื่อจัดการ</p>
+                            <p className="text-sm text-green-100 mt-2">คลิกเพื่อจัดการ</p>
                         </div>
 
                         {/* การ์ดพนักงานนอกแผนก */}
                         <div
                             onClick={() => handleNavigateToUsers("external")}
-                            className="rounded-xl shadow-lg card-responsive text-left bg-gradient-to-br from-yellow-500 to-yellow-600 relative overflow-hidden cursor-pointer transform transition-all duration-200 hover:scale-105 hover:shadow-xl"
+                            className="rounded-xl shadow-lg p-6 text-left bg-gradient-to-br from-yellow-500 to-yellow-600 relative overflow-hidden cursor-pointer transform transition-all duration-200 hover:scale-105 hover:shadow-xl"
                         >
-                            <div className="absolute top-4 right-4 lg:top-6 lg:right-6 opacity-20">
-                                <Image src="/person.png" alt="External Users" width={48} height={48} className="lg:w-16 lg:h-16" />
+                            <div className="absolute top-4 right-4 opacity-20">
+                                <Image src="/person.png" alt="External Users" width={48} height={48} />
                             </div>
-                            <h3 className="text-lg lg:text-xl font-semibold text-white mb-2 lg:mb-3">จำนวนพนักงานนอกแผนก</h3>
-                            <p className="text-3xl lg:text-4xl font-bold text-white mb-2">
+                            <h3 className="text-lg font-semibold text-white mb-2">จำนวนพนักงานนอกแผนก</h3>
+                            <p className="text-3xl font-bold text-white">
                                 {loading ? "..." : totalExternalUsers.toLocaleString("th-TH")}
                             </p>
-                            <p className="text-sm text-yellow-100">คลิกเพื่อจัดการ</p>
+                            <p className="text-sm text-yellow-100 mt-2">คลิกเพื่อจัดการ</p>
                         </div>
                     </div>
 
                     {/* สถิติรวม */}
-                    <div className="grid-responsive-4 xl:gap-8">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                         {/* การ์ดรออนุมัติ */}
-                        <div className="bg-white rounded-xl shadow-lg card-responsive border-l-4 border-blue-500 hover:shadow-xl transition-shadow duration-300">
+                        <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-blue-500 hover:shadow-xl transition-shadow duration-300">
                             <div className="flex items-center justify-between">
-                                <div className="flex-1">
-                                    <p className="text-sm font-medium text-gray-600 mb-1 lg:mb-2">รออนุมัติ</p>
-                                    <p className="text-3xl lg:text-4xl font-bold text-blue-600 mb-1 lg:mb-2">
+                                <div>
+                                    <p className="text-sm font-medium text-gray-600 mb-1">รออนุมัติ</p>
+                                    <p className="text-3xl font-bold text-blue-600">
                                         {borrows.filter(b => b.status === "PENDING").length}
                                     </p>
-                                    <p className="text-xs lg:text-sm text-gray-500">รายการที่รอการอนุมัติ</p>
+                                    <p className="text-xs text-gray-500 mt-1">รายการที่รอการอนุมัติ</p>
                                 </div>
                             </div>
                         </div>
 
                         {/* การ์ดอนุมัติแล้ว/รอคืน */}
-                        <div className="bg-white rounded-xl shadow-lg card-responsive border-l-4 border-yellow-500 hover:shadow-xl transition-shadow duration-300">
+                        <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-yellow-500 hover:shadow-xl transition-shadow duration-300">
                             <div className="flex items-center justify-between">
-                                <div className="flex-1">
-                                    <p className="text-sm font-medium text-gray-600 mb-1 lg:mb-2">อนุมัติแล้ว/รอคืน</p>
-                                    <p className="text-3xl lg:text-4xl font-bold text-yellow-600 mb-1 lg:mb-2">
+                                <div>
+                                    <p className="text-sm font-medium text-gray-600 mb-1">อนุมัติแล้ว/รอคืน</p>
+                                    <p className="text-3xl font-bold text-yellow-600">
                                         {borrows.filter(b => b.status === "APPROVED").length}
                                     </p>
-                                    <p className="text-xs lg:text-sm text-gray-500">รายการที่อนุมัติและรอคืน</p>
+                                    <p className="text-xs text-gray-500 mt-1">รายการที่อนุมัติและรอคืน</p>
                                 </div>
                             </div>
                         </div>

@@ -9,17 +9,17 @@ export default function PageLayout({
     return (
         <div className="h-screen flex">
             {/* Left Sidebar Menu */}
-            <div className="w-[60px] md:w-[220px] lg:w-[260px] xl:w-[280px] 2xl:w-[300px] p-2 md:p-4 bg-NavyBlue flex-shrink-0 transition-all duration-300">
+            <div className="w-[14%] md:w-[8%] lg:w-[16%] xl:w-[17%] p-4 bg-NavyBlue">
                 <Menu />
             </div>
 
             {/* Main Content Area */}
-            <div className="flex-1 bg-[#F7F8FA] flex flex-col min-w-0">
+            <div className="w-[86%] md:w-[92%] lg:w-[84%] xl:w-[86%] bg-[#F7F8FA] flex flex-col">
                 {/* Top Navbar */}
                 <Navbar />
 
                 {/* Page Content */}
-                <div className="flex-1 p-3 md:p-4 lg:p-6 overflow-auto">
+                <div className="flex-1 p-4 overflow-auto">
                     {children}
                 </div>
             </div>
