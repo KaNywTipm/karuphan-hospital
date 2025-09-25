@@ -111,261 +111,198 @@ export async function GET(req: Request) {
 
 type PostBody = {
   borrowerType: "INTERNAL" | "EXTERNAL";
-  borrowDate: string | Date; // เพิ่มฟิลด์วันที่ยืม
-  returnDue: string | Date;
+  borrowDate?: string | Date;
+  returnDue?: string | Date;
   reason?: string | null;
   notes?: string | null;
   externalName?: string | null;
   externalDept?: string | null;
   externalPhone?: string | null;
-  items: { equipmentId: number; quantity?: number }[]; // equipmentId ต้องเป็น Equipment.number
+  items: AnyItem[];
 };
+
+type AnyItem =
+  | number
+  | string
+  | {
+      equipmentId?: number | string;
+      id?: number | string;
+      number?: number | string;
+      quantity?: number;
+    };
+
+function readEquipNumber(x: AnyItem): number | null {
+  if (typeof x === "number") return x;
+  if (typeof x === "string") return Number(x);
+  const raw = x.equipmentId ?? x.id ?? x.number;
+  const n = Number(raw);
+  return Number.isFinite(n) && n > 0 ? n : null;
+}
 
 // POST /api/borrow
 export async function POST(req: Request) {
   try {
-    const me = await auth();
-    if (!me)
-      return NextResponse.json(
-        { ok: false, error: "กรุณาเข้าสู่ระบบก่อนดำเนินการ" },
-        { status: 401 }
-      );
+    const body = await req.json().catch(() => ({}));
+    const borrowerType = String(body?.borrowerType || "").toUpperCase(); // INTERNAL | EXTERNAL
+    const rawItems: AnyItem[] = Array.isArray(body?.items) ? body.items : [];
 
-    let body: PostBody;
-    try {
-      body = await req.json();
-    } catch (error) {
+    // 1) validate items
+    const equipmentNumbers = Array.from(
+      new Set(
+        rawItems.map(readEquipNumber).filter((n): n is number => n !== null)
+      )
+    );
+    if (!equipmentNumbers.length) {
       return NextResponse.json(
-        { ok: false, error: "ข้อมูลที่ส่งมาไม่ถูกต้อง" },
+        { ok: false, error: "no-items" },
         { status: 400 }
       );
     }
 
-    const {
-      borrowerType,
-      borrowDate,
-      returnDue,
-      reason,
-      items,
-      externalName,
-      externalDept,
-      externalPhone,
-    } = body;
-
-    if (!items?.length)
-      return NextResponse.json(
-        { ok: false, error: "กรุณาเลือกครุภัณฑ์ที่ต้องการยืม" },
-        { status: 400 }
-      );
-
-    // Validation วันที่ยืม
-    if (!borrowDate) {
-      return NextResponse.json(
-        { ok: false, error: "กรุณาระบุวันที่ยืม" },
-        { status: 400 }
-      );
-    }
-
-    // Validation วันที่คืน
-    if (!returnDue) {
-      return NextResponse.json(
-        { ok: false, error: "กรุณาระบุวันที่คืน" },
-        { status: 400 }
-      );
-    }
-
-    // ตรวจสอบความถูกต้องของวันที่
-    let borrowDateObj: Date;
-    let returnDueObj: Date;
-
-    try {
-      borrowDateObj = new Date(borrowDate);
-      returnDueObj = new Date(returnDue);
-
-      // ตรวจสอบว่าเป็น valid date
-      if (isNaN(borrowDateObj.getTime()) || isNaN(returnDueObj.getTime())) {
-        throw new Error("Invalid date format");
+    // 2) parse returnDue (optional)
+    let returnDue: Date | null = null;
+    if (body?.returnDue) {
+      const d = new Date(body.returnDue);
+      if (isNaN(d.getTime())) {
+        return NextResponse.json(
+          { ok: false, error: "invalid-returnDue" },
+          { status: 400 }
+        );
       }
-    } catch (error) {
-      return NextResponse.json(
-        { ok: false, error: "รูปแบบวันที่ไม่ถูกต้อง" },
-        { status: 400 }
-      );
+      returnDue = d;
     }
 
-    // ตรวจสอบว่าวันที่ยืมไม่เป็นอดีต
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const borrowDateCheck = new Date(borrowDateObj);
-    borrowDateCheck.setHours(0, 0, 0, 0);
-
-    if (borrowDateCheck < today) {
-      return NextResponse.json(
-        { ok: false, error: "ไม่สามารถเลือกวันที่ยืมในอดีตได้" },
-        { status: 400 }
-      );
+    // 3) parse borrowDate (optional)
+    let borrowDate: Date | null = null;
+    if (body?.borrowDate) {
+      const d = new Date(body.borrowDate);
+      if (isNaN(d.getTime())) {
+        return NextResponse.json(
+          { ok: false, error: "invalid-borrowDate" },
+          { status: 400 }
+        );
+      }
+      borrowDate = d;
     }
 
-    // ตรวจสอบว่าวันที่คืนต้องมาหลังวันที่ยืม
-    if (returnDueObj <= borrowDateObj) {
-      return NextResponse.json(
-        { ok: false, error: "วันที่คืนต้องมาหลังวันที่ยืม" },
-        { status: 400 }
-      );
-    }
-
+    // 4) auth for INTERNAL
+    const session = await auth();
+    const me = session?.user as any;
     const isInternal = borrowerType === "INTERNAL";
-    const isExternal = borrowerType === "EXTERNAL";
-
-    //  requesterId ผูกกับผู้ที่ล็อกอินเสมอ (ทั้ง INTERNAL/EXTERNAL)
-    const requesterId =
-      typeof me.user?.id === "number"
-        ? me.user.id
-        : Number(me.user?.id) || null;
-
-    if (!requesterId) {
+    const requesterId = isInternal ? Number(me?.id) : null;
+    if (isInternal && !Number.isFinite(requesterId)) {
       return NextResponse.json(
-        { ok: false, error: "ไม่สามารถระบุตัวตนผู้ใช้ได้" },
+        { ok: false, error: "unauthenticated" },
         { status: 401 }
       );
     }
 
-    // validate สำหรับ EXTERNAL - ต้องมี externalDept
-    if (isExternal && !externalDept?.trim()) {
-      return NextResponse.json(
-        {
-          ok: false,
-          error: "กรุณาระบุชื่อหน่วยงานสำหรับผู้ยืมภายนอก",
-        },
-        { status: 400 }
-      );
-    }
-
-    // ตรวจสอบความถูกต้องของ equipmentId ก่อนสร้าง transaction
-    const equipmentNumbers = items
-      .map((it: any) => it.equipmentId)
-      .filter(Boolean);
-    if (equipmentNumbers.length !== items.length) {
-      return NextResponse.json(
-        { ok: false, error: "กรุณาระบุครุภัณฑ์ที่ถูกต้อง" },
-        { status: 400 }
-      );
-    }
-
-    // ตรวจสอบว่าครุภัณฑ์ที่ระบุมีอยู่จริงในระบบ และสถานะว่าง
-    const existingEquipment = await prisma.equipment.findMany({
+    // 5) fetch equipments in one go
+    const eqs = await prisma.equipment.findMany({
       where: { number: { in: equipmentNumbers } },
       select: { number: true, status: true, name: true },
     });
 
-    if (existingEquipment.length !== equipmentNumbers.length) {
-      const missingEquipment = equipmentNumbers.filter(
-        (num) => !existingEquipment.some((eq) => eq.number === num)
-      );
-      return NextResponse.json(
-        {
-          ok: false,
-          error: `ไม่พบครุภัณฑ์หมายเลข: ${missingEquipment.join(", ")}`,
-        },
-        { status: 400 }
-      );
-    }
+    const foundNumbers = new Set(eqs.map((e) => e.number));
+    const notFound = equipmentNumbers.filter((n) => !foundNumbers.has(n));
+    const unavailable = eqs
+      .filter((e) => e.status !== "NORMAL")
+      .map((e) => e.number);
 
-    // ตรวจสอบว่าครุภัณฑ์ที่เลือกว่างและพร้อมใช้งาน
-    const unavailableEquipment = existingEquipment.filter(
-      (eq) => eq.status !== "NORMAL"
-    );
-    if (unavailableEquipment.length > 0) {
-      const unavailableList = unavailableEquipment.map(
-        (eq) => `${eq.name} (${eq.number})`
-      );
+    if (notFound.length || unavailable.length) {
+      // แจ้งให้รู้ว่าตัวไหนผิด
       return NextResponse.json(
         {
           ok: false,
-          error: `ครุภัณฑ์ต่อไปนี้ไม่พร้อมใช้งาน: ${unavailableList.join(
-            ", "
-          )}`,
+          error: "items-invalid",
+          details: { notFound, unavailable },
         },
         { status: 409 }
       );
     }
 
+    const now = new Date();
+
+    // 6) transaction
     const created = await prisma.$transaction(async (tx) => {
-      try {
-        const now = new Date();
+      // สร้าง data object สำหรับ BorrowRequest
+      const borrowRequestData: any = {
+        borrowerType: borrowerType as any,
+        status: (isInternal ? "APPROVED" : "PENDING") as any,
+        requesterId,
+        externalName: isInternal ? null : String(body?.externalName || ""),
+        externalDept: isInternal ? null : String(body?.externalDept || ""),
+        externalPhone: isInternal ? null : String(body?.externalPhone || ""),
+        reason: body?.reason ?? null,
+        notes: body?.notes ?? null,
+        borrowDate: borrowDate || (isInternal ? now : null),
+        approvedAt: isInternal ? now : null,
+        approvedById: isInternal ? requesterId : null,
 
-        const reqRow = await tx.borrowRequest.create({
-          data: {
-            borrowerType,
-            requesterId: borrowerType === "INTERNAL" ? requesterId : null, // INTERNAL มีค่า, EXTERNAL = null
-            externalName:
-              borrowerType === "EXTERNAL" ? externalName?.trim() || "" : null,
-            externalDept:
-              borrowerType === "EXTERNAL" ? externalDept?.trim() || "" : null,
-            externalPhone:
-              borrowerType === "EXTERNAL" ? externalPhone?.trim() || "" : null,
-            status: isInternal ? "APPROVED" : "PENDING", // INTERNAL = APPROVED ทันที, EXTERNAL = PENDING
-            borrowDate: borrowDateObj, // ทั้ง INTERNAL และ EXTERNAL ใช้วันที่ที่ผู้ใช้เลือก
-            returnDue: returnDueObj,
-            reason: reason ?? null,
+        // ห้ามตั้ง receivedById/actualReturnDate ตอนนี้
+        rejectedById: null,
+        rejectedAt: null,
+        receivedById: null,
+        actualReturnDate: null,
 
-            // INTERNAL: อนุมัติทันที
-            approvedById: isInternal ? requesterId : null, // ใช้ requesterId เป็นผู้อนุมัติ
-            approvedAt: isInternal ? now : null,
+        items: {
+          create: equipmentNumbers.map((equipNum) => {
+            // หา quantity จาก rawItems
+            const originalItem = rawItems.find((item) => {
+              const num = readEquipNumber(item);
+              return num === equipNum;
+            });
+            const quantity =
+              typeof originalItem === "object" && originalItem !== null
+                ? originalItem.quantity || 1
+                : 1;
 
-            // ไม่ใส่ receivedById/actualReturnDate ตอนสร้าง
-            rejectedById: null,
-            rejectedAt: null,
-            receivedById: null,
-            actualReturnDate: null,
+            return {
+              equipmentId: equipNum, // ใช้ equipment.number ตาม schema
+              quantity,
+            };
+          }),
+        },
+      };
 
-            items: {
-              create: items.map((it: any) => ({
-                equipmentId: it.equipmentId, // ใช้ equipment.number
-                quantity: it.quantity ?? 1,
-              })),
-            },
-          },
-          include: { items: { include: { equipment: true } } },
-        });
-
-        // อัพเดทสถานะครุภัณฑ์
-        if (isInternal) {
-          // INTERNAL: เปลี่ยนเป็น IN_USE ทันที (กันคนอื่นจองทับ)
-          await tx.equipment.updateMany({
-            where: {
-              number: { in: reqRow.items.map((i: any) => i.equipmentId) },
-            },
-            data: {
-              status: "IN_USE",
-              currentRequestId: reqRow.id,
-              statusChangedAt: now,
-            },
-          });
-        } else {
-          // EXTERNAL: เปลี่ยนเป็น RESERVED (รอการอนุมัติ)
-          await tx.equipment.updateMany({
-            where: {
-              number: { in: reqRow.items.map((i: any) => i.equipmentId) },
-            },
-            data: {
-              status: "RESERVED",
-              currentRequestId: reqRow.id,
-              statusChangedAt: now,
-            },
-          });
-        }
-
-        return reqRow;
-      } catch (error) {
-        console.error("[POST /api/borrow] Transaction error:", error);
-        throw error;
+      // เพิ่ม returnDue ถ้ามี
+      if (returnDue) {
+        borrowRequestData.returnDue = returnDue;
       }
+
+      const br = await tx.borrowRequest.create({
+        data: borrowRequestData,
+        include: { items: { include: { equipment: true } } },
+      });
+
+      if (isInternal) {
+        // INTERNAL: เปลี่ยนเป็น IN_USE ทันที
+        await tx.equipment.updateMany({
+          where: { number: { in: equipmentNumbers } },
+          data: {
+            status: "IN_USE" as any,
+            currentRequestId: br.id,
+            statusChangedAt: now,
+          },
+        });
+      } else {
+        // EXTERNAL: เปลี่ยนเป็น RESERVED (รอการอนุมัติ)
+        await tx.equipment.updateMany({
+          where: { number: { in: equipmentNumbers } },
+          data: {
+            status: "RESERVED" as any,
+            currentRequestId: br.id,
+            statusChangedAt: now,
+          },
+        });
+      }
+
+      return br;
     });
 
-    return NextResponse.json({ ok: true, id: created.id }, { status: 201 });
-  } catch (e) {
-    console.error("[POST /api/borrow] error:", e);
+    return NextResponse.json({ ok: true, data: created }, { status: 201 });
+  } catch (e: any) {
+    console.error("[POST /api/borrow] error:", e?.message || e);
 
     // ตรวจสอบ Prisma errors
     if (e && typeof e === "object" && "code" in e) {
@@ -394,7 +331,7 @@ export async function POST(req: Request) {
     }
 
     return NextResponse.json(
-      { ok: false, error: "เกิดข้อผิดพลาดในการสร้างคำขอยืม" },
+      { ok: false, error: "internal-error" },
       { status: 500 }
     );
   }
