@@ -1,3 +1,4 @@
+// src/lib/auth.config.ts
 import type { NextAuthConfig } from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import { prisma } from "@/lib/prisma";
@@ -12,9 +13,7 @@ export const authConfig: NextAuthConfig = {
                 password: { label: "Password", type: "password" },
             },
             authorize: async (creds) => {
-                const email = String(creds?.email ?? "")
-                    .trim()
-                    .toLowerCase();
+                const email = String(creds?.email ?? "").trim().toLowerCase();
                 const password = String(creds?.password ?? "");
                 if (!email || !password) return null;
 
@@ -28,7 +27,7 @@ export const authConfig: NextAuthConfig = {
                     id: String(user.id),
                     name: user.fullName,
                     email: user.email,
-                    role: user.role, // ADMIN | INTERNAL | EXTERNAL
+                    role: user.role,
                 };
             },
         }),
@@ -46,4 +45,5 @@ export const authConfig: NextAuthConfig = {
             return session;
         },
     },
+    pages: { signIn: "/sign-in" },
 };
