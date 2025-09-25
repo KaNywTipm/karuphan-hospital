@@ -89,7 +89,7 @@ export default function UserExternalStatusBorrow() {
     // ---------- รวมหลายชิ้นให้เป็น 1 แถวต่อคำขอ ----------
     type Row = {
         id: number;                   // requestId
-        borrowDate: string | null;    // วันที่ส่งคำขอ
+        requestDate: string | null;   // วันที่ส่งคำขอ (เปลี่ยนจาก borrowDate)
         returnDue: string | null;
         equipmentCodes: string;       // รวมหลายชิ้น -> "CAT12-EQ003, CAT12-EQ005"
         equipmentNames: string;       // รวมหลายชิ้น -> "ตัวอย่าง..., ตัวอย่าง..."
@@ -102,12 +102,12 @@ export default function UserExternalStatusBorrow() {
 
         // 1) สร้างรายการระดับ item ก่อน (รองรับทั้งกรณี flatten และมี items[])
         type PerItem = {
-            id: number; borrowDate: string | null; returnDue: string | null; status: string; reason: string;
+            id: number; requestDate: string | null; returnDue: string | null; status: string; reason: string;
             code: string; name: string;
         };
         const perItem: PerItem[] = [];
 
-        // เรียงก่อนตามวันที่ยืม
+        // เรียงก่อนตามวันที่ส่งคำขอ
         const sorted = [...all].sort((a, b) => {
             const da = new Date(a.requestedAt || a.createdAt || a.requestDate || 0).getTime();
             const db = new Date(b.requestedAt || b.createdAt || b.requestDate || 0).getTime();
@@ -115,7 +115,7 @@ export default function UserExternalStatusBorrow() {
         });
 
         for (const req of sorted) {
-            const borrowDate = req.requestedAt || req.createdAt || req.requestDate || null;
+            const requestDate = req.requestedAt || req.createdAt || req.requestDate || null; // วันที่ส่งคำขอ
             const returnDue = req.returnDue ?? null;
             const reason = req.reason ?? req.notes ?? "";
             const status = req.status;
@@ -123,7 +123,7 @@ export default function UserExternalStatusBorrow() {
             if (typeof req.equipmentCode !== "undefined" || typeof req.equipmentName !== "undefined") {
                 perItem.push({
                     id: req.id,
-                    borrowDate,
+                    requestDate: requestDate, // ใช้วันที่ส่งคำขอแทน
                     returnDue,
                     status,
                     reason,
@@ -137,7 +137,7 @@ export default function UserExternalStatusBorrow() {
             if (!items.length) {
                 perItem.push({
                     id: req.id,
-                    borrowDate,
+                    requestDate: requestDate, // ใช้วันที่ส่งคำขอแทน
                     returnDue,
                     status,
                     reason,
@@ -154,18 +154,18 @@ export default function UserExternalStatusBorrow() {
                         ? String(it.equipment.number)
                         : "-");
                 const name = it.equipment?.name ?? "-";
-                perItem.push({ id: req.id, borrowDate, returnDue, status, reason, code, name });
+                perItem.push({ id: req.id, requestDate: requestDate, returnDue, status, reason, code, name }); // ใช้วันที่ส่งคำขอแทน
             }
         }
 
         // 2) group ตาม id
-        const m = new Map<number, { id: number; borrowDate: string | null; returnDue: string | null; status: string; reason: string; codes: string[]; names: string[] }>();
+        const m = new Map<number, { id: number; requestDate: string | null; returnDue: string | null; status: string; reason: string; codes: string[]; names: string[] }>();
         for (const it of perItem) {
             const cur = m.get(it.id);
             if (!cur) {
                 m.set(it.id, {
                     id: it.id,
-                    borrowDate: it.borrowDate,
+                    requestDate: it.requestDate,
                     returnDue: it.returnDue,
                     status: it.status,
                     reason: it.reason,
@@ -180,7 +180,7 @@ export default function UserExternalStatusBorrow() {
 
         return Array.from(m.values()).map((g) => ({
             id: g.id,
-            borrowDate: g.borrowDate,
+            requestDate: g.requestDate,
             returnDue: g.returnDue,
             equipmentCodes: g.codes.join(", "),
             equipmentNames: g.names.join(", "),
@@ -201,8 +201,8 @@ export default function UserExternalStatusBorrow() {
                     lc(r.status).includes(s)
             )
             .sort((a, b) => {
-                const da = new Date(a.borrowDate ?? 0).getTime();
-                const db = new Date(b.borrowDate ?? 0).getTime();
+                const da = new Date(a.requestDate ?? 0).getTime();
+                const db = new Date(b.requestDate ?? 0).getTime();
                 return sortOrder === "newest" ? db - da : da - db;
             });
     }, [groupedRows, searchTerm, sortOrder]);
@@ -251,7 +251,7 @@ export default function UserExternalStatusBorrow() {
                         <thead className="bg-Pink text-White">
                             <tr>
                                 <th className="px-4 py-3 text-left text-sm font-medium w-[80px]">ลำดับ</th>
-                                <th className="px-4 py-3 text-left text-sm font-medium w-[110px]">วันที่ยืม(รออนุมัติ)</th>
+                                <th className="px-4 py-3 text-left text-sm font-medium w-[110px]">วันที่ยืม</th>
                                 <th className="px-4 py-3 text-left text-sm font-medium w-[110px]">กำหนดคืน</th>
                                 <th className="px-4 py-3 text-left text-sm font-medium w-[180px]">เลขครุภัณฑ์</th>
                                 <th className="px-4 py-3 text-left text-sm font-medium w-[320px]">ชื่อครุภัณฑ์</th>
@@ -279,7 +279,7 @@ export default function UserExternalStatusBorrow() {
                             {!loading && currentData.map((row, index) => (
                                 <tr key={row.id} className="hover:bg-gray-50">
                                     <td className="px-4 py-3 text-sm text-gray-900">{startIndex + index + 1}</td>
-                                    <td className="px-4 py-3 text-sm text-gray-900">{fmtThaiDate(row.borrowDate)}</td>
+                                    <td className="px-4 py-3 text-sm text-gray-900">{fmtThaiDate(row.requestDate)}</td>
                                     <td className="px-4 py-3 text-sm text-gray-900">{fmtThaiDate(row.returnDue)}</td>
                                     <td className="px-4 py-3 text-sm text-gray-900">{row.equipmentCodes}</td>
                                     <td className="px-4 py-3 text-sm text-gray-900">{row.equipmentNames}</td>
