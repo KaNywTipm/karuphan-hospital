@@ -232,7 +232,7 @@ export default function Dashboard() {
     };
 
     const handleNavigateToReports = () => {
-        router.push("/menu/report4-total_amount");
+        router.push("/menu/report3-total_amount");
     };
 
     return (

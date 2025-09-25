@@ -12,7 +12,9 @@ export const authConfig: NextAuthConfig = {
                 password: { label: "Password", type: "password" },
             },
             authorize: async (creds) => {
-                const email = String(creds?.email ?? "").trim().toLowerCase();
+                const email = String(creds?.email ?? "")
+                    .trim()
+                    .toLowerCase();
                 const password = String(creds?.password ?? "");
                 if (!email || !password) return null;
 
@@ -38,11 +40,19 @@ export const authConfig: NextAuthConfig = {
 
     callbacks: {
         async jwt({ token, user }) {
-            if (user) token.role = (user as any).role;
+            // ครั้งแรกที่ sign-in: อัดค่าจาก user (Prisma) ลง token
+            if (user) {
+                token.uid = (user as any).id; // Prisma user.id
+                token.role = (user as any).role;
+            }
             return token;
         },
         async session({ session, token }) {
-            if (session?.user) (session.user as any).role = token.role;
+            // กระจายจาก token -> session.user ทุกครั้ง
+            if (session?.user) {
+                (session.user as any).id = token.uid;
+                (session.user as any).role = token.role;
+            }
             return session;
         },
 

@@ -1,7 +1,20 @@
 import { NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { auth } from "@/lib/auth";
 import { z } from "zod";
+
+export const dynamic = "force-dynamic";
+
+const userSelect = {
+    id: true,
+    email: true,
+    fullName: true,
+    phone: true,
+    role: true,
+    isActive: true,
+    departmentId: true,
+    department: { select: { id: true, name: true } },
+} as const;
 
 const UpdateSchema = z.object({
     fullName: z.string().min(1, "กรอกชื่อ-สกุล"),
@@ -10,53 +23,122 @@ const UpdateSchema = z.object({
 });
 
 export async function GET() {
-    const session = await auth();
-    if (!session) return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
+    try {
+        const session = await auth();
+        const sUser = session?.user as any;
 
-    const me = await prisma.user.findUnique({
-        where: { id: Number((session.user as any).id) },
-        select: {
-            id: true, email: true, fullName: true, phone: true, role: true, isActive: true,
-            departmentId: true,
-            department: { select: { id: true, name: true } },
-        },
-    });
+        if (!sUser) {
+            return NextResponse.json(
+                { ok: false, error: "unauthenticated" },
+                { status: 401 }
+            );
+        }
 
-    return NextResponse.json({ ok: true, user: me });
+        const rawId = sUser.id;
+        const email = sUser.email?.toString().trim() || null;
+
+        let user = null;
+
+        // ลองด้วย id ก่อน (ต้องเป็นเลขล้วน)
+        const id = Number(rawId);
+        if (Number.isFinite(id) && id > 0) {
+            user = await prisma.user.findUnique({
+                where: { id },
+                select: userSelect,
+            });
+        }
+
+        // ถ้าไม่เจอ/ไม่มี id แต่มี email ให้ลองหาโดย email
+        if (!user && email) {
+            user = await prisma.user.findUnique({
+                where: { email },
+                select: userSelect,
+            });
+        }
+
+        if (!user) {
+            return NextResponse.json(
+                { ok: false, error: "user-not-found" },
+                { status: 404 }
+            );
+        }
+
+        return NextResponse.json({ ok: true, user });
+    } catch (e: any) {
+        console.error("[/api/users/me] error:", e);
+        return NextResponse.json(
+            { ok: false, error: "internal-error" },
+            { status: 500 }
+        );
+    }
 }
 
 export async function PUT(req: Request) {
-    const session = await auth();
-    if (!session)
-        return NextResponse.json(
-            { ok: false, error: "unauthorized" },
-            { status: 401 }
-        );
+    try {
+        const session = await auth();
+        const sUser = session?.user as any;
 
-    const body = await req.json();
-    const parsed = UpdateSchema.safeParse(body);
-    if (!parsed.success) {
+        if (!sUser) {
+            return NextResponse.json(
+                { ok: false, error: "unauthenticated" },
+                { status: 401 }
+            );
+        }
+
+        const body = await req.json();
+        const parsed = UpdateSchema.safeParse(body);
+        if (!parsed.success) {
+            return NextResponse.json(
+                { ok: false, error: parsed.error.flatten().fieldErrors },
+                { status: 400 }
+            );
+        }
+
+        const { fullName, phone, departmentId } = parsed.data;
+
+        const rawId = sUser.id;
+        const email = sUser.email?.toString().trim() || null;
+
+        let userId: number | null = null;
+
+        // ลองด้วย id ก่อน (ต้องเป็นเลขล้วน)
+        const id = Number(rawId);
+        if (Number.isFinite(id) && id > 0) {
+            const user = await prisma.user.findUnique({
+                where: { id },
+                select: { id: true },
+            });
+            if (user) userId = id;
+        }
+
+        // ถ้าไม่เจอ/ไม่มี id แต่มี email ให้ลองหาโดย email
+        if (!userId && email) {
+            const user = await prisma.user.findUnique({
+                where: { email },
+                select: { id: true },
+            });
+            if (user) userId = user.id;
+        }
+
+        if (!userId) {
+            return NextResponse.json(
+                { ok: false, error: "user-not-found" },
+                { status: 404 }
+            );
+        }
+
+        const updated = await prisma.user.update({
+            where: { id: userId },
+            data: { fullName, phone, departmentId: departmentId ?? null },
+            select: userSelect,
+        });
+
+        return NextResponse.json({ ok: true, user: updated });
+    } catch (e: any) {
+        console.error("[/api/users/me PUT] error:", e);
         return NextResponse.json(
-            { ok: false, error: parsed.error.flatten().fieldErrors },
-            { status: 400 }
+            { ok: false, error: "internal-error" },
+            { status: 500 }
         );
     }
-
-    const { fullName, phone, departmentId } = parsed.data;
-
-    const updated = await prisma.user.update({
-        where: { id: Number((session.user as any).id) },
-        data: { fullName, phone, departmentId: departmentId ?? null },
-        select: {
-            id: true,
-            email: true,
-            fullName: true,
-            phone: true,
-            role: true,
-            departmentId: true,
-            department: { select: { id: true, name: true } },
-        },
-    });
-
-    return NextResponse.json({ ok: true, user: updated });
 }
