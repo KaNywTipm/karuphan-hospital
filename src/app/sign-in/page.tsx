@@ -60,7 +60,7 @@ function SignInInner() {
                 </label>
                 <div className="relative mb-4">
                     <input className="w-full border rounded px-3 py-2 pr-10"
-                        type={show ? "text" : "password"}
+                        placeholder="password"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)} />
                     <button type="button" className="absolute right-2 top-1/2 -translate-y-1/2"
