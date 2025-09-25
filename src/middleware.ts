@@ -1,28 +1,12 @@
-import { NextResponse } from "next/server";
-import type { NextRequest } from "next/server";
-import { getToken } from "next-auth/jwt";
+// middleware.ts
+export { auth as middleware } from "@/lib/auth";
 
-export async function middleware(req: NextRequest) {
-    const url = req.nextUrl;
-    const token = await getToken({ req, secret: process.env.AUTH_SECRET });
-    const role = (token as any)?.role as "ADMIN" | "INTERNAL" | "EXTERNAL" | undefined;
-
-    if (!token && !url.pathname.startsWith("/sign-in") && !url.pathname.startsWith("/sign-up")) {
-        return NextResponse.redirect(new URL("/sign-in", url));
-    }
-
-    if (url.pathname.startsWith("/role1-admin") && role !== "ADMIN")
-        return NextResponse.redirect(new URL("/", url));
-
-    if (url.pathname.startsWith("/role2-internal") && !["ADMIN", "INTERNAL"].includes(role!))
-        return NextResponse.redirect(new URL("/", url));
-
-    if (url.pathname.startsWith("/role3-external") && !["ADMIN", "EXTERNAL"].includes(role!))
-        return NextResponse.redirect(new URL("/", url));
-
-    return NextResponse.next();
-}
-
+// เลือกแมตช์ทุกเส้นทาง ยกเว้นไฟล์สเตติกและ route ที่ไม่ควรดัก
 export const config = {
-    matcher: ["/", "/role1-admin/:path*", "/role2-internal/:path*", "/role3-external/:path*", "/menu/:path*"],
+  matcher: [
+    // ทั้งเว็บ
+    "/((?!_next/static|_next/image|favicon.ico|assets|images|icons|fonts).*)",
+    // และไม่ดักเส้นทาง auth ของ NextAuth เอง + health
+    // (เพราะเราจะอนุญาตใน authorized callback อยู่แล้ว)
+  ],
 };
