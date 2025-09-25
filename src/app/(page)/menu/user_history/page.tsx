@@ -72,7 +72,7 @@ export default function UserHistory() {
 
                 for (const x of list) {
                     const requestId = Number(x.id);
-                    const borrowDate = x.borrowDate ?? x.requestedAt ?? x.createdAt ?? x.requestDate ?? null;
+                    const borrowDate = x.borrowDate ?? null;  // วันที่ผู้ใช้เลือก
                     const returnDue = x.returnDue ?? null;
                     const actualReturnDate = x.actualReturnDate ?? null;
                     const status = String(x.status).toUpperCase() as Status;

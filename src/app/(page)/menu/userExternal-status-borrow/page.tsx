@@ -10,6 +10,7 @@ type BorrowRequest = {
     requestedAt?: string;
     createdAt?: string;
     requestDate?: string;
+    borrowDate?: string;  // เพิ่ม: วันที่ผู้ใช้เลือกจะยืม
     returnDue?: string | null;
     reason?: string;
     notes?: string;
@@ -89,7 +90,7 @@ export default function UserExternalStatusBorrow() {
     // ---------- รวมหลายชิ้นให้เป็น 1 แถวต่อคำขอ ----------
     type Row = {
         id: number;                   // requestId
-        requestDate: string | null;   // วันที่ส่งคำขอ (เปลี่ยนจาก borrowDate)
+        requestDate: string | null;   // วันที่ผู้ใช้เลือกจะยืม (เปลี่ยนชื่อจาก borrowDate)
         returnDue: string | null;
         equipmentCodes: string;       // รวมหลายชิ้น -> "CAT12-EQ003, CAT12-EQ005"
         equipmentNames: string;       // รวมหลายชิ้น -> "ตัวอย่าง..., ตัวอย่าง..."
@@ -107,15 +108,15 @@ export default function UserExternalStatusBorrow() {
         };
         const perItem: PerItem[] = [];
 
-        // เรียงก่อนตามวันที่ส่งคำขอ
+        // เรียงก่อนตามวันที่ผู้ใช้เลือกจะยืม
         const sorted = [...all].sort((a, b) => {
-            const da = new Date(a.requestedAt || a.createdAt || a.requestDate || 0).getTime();
-            const db = new Date(b.requestedAt || b.createdAt || b.requestDate || 0).getTime();
+            const da = new Date(a.borrowDate || a.requestedAt || a.createdAt || a.requestDate || 0).getTime();
+            const db = new Date(b.borrowDate || b.requestedAt || b.createdAt || b.requestDate || 0).getTime();
             return db - da;
         });
 
         for (const req of sorted) {
-            const requestDate = req.requestedAt || req.createdAt || req.requestDate || null; // วันที่ส่งคำขอ
+            const requestDate = req.borrowDate || req.requestedAt || req.createdAt || req.requestDate || null; // วันที่ผู้ใช้เลือกจะยืม
             const returnDue = req.returnDue ?? null;
             const reason = req.reason ?? req.notes ?? "";
             const status = req.status;
@@ -123,7 +124,7 @@ export default function UserExternalStatusBorrow() {
             if (typeof req.equipmentCode !== "undefined" || typeof req.equipmentName !== "undefined") {
                 perItem.push({
                     id: req.id,
-                    requestDate: requestDate, // ใช้วันที่ส่งคำขอแทน
+                    requestDate: requestDate, // วันที่ผู้ใช้เลือกจะยืม
                     returnDue,
                     status,
                     reason,
@@ -137,7 +138,7 @@ export default function UserExternalStatusBorrow() {
             if (!items.length) {
                 perItem.push({
                     id: req.id,
-                    requestDate: requestDate, // ใช้วันที่ส่งคำขอแทน
+                    requestDate: requestDate, // วันที่ผู้ใช้เลือกจะยืม
                     returnDue,
                     status,
                     reason,
@@ -154,7 +155,7 @@ export default function UserExternalStatusBorrow() {
                         ? String(it.equipment.number)
                         : "-");
                 const name = it.equipment?.name ?? "-";
-                perItem.push({ id: req.id, requestDate: requestDate, returnDue, status, reason, code, name }); // ใช้วันที่ส่งคำขอแทน
+                perItem.push({ id: req.id, requestDate: requestDate, returnDue, status, reason, code, name }); // วันที่ผู้ใช้เลือกจะยืม
             }
         }
 
