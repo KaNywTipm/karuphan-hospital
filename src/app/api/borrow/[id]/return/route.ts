@@ -2,11 +2,6 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 
-async function resolveAdminId(session: any, prisma: any): Promise<number> {
-  // Always return user id 1 (user1)
-  return 1;
-}
-
 function coerceReturnCondition(
   input: any
 ): "NORMAL" | "BROKEN" | "LOST" | "WAIT_DISPOSE" | "DISPOSED" {
@@ -39,70 +34,82 @@ export async function PATCH(
   req: Request,
   { params }: { params: { id: string } }
 ) {
-  const session: any = await auth();
-  if (!session)
-    return NextResponse.json(
-      { ok: false, error: "unauthorized" },
-      { status: 401 }
-    );
-  const role = String(session.role ?? session.user?.role ?? "").toUpperCase();
-  if (role !== "ADMIN")
-    return NextResponse.json(
-      { ok: false, error: "forbidden" },
-      { status: 403 }
-    );
-
-  const id = Number(params.id);
-  if (!Number.isFinite(id))
-    return NextResponse.json(
-      { ok: false, error: "invalid-id" },
-      { status: 400 }
-    );
-
-  let body: any = {};
   try {
-    body = await req.json();
-  } catch {
-    return NextResponse.json(
-      { ok: false, error: "invalid-json" },
-      { status: 400 }
-    );
-  }
+    const session = await auth();
+    const me = session?.user as any;
+    const userId = Number(me?.id);
+    const role = String(me?.role ?? "");
 
-  // รับเป็น array: [{equipmentId, condition}]
-  const returnConditions: Array<{ equipmentId: number; condition: string }> =
-    Array.isArray(body.returnConditions) ? body.returnConditions : [];
-  const returnNotes = body?.returnNotes ? String(body.returnNotes) : null;
-  if (!returnConditions.length) {
-    return NextResponse.json(
-      { ok: false, error: "missing-return-conditions" },
-      { status: 400 }
-    );
-  }
+    if (!userId) {
+      return NextResponse.json(
+        { ok: false, error: "unauthenticated" },
+        { status: 401 }
+      );
+    }
+    if (role !== "ADMIN") {
+      return NextResponse.json(
+        { ok: false, error: "forbidden" },
+        { status: 403 }
+      );
+    }
 
-  const adminId = await resolveAdminId(session, prisma);
+    const id = Number(params.id);
+    if (!Number.isFinite(id)) {
+      return NextResponse.json(
+        { ok: false, error: "invalid-id" },
+        { status: 400 }
+      );
+    }
 
-  try {
+    let body: any = {};
+    try {
+      body = await req.json();
+    } catch {
+      return NextResponse.json(
+        { ok: false, error: "invalid-json" },
+        { status: 400 }
+      );
+    }
+
+    // รับเป็น array: [{equipmentId, condition}]
+    const returnConditions: Array<{ equipmentId: number; condition: string }> =
+      Array.isArray(body.returnConditions) ? body.returnConditions : [];
+    const returnNotes = body?.returnNotes ? String(body.returnNotes) : null;
+
+    if (!returnConditions.length) {
+      return NextResponse.json(
+        { ok: false, error: "missing-return-conditions" },
+        { status: 400 }
+      );
+    }
+
+    const br = await prisma.borrowRequest.findUnique({
+      where: { id },
+      include: { items: { select: { id: true, equipmentId: true } } },
+    });
+    if (!br) {
+      return NextResponse.json(
+        { ok: false, error: "not-found" },
+        { status: 404 }
+      );
+    }
+    if (br.status !== "APPROVED") {
+      return NextResponse.json(
+        { ok: false, error: "invalid-status" },
+        { status: 409 }
+      );
+    }
+
+    const now = new Date();
+
     const updated = await prisma.$transaction(async (tx) => {
-      // 1) ดึงคำขอ + รายการอุปกรณ์ในคำขอ
-      const reqRow = await tx.borrowRequest.findUnique({
-        where: { id },
-        include: {
-          items: { select: { id: true, equipmentId: true } },
-        },
-      });
-      if (!reqRow)
-        throw Object.assign(new Error("not-found"), { code: "NOT_FOUND" });
-
-      // คืนของได้เฉพาะที่อนุมัติอยู่ (หรือ overdue พัฒนาในอนาคต)
-
-      const equipmentIds = reqRow.items.map((i) => i.equipmentId);
+      const equipmentIds = br.items.map((i) => i.equipmentId);
       if (equipmentIds.length === 0) {
         throw Object.assign(new Error("no-items"), { code: "NO_ITEMS" });
       }
 
       // 2) อัปเดต BorrowItem.returnCondition แยกแต่ละชิ้น
-      for (const item of reqRow.items) {
+      for (const item of br.items) {
         const found = returnConditions.find(
           (rc) => rc.equipmentId === item.equipmentId
         );
@@ -126,20 +133,20 @@ export async function PATCH(
             data: {
               status: rc as any,
               currentRequestId: null,
-              statusChangedAt: new Date(),
+              statusChangedAt: now,
             },
           });
         }
       }
 
-      // 3) อัปเดตคำขอเป็น RETURNED (ไม่ต้องเซ็ต returnCondition ที่ borrowRequest แล้ว)
-      const borrow = await tx.borrowRequest.update({
+      // 3) อัปเดตคำขอเป็น RETURNED
+      const updatedRequest = await tx.borrowRequest.update({
         where: { id },
         data: {
           status: "RETURNED",
-          actualReturnDate: new Date(),
-          returnNotes: body?.returnNotes ?? null,
-          receivedById: adminId,
+          actualReturnDate: now,
+          returnNotes: returnNotes,
+          receivedById: userId, // ← ผู้รับคืน = แอดมินที่กำลังกด
         },
         include: {
           requester: { select: { fullName: true } },
@@ -152,12 +159,11 @@ export async function PATCH(
           },
         },
       });
-      
 
-      return borrow;
+      return updatedRequest;
     });
 
-    return NextResponse.json({ ok: true, data: updated }, { status: 200 });
+    return NextResponse.json({ ok: true, data: updated });
   } catch (e: any) {
     if (e?.code === "NOT_FOUND") {
       return NextResponse.json(
@@ -177,9 +183,9 @@ export async function PATCH(
         { status: 422 }
       );
     }
-    console.error("PATCH /api/borrow/:id/return error:", e);
+    console.error("[return]", e);
     return NextResponse.json(
-      { ok: false, error: "server-error" },
+      { ok: false, error: "internal-error" },
       { status: 500 }
     );
   }
