@@ -73,7 +73,7 @@ const BorrowCart = ({
                                             className="text-red-500 hover:text-red-700 ml-2 bg-gray-300 hover:bg-red-400 w-6 h-6 rounded-full flex items-center justify-center"
                                             disabled={isSubmitting}
                                         >
-                                            <Image src="/delete.png" alt="remove" width={16} height={16} />
+                                            <Image src="/icons/delete.png" alt="remove" width={16} height={16} />
                                         </button>
                                     </div>
 

@@ -19,36 +19,36 @@ const MENU: { title: string; items: MenuItem[] }[] = [
   {
     title: "MENU",
     items: [
-      { icon: "/list.png", label: "รายการยืมคืนครุภัณฑ์", href: "/role1-admin", visible: ["ADMIN"] },
-      { icon: "/list.png", label: "รายการยืมครุภัณฑ์", href: "/role2-internal", visible: ["INTERNAL"] },
-      { icon: "/list.png", label: "รายการยืมครุภัณฑ์", href: "/role3-external", visible: ["EXTERNAL"] },
-      { icon: "/chart.png", label: "แดชบอร์ด", href: "/menu/dashboard", visible: ["ADMIN"] },
+      { icon: "/icons/list.png", label: "รายการยืมคืนครุภัณฑ์", href: "/role1-admin", visible: ["ADMIN"] },
+      { icon: "/icons/list.png", label: "รายการยืมครุภัณฑ์", href: "/role2-internal", visible: ["INTERNAL"] },
+      { icon: "/icons/list.png", label: "รายการยืมครุภัณฑ์", href: "/role3-external", visible: ["EXTERNAL"] },
+      { icon: "/icons/chart.png", label: "แดชบอร์ด", href: "/menu/dashboard", visible: ["ADMIN"] },
       {
-        icon: "/status.png",
+        icon: "/icons/status.png",
         label: "รายงานสรุปผล",
         href: "#",
         visible: ["ADMIN"],
         subItems: [
-          { icon: "/plus.png", label: "รายงานการยืมคืน", href: "/menu/report1-borrow_return", visible: ["ADMIN"] },
-          { icon: "/plus.png", label: "รายงานสถานะของครุภัณฑ์", href: "/menu/report2-status_karuphan", visible: ["ADMIN"] },
-          { icon: "/plus.png", label: "สรุปยอดครุภัณฑ์", href: "/menu/report3-total_amount", visible: ["ADMIN"] },
+          { icon: "/icons/plus.png", label: "รายงานการยืมคืน", href: "/menu/report1-borrow_return", visible: ["ADMIN"] },
+          { icon: "/icons/plus.png", label: "รายงานสถานะของครุภัณฑ์", href: "/menu/report2-status_karuphan", visible: ["ADMIN"] },
+          { icon: "/icons/plus.png", label: "สรุปยอดครุภัณฑ์", href: "/menu/report3-total_amount", visible: ["ADMIN"] },
         ],
       },
-      { icon: "/status.png", label: "สถานะการยืมครุภัณฑ์", href: "/menu/userExternal-status-borrow", visible: ["EXTERNAL"] },
-      { icon: "/report.png", label: "ประวัติการยืมครุภัณฑ์", href: "/menu/user_history", visible: ["INTERNAL", "EXTERNAL"] },
+      { icon: "/icons/status.png", label: "สถานะการยืมครุภัณฑ์", href: "/menu/userExternal-status-borrow", visible: ["EXTERNAL"] },
+      { icon: "/icons/report.png", label: "ประวัติการยืมครุภัณฑ์", href: "/menu/user_history", visible: ["INTERNAL", "EXTERNAL"] },
       {
-        icon: "/data.png",
+        icon: "/icons/data.png",
         label: "จัดการครุภัณฑ์",
         href: "#",
         visible: ["ADMIN"],
         subItems: [
-          { icon: "/list.png", label: "รายการครุภัณฑ์", href: "/menu/list-karuphan", visible: ["ADMIN"] },
-          { icon: "/edit.png", label: "เพิ่มหมวดหมู่ครุภัณฑ์", href: "/menu/category-karuphan", visible: ["ADMIN"] },
+          { icon: "/icons/list.png", label: "รายการครุภัณฑ์", href: "/menu/list-karuphan", visible: ["ADMIN"] },
+          { icon: "/icons/edit.png", label: "เพิ่มหมวดหมู่ครุภัณฑ์", href: "/menu/category-karuphan", visible: ["ADMIN"] },
         ],
       },
-      { icon: "/person.png", label: "จัดการบุคลากร", href: "/menu/manage-personnel", visible: ["ADMIN"] },
-      { icon: "/person.png", label: "แก้ไขโปรไฟล์", href: "/menu/user_edit-profile", visible: ["INTERNAL", "EXTERNAL"] },
-      { icon: "/out.png", label: "ออกจากระบบ", href: "/sign-in", visible: ["ADMIN", "INTERNAL", "EXTERNAL"] },
+      { icon: "/icons/person.png", label: "จัดการบุคลากร", href: "/menu/manage-personnel", visible: ["ADMIN"] },
+      { icon: "/icons/person.png", label: "แก้ไขโปรไฟล์", href: "/menu/user_edit-profile", visible: ["INTERNAL", "EXTERNAL"] },
+      { icon: "/icons/out.png", label: "ออกจากระบบ", href: "/sign-in", visible: ["ADMIN", "INTERNAL", "EXTERNAL"] },
     ],
   },
 ];
@@ -116,7 +116,7 @@ export default function Menu() {
       {/* โปรไฟล์ */}
       <div className="flex items-center gap-3 p-4 mb-4 bg-slate-600 rounded-lg">
         <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center flex-shrink-0">
-          <Image src="/profile.png" alt="profile" width={20} height={20} className="text-gray-600" />
+          <Image src="/icons/profile.png" alt="profile" width={20} height={20} className="text-gray-600" />
         </div>
         <div className="flex-1 min-w-0 hidden lg:block">
           <p className="text-white font-medium text-sm break-words">{displayName}</p>

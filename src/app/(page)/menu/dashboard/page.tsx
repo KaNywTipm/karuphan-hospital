@@ -253,7 +253,7 @@ export default function Dashboard() {
                             className="rounded-xl shadow-lg p-6 text-left bg-gradient-to-br from-blue-400 to-blue-600 relative overflow-hidden cursor-pointer transform transition-all duration-200 hover:scale-105 hover:shadow-xl"
                         >
                             <div className="absolute top-4 right-4 opacity-20">
-                                <Image src="/data.png" alt="Equipment" width={48} height={48} />
+                                <Image src="/icons/data.png" alt="Equipment" width={48} height={48} />
                             </div>
                             <h3 className="text-lg font-semibold text-white mb-2">จำนวนครุภัณฑ์ทั้งหมด</h3>
                             <p className="text-3xl font-bold text-white">
@@ -268,7 +268,7 @@ export default function Dashboard() {
                             className="rounded-xl shadow-lg p-6 text-left bg-gradient-to-br from-green-400 to-green-600 relative overflow-hidden cursor-pointer transform transition-all duration-200 hover:scale-105 hover:shadow-xl"
                         >
                             <div className="absolute top-4 right-4 opacity-20">
-                                <Image src="/person.png" alt="Internal Users" width={48} height={48} />
+                                <Image src="/icons/person.png" alt="Internal Users" width={48} height={48} />
                             </div>
                             <h3 className="text-lg font-semibold text-white mb-2">จำนวนพนักงานในแผนก</h3>
                             <p className="text-3xl font-bold text-white">
@@ -283,7 +283,7 @@ export default function Dashboard() {
                             className="rounded-xl shadow-lg p-6 text-left bg-gradient-to-br from-yellow-500 to-yellow-600 relative overflow-hidden cursor-pointer transform transition-all duration-200 hover:scale-105 hover:shadow-xl"
                         >
                             <div className="absolute top-4 right-4 opacity-20">
-                                <Image src="/person.png" alt="External Users" width={48} height={48} />
+                                <Image src="/icons/person.png" alt="External Users" width={48} height={48} />
                             </div>
                             <h3 className="text-lg font-semibold text-white mb-2">จำนวนพนักงานนอกแผนก</h3>
                             <p className="text-3xl font-bold text-white">

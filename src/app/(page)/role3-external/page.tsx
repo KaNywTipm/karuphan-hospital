@@ -1,4 +1,9 @@
 "use client";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import Image from "next/image";
+import BorrowCart from "@/components/BorrowCart";
+import BorrowKaruphan from "@/components/modal/borrow-karuphan";
+import { useModal } from "@/components/Modal-Notification/ModalProvider";
 
 // --- Helper & Components ---
 const BORROWER_TYPE: "INTERNAL" | "EXTERNAL" = "EXTERNAL";
@@ -48,17 +53,13 @@ function BorrowButton({
             title={disabled ? "สถานะนี้ยืมไม่ได้" : "ยืมครุภัณฑ์ชิ้นนี้"}
             aria-disabled={disabled ? "true" : undefined}
         >
-            <Image src="/cart.png" alt="cart" width={16} height={16} className="opacity-90" />
+            <Image src="/icons/cart.png" alt="cart" width={16} height={16} className="opacity-90" />
             ยืม
         </button>
     );
 }
 
-import { useCallback, useEffect, useMemo, useState } from "react";
-import Image from "next/image";
-import BorrowCart from "@/components/BorrowCart";
-import BorrowKaruphan from "@/components/modal/borrow-karuphan";
-import { useModal } from "@/components/Modal-Notification/ModalProvider";
+
 
 type Category = { id: number | string; name: string };
 function asList<T = any>(v: any): T[] {
@@ -309,7 +310,7 @@ export default function ExternalBorrowPage() {
                                     className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                                 />
                                 <Image
-                                    src="/search.png"
+                                    src="/icons/search.png"
                                     alt="search"
                                     width={20}
                                     height={20}
@@ -327,7 +328,7 @@ export default function ExternalBorrowPage() {
                                         : "เรียงจากเก่าไปใหม่"
                                 }
                             >
-                                <Image src="/HamBmenu.png" alt="sort" width={20} height={20} />
+                                <Image src="/icons/HamBmenu.png" alt="sort" width={20} height={20} />
                             </button>
                         </div>
                     </div>

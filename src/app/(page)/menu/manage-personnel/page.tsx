@@ -238,7 +238,7 @@ export default function Managepersonnel() {
                   />
                   <button className="absolute right-3 top-1/2 -translate-y-1/2 p-1">
                     <Image
-                      src="/search.png"
+                      src="/icons/search.png"
                       alt="search"
                       width={20}
                       height={20}
@@ -254,7 +254,7 @@ export default function Managepersonnel() {
                     }`}
                   title={sortOrder === "newest" ? "เรียงจากใหม่ไปเก่า" : "เรียงจากเก่าไปใหม่"}
                 >
-                  <Image src="/HamBmenu.png" alt="เรียงข้อมูล" width={20} height={20} />
+                  <Image src="/icons/HamBmenu.png" alt="เรียงข้อมูล" width={20} height={20} />
                   <span className="sr-only">เรียงข้อมูล</span>
                 </button>
               </div>
@@ -329,7 +329,7 @@ export default function Managepersonnel() {
                           onClick={() => openEditModal(user.id)}
                           className="bg-yellow-400 text-white px-3 py-1 rounded text-sm"
                         >
-                          <Image src="/edit.png" alt="edit" width={20} height={20} />
+                          <Image src="/icons/edit.png" alt="edit" width={20} height={20} />
                         </button>
                       </td>
                       <td className="px-2 py-3 text-sm text-center">
@@ -337,7 +337,7 @@ export default function Managepersonnel() {
                           onClick={() => handleDeleteItem(user.id)}
                           className="bg-red-500 text-white px-3 py-1 rounded text-sm"
                         >
-                          <Image src="/delete.png" alt="delete" width={20} height={20} />
+                          <Image src="/icons/delete.png" alt="delete" width={20} height={20} />
                         </button>
                       </td>
                     </tr>

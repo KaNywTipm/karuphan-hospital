@@ -214,7 +214,7 @@ export default function ListKaruphan() {
                             onClick={handleAddClick}
                             className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center gap-2"
                         >
-                            <Image src="/plus.png" alt="add" width={16} height={16} />
+                            <Image src="/icons/plus.png" alt="add" width={16} height={16} />
                             เพิ่มข้อมูลครุภัณฑ์
                         </button>
 
@@ -230,7 +230,7 @@ export default function ListKaruphan() {
                                 className="w-full px-4 py-2 border border-Grey rounded-lg focus:outline-none focus:ring-2 focus:ring-Blue"
                             />
                             <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                                <Image src="/search.png" alt="search" width={20} height={20} className="opacity-50" />
+                                <Image src="/icons/search.png" alt="search" width={20} height={20} className="opacity-50" />
                             </div>
                         </div>
 
@@ -240,7 +240,7 @@ export default function ListKaruphan() {
                                 }`}
                             title={sortOrder === "newest" ? "เรียงจากใหม่ไปเก่า" : "เรียงจากเก่าไปใหม่"}
                         >
-                            <Image src="/HamBmenu.png" alt="เรียงข้อมูล" width={20} height={20} />
+                            <Image src="/icons/HamBmenu.png" alt="เรียงข้อมูล" width={20} height={20} />
                             <span className="sr-only">เรียงข้อมูล</span>
                         </button>
                     </div>
@@ -305,7 +305,7 @@ export default function ListKaruphan() {
                                                         className="bg-Yellow text-White px-3 py-1 rounded text-sm hover:bg-yellow-600"
                                                         title="แก้ไขครุภัณฑ์"
                                                     >
-                                                        <Image src="/edit.png" alt="edit" width={20} height={20} />
+                                                        <Image src="/icons/edit.png" alt="edit" width={20} height={20} />
                                                     </button>
                                                 </td>
                                             </tr>

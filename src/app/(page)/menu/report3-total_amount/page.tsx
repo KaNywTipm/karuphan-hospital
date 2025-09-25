@@ -201,7 +201,7 @@ export default function TotalAmountReport() {
                             className="w-full px-4 py-2 border border-Grey rounded-lg focus:outline-none focus:ring-2 focus:ring-Blue"
                         />
                         <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                            <Image src="/search.png" alt="search" width={20} height={20} className="opacity-50" />
+                            <Image src="/icons/search.png" alt="search" width={20} height={20} className="opacity-50" />
                         </div>
                     </div>
 
@@ -211,7 +211,7 @@ export default function TotalAmountReport() {
                             }`}
                         title={sort === "newest" ? "เรียงจากใหม่ไปเก่า" : "เรียงจากเก่าไปใหม่"}
                     >
-                        <Image src="/HamBmenu.png" alt="เรียงข้อมูล" width={20} height={20} />
+                        <Image src="/icons/HamBmenu.png" alt="เรียงข้อมูล" width={20} height={20} />
                         <span className="sr-only">เรียงข้อมูล</span>
                     </button>
                 </div>

@@ -132,7 +132,7 @@ export default function Editkaruphan({
             <div className="bg-White p-8 rounded-2xl shadow-md w-[90%] md:w-[520px]">
                 <div className="w-full flex justify-end">
                     <button onClick={onClose} aria-label="Close form">
-                        <Image src="/Close.png" alt="Close" width={30} height={30} />
+                        <Image src="/icons/close.png" alt="Close" width={30} height={30} />
                     </button>
                 </div>
                 <div className="flex justify-between items-center mb-6">
