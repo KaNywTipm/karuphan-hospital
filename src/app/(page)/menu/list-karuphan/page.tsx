@@ -251,19 +251,19 @@ export default function ListKaruphan() {
                     <div className="p-6 text-gray-500">กำลังโหลด...</div>
                 ) : (
                     <>
-                        <div className="overflow-x-auto">
-                            <table className="w-full table-fixed border-collapse">
+                        <div className="table-responsive">
+                            <table className="table-desktop desktop-table">
                                 <thead className="bg-Pink text-White">
                                     <tr>
-                                        <th className="border px-4 py-3 text-center text-sm font-semibold w-[80px]">ลำดับ</th>
-                                        <th className="border px-4 py-3 text-center text-sm font-semibold w-[120px]">ID</th>
-                                        <th className="border px-4 py-3 text-center text-sm font-semibold w-[180px]">เลขครุภัณฑ์</th>
-                                        <th className="border px-4 py-3 text-center text-sm font-semibold">ชื่อครุภัณฑ์</th>
-                                        <th className="border px-4 py-3 text-left  text-sm font-semibold w-[180px]">รายละเอียดครุภัณฑ์</th>
-                                        <th className="border px-4 py-3 text-right text-sm font-semibold w-[180px]">ราคาเมื่อได้รับ</th>
-                                        <th className="border px-4 py-3 text-center text-sm font-semibold w-[150px]">วันที่ได้รับ</th>
-                                        <th className="border px-4 py-3 text-center text-sm font-semibold w-[120px]">สถานะ</th>
-                                        <th className="border px-2 py-3 text-center text-sm font-semibold w-[90px]">แก้ไข</th>
+                                        <th className="border px-3 lg:px-6 py-3 lg:py-4 text-center text-sm font-semibold w-[80px]">ลำดับ</th>
+                                        <th className="border px-3 lg:px-6 py-3 lg:py-4 text-center text-sm font-semibold w-[120px] lg:w-[140px]">ID</th>
+                                        <th className="border px-3 lg:px-6 py-3 lg:py-4 text-center text-sm font-semibold w-[160px] lg:w-[200px]">เลขครุภัณฑ์</th>
+                                        <th className="border px-3 lg:px-6 py-3 lg:py-4 text-center text-sm font-semibold min-w-[200px]">ชื่อครุภัณฑ์</th>
+                                        <th className="border px-3 lg:px-6 py-3 lg:py-4 text-left text-sm font-semibold w-[180px] lg:w-[220px]">รายละเอียดครุภัณฑ์</th>
+                                        <th className="border px-3 lg:px-6 py-3 lg:py-4 text-right text-sm font-semibold w-[140px] lg:w-[180px]">ราคาเมื่อได้รับ</th>
+                                        <th className="border px-3 lg:px-6 py-3 lg:py-4 text-center text-sm font-semibold w-[130px] lg:w-[150px]">วันที่ได้รับ</th>
+                                        <th className="border px-3 lg:px-6 py-3 lg:py-4 text-center text-sm font-semibold w-[100px] lg:w-[120px]">สถานะ</th>
+                                        <th className="border px-2 lg:px-4 py-3 lg:py-4 text-center text-sm font-semibold w-[80px] lg:w-[100px]">แก้ไข</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-200">
@@ -271,26 +271,28 @@ export default function ListKaruphan() {
                                         // ปุ่มแก้ไขควรกดได้ทุกสถานะ (ยกเว้นถ้าต้องการบล็อกเฉพาะ IN_USE ให้แก้เป็น item.status === "IN_USE")
                                         const isBusy = false;
                                         return (
-                                            <tr key={item.number} className="hover:bg-gray-50">
-                                                <td className="border px-4 py-3 text-center">{startIndex + index + 1}</td>
-                                                <td className="border px-4 py-3 text-center">{item.idnum}</td>
-                                                <td className="border px-4 py-3 text-center">{item.code}</td>
-                                                <td className="border px-4 py-3">
+                                            <tr key={item.number} className="hover:bg-gray-50 transition-colors duration-150">
+                                                <td className="border px-3 lg:px-6 py-3 lg:py-4 text-center text-sm">{startIndex + index + 1}</td>
+                                                <td className="border px-3 lg:px-6 py-3 lg:py-4 text-center text-sm">{item.idnum}</td>
+                                                <td className="border px-3 lg:px-6 py-3 lg:py-4 text-center text-sm font-mono">{item.code}</td>
+                                                <td className="border px-3 lg:px-6 py-3 lg:py-4">
                                                     <div className="flex items-center justify-start gap-2">
-                                                        <span className="truncate">{item.name}</span>
+                                                        <span className="text-sm leading-relaxed">{item.name}</span>
                                                         {isBusy && (
-                                                            <span className="ml-1 text-xs px-2 py-0.5 rounded-full bg-amber-100 text-amber-800">
+                                                            <span className="ml-1 text-xs px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 whitespace-nowrap">
                                                                 กำลังถูกยืม
                                                             </span>
                                                         )}
                                                     </div>
                                                 </td>
-                                                <td className="border px-4 py-3 text-left">
-                                                    {typeof item.description === "string" && item.description.trim() !== "" ? item.description : "-"}
+                                                <td className="border px-3 lg:px-6 py-3 lg:py-4 text-left text-sm">
+                                                    <div className="max-w-[200px] lg:max-w-none break-words">
+                                                        {typeof item.description === "string" && item.description.trim() !== "" ? item.description : "-"}
+                                                    </div>
                                                 </td>
-                                                <td className="border px-4 py-3 text-right">{formatPrice(item.price)}</td>
-                                                <td className="border px-4 py-3 text-center">{formatThaiDate(item.receivedDate)}</td>
-                                                <td className="border px-4 py-3 text-center">
+                                                <td className="border px-3 lg:px-6 py-3 lg:py-4 text-right text-sm font-medium">{formatPrice(item.price)}</td>
+                                                <td className="border px-3 lg:px-6 py-3 lg:py-4 text-center text-sm">{formatThaiDate(item.receivedDate)}</td>
+                                                <td className="border px-3 lg:px-6 py-3 lg:py-4 text-center">
                                                     <span
                                                         className={`px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap ${statusColor(
                                                             item.status
@@ -299,13 +301,13 @@ export default function ListKaruphan() {
                                                         {statusLabelTH(item.status)}
                                                     </span>
                                                 </td>
-                                                <td className="border px-2 py-3 text-center">
+                                                <td className="border px-2 lg:px-4 py-3 lg:py-4 text-center">
                                                     <button
                                                         onClick={() => handleEditClick(item)}
-                                                        className="bg-Yellow text-White px-3 py-1 rounded text-sm hover:bg-yellow-600"
+                                                        className="bg-Yellow text-White px-3 py-2 rounded text-sm hover:bg-yellow-600 transition-colors duration-200 inline-flex items-center justify-center"
                                                         title="แก้ไขครุภัณฑ์"
                                                     >
-                                                        <Image src="/edit.png" alt="edit" width={20} height={20} />
+                                                        <Image src="/edit.png" alt="edit" width={16} height={16} />
                                                     </button>
                                                 </td>
                                             </tr>
@@ -314,7 +316,7 @@ export default function ListKaruphan() {
 
                                     {!currentItems.length && (
                                         <tr>
-                                            <td colSpan={9} className="border px-4 py-6 text-center text-sm text-gray-500">
+                                            <td colSpan={9} className="border px-4 py-8 text-center text-sm text-gray-500">
                                                 ไม่พบครุภัณฑ์ที่ค้นหา
                                             </td>
                                         </tr>

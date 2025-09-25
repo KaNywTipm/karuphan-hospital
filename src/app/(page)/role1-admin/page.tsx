@@ -421,31 +421,31 @@ function AdminPageInner() {
                 </div>
 
                 {/* Table */}
-                <div className="overflow-x-auto">
-                    <table className="w-full border-collapse">
+                <div className="table-responsive">
+                    <table className="table-desktop desktop-table">
                         <thead className="bg-red-400 text-white">
                             <tr>
-                                <th className="border border-gray-300 px-4 py-3 text-center text-sm font-medium">ลำดับ</th>
-                                <th className="border border-gray-300 px-4 py-3 text-center text-sm font-medium">ผู้ยืม</th>
-                                <th className="border border-gray-300 px-4 py-3 text-center text-sm font-medium">บุคลากร</th>
-                                <th className="border border-gray-300 px-4 py-3 text-center text-sm font-medium">เลขครุภัณฑ์</th>
-                                <th className="border border-gray-300 px-4 py-3 text-center text-sm font-medium">ชื่อครุภัณฑ์</th>
-                                <th className="border border-gray-300 px-4 py-3 text-center text-sm font-medium">วันที่ยืม</th>
-                                <th className="border border-gray-300 px-4 py-3 text-center text-sm font-medium">กำหนดคืน</th>
+                                <th className="border border-gray-300 px-3 lg:px-6 py-3 lg:py-4 text-center text-sm font-medium w-[80px]">ลำดับ</th>
+                                <th className="border border-gray-300 px-3 lg:px-6 py-3 lg:py-4 text-center text-sm font-medium min-w-[120px]">ผู้ยืม</th>
+                                <th className="border border-gray-300 px-3 lg:px-6 py-3 lg:py-4 text-center text-sm font-medium min-w-[100px]">บุคลากร</th>
+                                <th className="border border-gray-300 px-3 lg:px-6 py-3 lg:py-4 text-center text-sm font-medium min-w-[140px]">เลขครุภัณฑ์</th>
+                                <th className="border border-gray-300 px-3 lg:px-6 py-3 lg:py-4 text-center text-sm font-medium min-w-[200px]">ชื่อครุภัณฑ์</th>
+                                <th className="border border-gray-300 px-3 lg:px-6 py-3 lg:py-4 text-center text-sm font-medium min-w-[120px]">วันที่ยืม</th>
+                                <th className="border border-gray-300 px-3 lg:px-6 py-3 lg:py-4 text-center text-sm font-medium min-w-[120px]">กำหนดคืน</th>
 
                                 {activeTab === "อนุมัติแล้ว/รอตรวจสอบก่อนคืน" && (
-                                    <th className="border border-gray-300 px-4 py-3 text-center text-sm font-medium">ผู้รับคืน</th>
+                                    <th className="border border-gray-300 px-3 lg:px-6 py-3 lg:py-4 text-center text-sm font-medium min-w-[120px]">ผู้รับคืน</th>
                                 )}
                                 {activeTab === "คืนแล้ว" && (
                                     <>
-                                        <th className="border border-gray-300 px-4 py-3 text-center text-sm font-medium">ผู้รับคืน</th>
-                                        <th className="border border-gray-300 px-4 py-3 text-center text-sm font-medium">สภาพ</th>
+                                        <th className="border border-gray-300 px-3 lg:px-6 py-3 lg:py-4 text-center text-sm font-medium min-w-[120px]">ผู้รับคืน</th>
+                                        <th className="border border-gray-300 px-3 lg:px-6 py-3 lg:py-4 text-center text-sm font-medium min-w-[100px]">สภาพ</th>
                                     </>
                                 )}
                                 {activeTab === "ไม่อนุมัติ/ยกเลิก" && (
                                     <>
-                                        <th className="border border-gray-300 px-4 py-3 text-center text-sm font-medium">ผู้รับคืน</th>
-                                        <th className="border border-gray-300 px-4 py-3 text-center text-sm font-medium">เหตุผลไม่อนุมัติ</th>
+                                        <th className="border border-gray-300 px-3 lg:px-6 py-3 lg:py-4 text-center text-sm font-medium min-w-[120px]">ผู้รับคืน</th>
+                                        <th className="border border-gray-300 px-3 lg:px-6 py-3 lg:py-4 text-center text-sm font-medium min-w-[150px]">เหตุผลไม่อนุมัติ</th>
                                     </>
                                 )}
 

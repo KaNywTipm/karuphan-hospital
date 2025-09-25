@@ -114,18 +114,18 @@ export default function Menu() {
   return (
     <div className="flex flex-col h-full">
       {/* โปรไฟล์ */}
-      <div className="flex items-center gap-3 p-4 mb-4 bg-slate-600 rounded-lg">
-        <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center flex-shrink-0">
+      <div className="flex items-center gap-3 p-2 md:p-4 mb-4 bg-slate-600 rounded-lg">
+        <div className="w-10 h-10 md:w-12 md:h-12 bg-white rounded-full flex items-center justify-center flex-shrink-0">
           <Image src="/profile.png" alt="profile" width={20} height={20} className="text-gray-600" />
         </div>
-        <div className="flex-1 min-w-0 hidden lg:block">
+        <div className="flex-1 min-w-0 hidden md:block">
           <p className="text-white font-medium text-sm break-words">{displayName}</p>
           <p className="text-gray-300 text-xs break-words whitespace-normal">{displayDept}</p>
         </div>
       </div>
 
       {/* เมนู */}
-      <div className="flex-1 text-sm">
+      <div className="flex-1 text-sm overflow-y-auto">
         {MENU.map((group) => (
           <div className="flex flex-col gap-2" key={group.title}>
             {group.items.map((item) => {
@@ -138,11 +138,11 @@ export default function Menu() {
                   {hasSub ? (
                     <button
                       onClick={() => toggleSub(item.label)}
-                      className="flex items-center justify-center lg:justify-start gap-4 py-2 md:px-2 rounded-md text-White hover:bg-gray-700 w-full text-left"
+                      className="flex items-center justify-center md:justify-start gap-2 md:gap-4 py-3 px-2 md:px-3 rounded-md text-White hover:bg-gray-700 w-full text-left transition-colors duration-200"
                     >
-                      <Image src={item.icon} alt="" width={20} height={20} />
-                      <span className="hidden lg:block flex-1">{item.label}</span>
-                      <span className="hidden lg:block text-xs">
+                      <Image src={item.icon} alt="" width={20} height={20} className="flex-shrink-0" />
+                      <span className="hidden md:block flex-1 text-sm">{item.label}</span>
+                      <span className="hidden md:block text-xs">
                         {openSubMenus.includes(item.label) ? "▼" : "▶"}
                       </span>
                     </button>
@@ -163,19 +163,19 @@ export default function Menu() {
                           }
                         );
                       }}
-                      className="flex items-center justify-center lg:justify-start gap-4 py-2 md:px-2 rounded-md text-White hover:bg-red-500 w-full"
+                      className="flex items-center justify-center md:justify-start gap-2 md:gap-4 py-3 px-2 md:px-3 rounded-md text-White hover:bg-red-500 w-full transition-colors duration-200"
                       aria-label="ออกจากระบบ"
                     >
-                      <Image src={item.icon} alt="" width={20} height={20} />
-                      <span className="hidden lg:block">{item.label}</span>
+                      <Image src={item.icon} alt="" width={20} height={20} className="flex-shrink-0" />
+                      <span className="hidden md:block text-sm">{item.label}</span>
                     </button>
                   ) : (
                     <Link
                       href={item.href}
-                      className="flex items-center justify-center lg:justify-start gap-4 py-2 md:px-2 rounded-md text-White hover:bg-gray-700"
+                      className="flex items-center justify-center md:justify-start gap-2 md:gap-4 py-3 px-2 md:px-3 rounded-md text-White hover:bg-gray-700 transition-colors duration-200"
                     >
-                      <Image src={item.icon} alt="" width={20} height={20} />
-                      <span className="hidden lg:block">{item.label}</span>
+                      <Image src={item.icon} alt="" width={20} height={20} className="flex-shrink-0" />
+                      <span className="hidden md:block text-sm">{item.label}</span>
                     </Link>
                   )}
 
@@ -187,10 +187,10 @@ export default function Menu() {
                         <Link
                           href={s.href}
                           key={s.label}
-                          className="ml-8 flex items-center justify-start gap-3 text-white py-1 px-2 rounded hover:bg-gray-700 text-sm"
+                          className="ml-6 md:ml-8 flex items-center justify-start gap-3 text-white py-2 px-2 rounded hover:bg-gray-700 text-xs md:text-sm transition-colors duration-200"
                         >
-                          <Image src={s.icon} alt="" width={20} height={20} className="filter invert-0" />
-                          <span>{s.label}</span>
+                          <Image src={s.icon} alt="" width={16} height={16} className="filter invert-0 flex-shrink-0" />
+                          <span className="hidden md:block">{s.label}</span>
                         </Link>
                       ))}
                 </div>
