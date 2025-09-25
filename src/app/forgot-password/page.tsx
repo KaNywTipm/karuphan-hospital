@@ -2,7 +2,6 @@
 import Image from "next/image";
 import { useState } from "react";
 import Link from "next/link";
-import bcrypt from "bcryptjs";
 
 export default function ForgotPasswordPage() {
     const [step, setStep] = useState<1 | 2 | 3>(1);

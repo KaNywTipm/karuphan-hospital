@@ -12,7 +12,9 @@ export const authConfig: NextAuthConfig = {
                 password: { label: "Password", type: "password" },
             },
             authorize: async (creds) => {
-                const email = String(creds?.email ?? "").trim().toLowerCase();
+                const email = String(creds?.email ?? "")
+                    .trim()
+                    .toLowerCase();
                 const password = String(creds?.password ?? "");
                 if (!email || !password) return null;
 
@@ -31,11 +33,9 @@ export const authConfig: NextAuthConfig = {
             },
         }),
     ],
-
     session: { strategy: "jwt" },
     trustHost: true,
     secret: process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET,
-
     callbacks: {
         async jwt({ token, user }) {
             if (user) token.role = (user as any).role;
@@ -46,7 +46,4 @@ export const authConfig: NextAuthConfig = {
             return session;
         },
     },
-
-    // (ถ้าคุณมีหน้า sign-in เอง)
-    // pages: { signIn: "/sign-in" },
 };
