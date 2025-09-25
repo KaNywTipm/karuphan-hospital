@@ -230,28 +230,16 @@ export async function POST(req: Request) {
       );
     }
 
-    // เก็บข้อมูลผู้ยืมภายนอก และ validate สำหรับ EXTERNAL
-    let finalExternalName = null,
-      finalExternalDept = null,
-      finalExternalPhone = null;
-    if (isExternal) {
-      finalExternalName = externalName?.trim() || null;
-      finalExternalDept = externalDept?.trim() || null;
-      finalExternalPhone = externalPhone?.trim() || null;
-
-      // Validate: EXTERNAL ต้องมี externalDept
-      if (!finalExternalDept) {
-        return NextResponse.json(
-          {
-            ok: false,
-            error: "กรุณาระบุชื่อหน่วยงานสำหรับผู้ยืมภายนอก",
-          },
-          { status: 400 }
-        );
-      }
+    // validate สำหรับ EXTERNAL - ต้องมี externalDept
+    if (isExternal && !externalDept?.trim()) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error: "กรุณาระบุชื่อหน่วยงานสำหรับผู้ยืมภายนอก",
+        },
+        { status: 400 }
+      );
     }
-
-    const adminId = 1;
 
     // ตรวจสอบความถูกต้องของ equipmentId ก่อนสร้าง transaction
     const equipmentNumbers = items
@@ -264,10 +252,10 @@ export async function POST(req: Request) {
       );
     }
 
-    // ตรวจสอบว่าครุภัณฑ์ที่ระบุมีอยู่จริงในระบบ
+    // ตรวจสอบว่าครุภัณฑ์ที่ระบุมีอยู่จริงในระบบ และสถานะว่าง
     const existingEquipment = await prisma.equipment.findMany({
       where: { number: { in: equipmentNumbers } },
-      select: { number: true },
+      select: { number: true, status: true, name: true },
     });
 
     if (existingEquipment.length !== equipmentNumbers.length) {
@@ -283,43 +271,90 @@ export async function POST(req: Request) {
       );
     }
 
+    // ตรวจสอบว่าครุภัณฑ์ที่เลือกว่างและพร้อมใช้งาน
+    const unavailableEquipment = existingEquipment.filter(
+      (eq) => eq.status !== "NORMAL"
+    );
+    if (unavailableEquipment.length > 0) {
+      const unavailableList = unavailableEquipment.map(
+        (eq) => `${eq.name} (${eq.number})`
+      );
+      return NextResponse.json(
+        {
+          ok: false,
+          error: `ครุภัณฑ์ต่อไปนี้ไม่พร้อมใช้งาน: ${unavailableList.join(
+            ", "
+          )}`,
+        },
+        { status: 409 }
+      );
+    }
+
     const created = await prisma.$transaction(async (tx) => {
       try {
+        const now = new Date();
+
         const reqRow = await tx.borrowRequest.create({
           data: {
             borrowerType,
-            requesterId, // ผูกผู้ร้องขอ
-            externalName: finalExternalName,
-            externalDept: finalExternalDept,
-            externalPhone: finalExternalPhone,
-            status: isInternal ? "APPROVED" : "PENDING",
-            borrowDate: borrowDateObj, // ใช้ Date object ที่ validate แล้ว
-            returnDue: returnDueObj, // ใช้ Date object ที่ validate แล้ว
+            requesterId: borrowerType === "INTERNAL" ? requesterId : null, // INTERNAL มีค่า, EXTERNAL = null
+            externalName:
+              borrowerType === "EXTERNAL" ? externalName?.trim() || "" : null,
+            externalDept:
+              borrowerType === "EXTERNAL" ? externalDept?.trim() || "" : null,
+            externalPhone:
+              borrowerType === "EXTERNAL" ? externalPhone?.trim() || "" : null,
+            status: isInternal ? "APPROVED" : "PENDING", // INTERNAL = APPROVED ทันที, EXTERNAL = PENDING
+            borrowDate: isInternal ? now : borrowDateObj, // INTERNAL ใช้เวลาปัจจุบัน, EXTERNAL ใช้วันที่เลือก
+            returnDue: returnDueObj,
             reason: reason ?? null,
+
+            // INTERNAL: อนุมัติทันที
+            approvedById: isInternal ? requesterId : null, // ใช้ requesterId เป็นผู้อนุมัติ
+            approvedAt: isInternal ? now : null,
+
+            // ไม่ใส่ receivedById/actualReturnDate ตอนสร้าง
+            rejectedById: null,
+            rejectedAt: null,
+            receivedById: null,
+            actualReturnDate: null,
+
             items: {
               create: items.map((it: any) => ({
                 equipmentId: it.equipmentId, // ใช้ equipment.number
                 quantity: it.quantity ?? 1,
               })),
             },
-            approvedById: isInternal ? adminId : null,
-            receivedById: isInternal ? adminId : null,
-            approvedAt: isInternal ? new Date() : null,
           },
-          include: { items: true },
+          include: { items: { include: { equipment: true } } },
         });
 
         // อัพเดทสถานะครุภัณฑ์
-        await tx.equipment.updateMany({
-          where: {
-            number: { in: reqRow.items.map((i: any) => i.equipmentId) },
-          },
-          data: {
-            status: isExternal ? "RESERVED" : "IN_USE",
-            currentRequestId: reqRow.id,
-            statusChangedAt: new Date(),
-          },
-        });
+        if (isInternal) {
+          // INTERNAL: เปลี่ยนเป็น IN_USE ทันที (กันคนอื่นจองทับ)
+          await tx.equipment.updateMany({
+            where: {
+              number: { in: reqRow.items.map((i: any) => i.equipmentId) },
+            },
+            data: {
+              status: "IN_USE",
+              currentRequestId: reqRow.id,
+              statusChangedAt: now,
+            },
+          });
+        } else {
+          // EXTERNAL: เปลี่ยนเป็น RESERVED (รอการอนุมัติ)
+          await tx.equipment.updateMany({
+            where: {
+              number: { in: reqRow.items.map((i: any) => i.equipmentId) },
+            },
+            data: {
+              status: "RESERVED",
+              currentRequestId: reqRow.id,
+              statusChangedAt: now,
+            },
+          });
+        }
 
         return reqRow;
       } catch (error) {
