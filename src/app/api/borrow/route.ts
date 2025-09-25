@@ -305,7 +305,7 @@ export async function POST(req: Request) {
             externalPhone:
               borrowerType === "EXTERNAL" ? externalPhone?.trim() || "" : null,
             status: isInternal ? "APPROVED" : "PENDING", // INTERNAL = APPROVED ทันที, EXTERNAL = PENDING
-            borrowDate: isInternal ? now : borrowDateObj, // INTERNAL ใช้เวลาปัจจุบัน, EXTERNAL ใช้วันที่เลือก
+            borrowDate: borrowDateObj, // ทั้ง INTERNAL และ EXTERNAL ใช้วันที่ที่ผู้ใช้เลือก
             returnDue: returnDueObj,
             reason: reason ?? null,
 
