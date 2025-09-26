@@ -215,7 +215,7 @@ const BorrowKaruphan = ({
             <div className="bg-white p-8 rounded-2xl shadow-md w-[90%] md:w-[600px] max-h-[90vh] overflow-y-auto">
                 <div className="w-full flex justify-end mb-4">
                     <button onClick={handleClose} aria-label="Close form">
-                        <Image src="/Close.png" alt="Close" width={30} height={30} />
+                        <Image src="/icons/close.png" alt="Close" width={30} height={30} />
                     </button>
                 </div>
 
