@@ -26,101 +26,7 @@ const thaiToCE = (ymdBE: string) => {
     return `${String(Number(y) - 543).padStart(4, "0")}-${m}-${d}`;
 };
 
-// ฟังก์ชันสำหรับปรับปรุงการจัดการปีที่ผู้ใช้กรอก
-const normalizeYear = (dateValue: string) => {
-    if (!dateValue || !dateValue.includes("-")) return dateValue;
-
-    const [year, month, day] = dateValue.split("-");
-    const yearNum = parseInt(year, 10);
-
-    // ถ้าเป็นปี ค.ศ. (1900-2100) ให้แปลงเป็น พ.ศ.
-    if (yearNum >= 1900 && yearNum <= 2100) {
-        const thaiYear = yearNum + 543;
-        return `${thaiYear.toString().padStart(4, "0")}-${month}-${day}`;
-    }
-
-    // ถ้าเป็นปี พ.ศ. ที่สมเหตุสมผล (2443-2643) ให้ใช้ตามเดิม
-    if (yearNum >= 2443 && yearNum <= 2643) {
-        return dateValue;
-    }
-
-    // ถ้าเป็นปีสั้น (เช่น 67, 68) ให้ตีความเป็นปี พ.ศ. ในศตวรรษที่ 26
-    if (yearNum >= 0 && yearNum <= 99) {
-        const currentYear = new Date().getFullYear() + 543; // ปีปัจจุบันเป็น พ.ศ.
-        const currentCentury = Math.floor(currentYear / 100) * 100;
-        const fullYear = currentCentury + yearNum;
-
-        // ถ้าปีที่คำนวณได้มากกว่าปีปัจจุบัน 10 ปี ให้ลดศตวรรษลง 1
-        if (fullYear > currentYear + 10) {
-            return `${(fullYear - 100).toString().padStart(4, "0")}-${month}-${day}`;
-        }
-
-        return `${fullYear.toString().padStart(4, "0")}-${month}-${day}`;
-    }
-
-    return dateValue;
-};
-
-// ฟังก์ชันสำหรับจัดรูปแบบวันที่แสดงผล (แปลงจาก YYYY-MM-DD เป็น DD/MM/YYYY)
-const formatDateDisplay = (dateStr: string) => {
-    if (!dateStr || !dateStr.includes("-")) return dateStr;
-    const [year, month, day] = dateStr.split("-");
-    return `${day}/${month}/${year}`;
-};
-
-// ฟังก์ชันสำหรับแปลงจาก DD/MM/YYYY เป็น YYYY-MM-DD
-const parseDateInput = (displayDate: string) => {
-    if (!displayDate || !displayDate.includes("/")) {
-        // ถ้าเป็นรูปแบบ YYYY-MM-DD อยู่แล้ว
-        if (displayDate.includes("-")) {
-            return normalizeYear(displayDate);
-        }
-        return displayDate;
-    }
-
-    const [day, month, year] = displayDate.split("/");
-    if (!day || !month || !year) return displayDate;
-
-    const dateStr = `${year.padStart(4, "0")}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
-    return normalizeYear(dateStr);
-};
-
-// ฟังก์ชันตรวจสอบว่าวันที่ถูกต้องหรือไม่
-const isValidDate = (dateStr: string) => {
-    if (!dateStr) return false;
-
-    // ถ้าเป็นรูปแบบ DD/MM/YYYY
-    if (dateStr.includes("/")) {
-        const [day, month, year] = dateStr.split("/");
-        if (!day || !month || !year) return false;
-
-        const dayNum = parseInt(day, 10);
-        const monthNum = parseInt(month, 10);
-        const yearNum = parseInt(year, 10);
-
-        if (dayNum < 1 || dayNum > 31 || monthNum < 1 || monthNum > 12) return false;
-
-        const date = new Date(yearNum >= 2443 ? yearNum - 543 : yearNum, monthNum - 1, dayNum);
-        return date.getDate() === dayNum && date.getMonth() === monthNum - 1;
-    }
-
-    // ถ้าเป็นรูปแบบ YYYY-MM-DD
-    if (dateStr.includes("-")) {
-        const [year, month, day] = dateStr.split("-");
-        if (!year || !month || !day) return false;
-
-        const dayNum = parseInt(day, 10);
-        const monthNum = parseInt(month, 10);
-        const yearNum = parseInt(year, 10);
-
-        if (dayNum < 1 || dayNum > 31 || monthNum < 1 || monthNum > 12) return false;
-
-        const date = new Date(yearNum >= 2443 ? yearNum - 543 : yearNum, monthNum - 1, dayNum);
-        return date.getDate() === dayNum && date.getMonth() === monthNum - 1;
-    }
-
-    return false;
-}; type Me = {
+type Me = {
     fullName: string;
     role: "ADMIN" | "INTERNAL" | "EXTERNAL";
     phone?: string | null;
@@ -166,8 +72,6 @@ const BorrowKaruphan = ({
     // ใช้ state แสดง/รับค่าเป็น พ.ศ. (string) - ไม่มีค่า default
     const [borrowDateBE, setBorrowDateBE] = useState<string>("");
     const [returnDateBE, setReturnDateBE] = useState<string>("");
-    const [borrowDateDisplay, setBorrowDateDisplay] = useState<string>(""); // แสดงในรูปแบบ DD/MM/YYYY
-    const [returnDateDisplay, setReturnDateDisplay] = useState<string>(""); // แสดงในรูปแบบ DD/MM/YYYY
     const [reason, setReason] = useState<string>("");
     const [submitting, setSubmitting] = useState(false);
 
@@ -360,71 +264,58 @@ const BorrowKaruphan = ({
                 <form onSubmit={handleSubmit} className="flex flex-col gap-4 text-sm">
                     <FormRow label="วันที่ยืม">
                         <input
-                            type="text"
-                            value={borrowDateDisplay}
+                            type="date"
+                            value={borrowDateBE}
+                            min={ceToThai(toInputDate(new Date()))}
                             onChange={(e) => {
-                                const inputValue = e.target.value;
-                                setBorrowDateDisplay(inputValue);
-
-                                // แปลงเป็นรูปแบบ YYYY-MM-DD สำหรับเก็บใน state
-                                const normalizedDate = parseDateInput(inputValue);
-                                setBorrowDateBE(normalizedDate);
+                                let v = e.target.value;
+                                if (/^\d{4}-\d{2}-\d{2}$/.test(v)) {
+                                    const [y] = v.split("-");
+                                    if (Number(y) < 2500) v = ceToThai(v);
+                                }
+                                setBorrowDateBE(v);
 
                                 // ถ้าวันที่คืนที่เลือกอยู่มาก่อนวันที่ยืมใหม่ ให้ reset วันที่คืน
-                                if (returnDateBE && normalizedDate && isValidDate(inputValue)) {
-                                    const borrowDateCE = thaiToCE(normalizedDate);
+                                if (returnDateBE && v) {
+                                    const borrowDateCE = thaiToCE(v);
                                     const returnDateCE = thaiToCE(returnDateBE);
                                     const borrowDate = new Date(borrowDateCE);
                                     const returnDate = new Date(returnDateCE);
 
                                     if (returnDate < borrowDate) {
                                         setReturnDateBE("");
-                                        setReturnDateDisplay("");
                                     }
                                 }
                             }}
-                            onBlur={(e) => {
-                                // เมื่อออกจากช่อง ให้แปลงเป็นรูปแบบที่สวยงาม
-                                const inputValue = e.target.value;
-                                if (isValidDate(inputValue)) {
-                                    const normalizedDate = parseDateInput(inputValue);
-                                    setBorrowDateBE(normalizedDate);
-                                    setBorrowDateDisplay(formatDateDisplay(normalizedDate));
-                                }
-                            }}
                             className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none transition-colors bg-white text-gray-700"
-                            placeholder="26/09/2568 หรือ 2568-09-26 หรือ 26/09/68"
+                            placeholder="2568-09-11"
                             required
                         />
-                        
+                        <p className="text-xs text-gray-500 mt-1">
+                            * สามารถเลือกวันที่วันนี้หรือในอนาคตเท่านั้น (สำหรับการจองล่วงหน้า)
+                        </p>
                     </FormRow>
 
                     <FormRow label="กำหนดคืน">
                         <input
-                            type="text"
-                            value={returnDateDisplay}
+                            type="date"
+                            value={returnDateBE}
+                            min={borrowDateBE || ceToThai(toInputDate(new Date()))}
                             onChange={(e) => {
-                                const inputValue = e.target.value;
-                                setReturnDateDisplay(inputValue);
-
-                                // แปลงเป็นรูปแบบ YYYY-MM-DD สำหรับเก็บใน state
-                                const normalizedDate = parseDateInput(inputValue);
-                                setReturnDateBE(normalizedDate);
-                            }}
-                            onBlur={(e) => {
-                                // เมื่อออกจากช่อง ให้แปลงเป็นรูปแบบที่สวยงาม
-                                const inputValue = e.target.value;
-                                if (isValidDate(inputValue)) {
-                                    const normalizedDate = parseDateInput(inputValue);
-                                    setReturnDateBE(normalizedDate);
-                                    setReturnDateDisplay(formatDateDisplay(normalizedDate));
+                                let v = e.target.value;
+                                if (/^\d{4}-\d{2}-\d{2}$/.test(v)) {
+                                    const [y] = v.split("-");
+                                    if (Number(y) < 2500) v = ceToThai(v);
                                 }
+                                setReturnDateBE(v);
                             }}
                             className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none transition-colors bg-white text-gray-700"
-                            placeholder="26/09/2568 หรือ 2568-09-26 หรือ 26/09/68"
+                            placeholder="2568-09-11"
                             required
                         />
-                        
+                        <p className="text-xs text-gray-500 mt-1">
+                            * วันที่คืนต้องเป็นวันเดียวกันหรือหลังจากวันที่ยืม
+                        </p>
                     </FormRow>
 
                     <FormRow label="เหตุผลที่ยืม">
