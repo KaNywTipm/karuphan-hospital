@@ -270,7 +270,7 @@ const BorrowKaruphan = ({
                     <FormRow label="วันที่ยืม">
                         <input
                             type="date"
-                            value={borrowDateCE}
+                            value={borrowDateBE}
                             min={toInputDate(new Date())} // ไม่ให้เลือกวันก่อนวันนี้
                             onChange={(e) => setBorrowDateCE(e.target.value)}
                             className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none transition-colors bg-white text-gray-700"
@@ -284,7 +284,7 @@ const BorrowKaruphan = ({
                     <FormRow label="กำหนดคืน">
                         <input
                             type="date"
-                            value={returnDateCE}
+                            value={returnDateBE}
                             min={borrowDateCE || toInputDate(new Date())} // คืนต้องไม่ก่อนวันที่ยืม
                             onChange={(e) => setReturnDateCE(e.target.value)}
                             className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none transition-colors bg-white text-gray-700"
