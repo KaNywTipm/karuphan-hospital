@@ -70,8 +70,13 @@ const BorrowKaruphan = ({
     const router = useRouter();
     const [me, setMe] = useState<Me | null>(null);
     // ใช้ state แสดง/รับค่าเป็น พ.ศ. (string) - ไม่มีค่า default
-    const [borrowDateBE, setBorrowDateBE] = useState<string>("");
-    const [returnDateBE, setReturnDateBE] = useState<string>("");
+    // state เก็บจริง ๆ เป็น ค.ศ. (CE)
+    const [borrowDateCE, setBorrowDateCE] = useState<string>(toInputDate(new Date()));
+    const [returnDateCE, setReturnDateCE] = useState<string>("");
+
+    // state สำหรับแสดงผล/แปลง (BE)
+    const borrowDateBE = ceToThai(borrowDateCE);
+    const returnDateBE = ceToThai(returnDateCE);
     const [reason, setReason] = useState<string>("");
     const [submitting, setSubmitting] = useState(false);
 
@@ -265,58 +270,31 @@ const BorrowKaruphan = ({
                     <FormRow label="วันที่ยืม">
                         <input
                             type="date"
-                            value={borrowDateBE}
-                            min={ceToThai(toInputDate(new Date()))}
-                            onChange={(e) => {
-                                let v = e.target.value;
-                                if (/^\d{4}-\d{2}-\d{2}$/.test(v)) {
-                                    const [y] = v.split("-");
-                                    if (Number(y) < 2500) v = ceToThai(v);
-                                }
-                                setBorrowDateBE(v);
-
-                                // ถ้าวันที่คืนที่เลือกอยู่มาก่อนวันที่ยืมใหม่ ให้ reset วันที่คืน
-                                if (returnDateBE && v) {
-                                    const borrowDateCE = thaiToCE(v);
-                                    const returnDateCE = thaiToCE(returnDateBE);
-                                    const borrowDate = new Date(borrowDateCE);
-                                    const returnDate = new Date(returnDateCE);
-
-                                    if (returnDate < borrowDate) {
-                                        setReturnDateBE("");
-                                    }
-                                }
-                            }}
+                            value={borrowDateCE}
+                            min={toInputDate(new Date())} // ไม่ให้เลือกวันก่อนวันนี้
+                            onChange={(e) => setBorrowDateCE(e.target.value)}
                             className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none transition-colors bg-white text-gray-700"
-                            placeholder="2568-09-11"
                             required
                         />
                         <p className="text-xs text-gray-500 mt-1">
-                            * สามารถเลือกวันที่วันนี้หรือในอนาคตเท่านั้น (สำหรับการจองล่วงหน้า)
+                            * สามารถเลือกวันที่วันนี้หรือในอนาคตเท่านั้น
                         </p>
                     </FormRow>
 
                     <FormRow label="กำหนดคืน">
                         <input
                             type="date"
-                            value={returnDateBE}
-                            min={borrowDateBE || ceToThai(toInputDate(new Date()))}
-                            onChange={(e) => {
-                                let v = e.target.value;
-                                if (/^\d{4}-\d{2}-\d{2}$/.test(v)) {
-                                    const [y] = v.split("-");
-                                    if (Number(y) < 2500) v = ceToThai(v);
-                                }
-                                setReturnDateBE(v);
-                            }}
+                            value={returnDateCE}
+                            min={borrowDateCE || toInputDate(new Date())} // คืนต้องไม่ก่อนวันที่ยืม
+                            onChange={(e) => setReturnDateCE(e.target.value)}
                             className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none transition-colors bg-white text-gray-700"
-                            placeholder="2568-09-11"
                             required
                         />
                         <p className="text-xs text-gray-500 mt-1">
                             * วันที่คืนต้องเป็นวันเดียวกันหรือหลังจากวันที่ยืม
                         </p>
                     </FormRow>
+
 
                     <FormRow label="เหตุผลที่ยืม">
                         <textarea
