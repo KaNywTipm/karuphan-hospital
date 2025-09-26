@@ -70,13 +70,8 @@ const BorrowKaruphan = ({
     const router = useRouter();
     const [me, setMe] = useState<Me | null>(null);
     // ใช้ state แสดง/รับค่าเป็น พ.ศ. (string) - ไม่มีค่า default
-    // state เก็บจริง ๆ เป็น ค.ศ. (CE)
-    const [borrowDateCE, setBorrowDateCE] = useState<string>(toInputDate(new Date()));
-    const [returnDateCE, setReturnDateCE] = useState<string>("");
-
-    // state สำหรับแสดงผล/แปลง (BE)
-    const borrowDateBE = ceToThai(borrowDateCE);
-    const returnDateBE = ceToThai(returnDateCE);
+    const [borrowDateBE, setBorrowDateBE] = useState<string>("");
+    const [returnDateBE, setReturnDateBE] = useState<string>("");
     const [reason, setReason] = useState<string>("");
     const [submitting, setSubmitting] = useState(false);
 
@@ -220,7 +215,7 @@ const BorrowKaruphan = ({
             <div className="bg-white p-8 rounded-2xl shadow-md w-[90%] md:w-[600px] max-h-[90vh] overflow-y-auto">
                 <div className="w-full flex justify-end mb-4">
                     <button onClick={handleClose} aria-label="Close form">
-                        <Image src="/icons/close.png" alt="Close" width={30} height={30} />
+                        <Image src="/Close.png" alt="Close" width={30} height={30} />
                     </button>
                 </div>
 
@@ -271,13 +266,33 @@ const BorrowKaruphan = ({
                         <input
                             type="date"
                             value={borrowDateBE}
-                            min={toInputDate(new Date())} // ไม่ให้เลือกวันก่อนวันนี้
-                            onChange={(e) => setBorrowDateCE(e.target.value)}
+                            min={ceToThai(toInputDate(new Date()))}
+                            onChange={(e) => {
+                                let v = e.target.value;
+                                if (/^\d{4}-\d{2}-\d{2}$/.test(v)) {
+                                    const [y] = v.split("-");
+                                    if (Number(y) < 2500) v = ceToThai(v);
+                                }
+                                setBorrowDateBE(v);
+
+                                // ถ้าวันที่คืนที่เลือกอยู่มาก่อนวันที่ยืมใหม่ ให้ reset วันที่คืน
+                                if (returnDateBE && v) {
+                                    const borrowDateCE = thaiToCE(v);
+                                    const returnDateCE = thaiToCE(returnDateBE);
+                                    const borrowDate = new Date(borrowDateCE);
+                                    const returnDate = new Date(returnDateCE);
+
+                                    if (returnDate < borrowDate) {
+                                        setReturnDateBE("");
+                                    }
+                                }
+                            }}
                             className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none transition-colors bg-white text-gray-700"
+                            placeholder="2568-09-11"
                             required
                         />
                         <p className="text-xs text-gray-500 mt-1">
-                            * สามารถเลือกวันที่วันนี้หรือในอนาคตเท่านั้น
+                            * สามารถเลือกวันที่วันนี้หรือในอนาคตเท่านั้น (สำหรับการจองล่วงหน้า)
                         </p>
                     </FormRow>
 
@@ -285,16 +300,23 @@ const BorrowKaruphan = ({
                         <input
                             type="date"
                             value={returnDateBE}
-                            min={borrowDateCE || toInputDate(new Date())} // คืนต้องไม่ก่อนวันที่ยืม
-                            onChange={(e) => setReturnDateCE(e.target.value)}
+                            min={borrowDateBE || ceToThai(toInputDate(new Date()))}
+                            onChange={(e) => {
+                                let v = e.target.value;
+                                if (/^\d{4}-\d{2}-\d{2}$/.test(v)) {
+                                    const [y] = v.split("-");
+                                    if (Number(y) < 2500) v = ceToThai(v);
+                                }
+                                setReturnDateBE(v);
+                            }}
                             className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none transition-colors bg-white text-gray-700"
+                            placeholder="2568-09-11"
                             required
                         />
                         <p className="text-xs text-gray-500 mt-1">
                             * วันที่คืนต้องเป็นวันเดียวกันหรือหลังจากวันที่ยืม
                         </p>
                     </FormRow>
-
 
                     <FormRow label="เหตุผลที่ยืม">
                         <textarea
