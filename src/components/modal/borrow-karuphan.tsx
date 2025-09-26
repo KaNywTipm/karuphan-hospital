@@ -26,6 +26,41 @@ const thaiToCE = (ymdBE: string) => {
     return `${String(Number(y) - 543).padStart(4, "0")}-${m}-${d}`;
 };
 
+// ฟังก์ชันสำหรับปรับปรุงการจัดการปีที่ผู้ใช้กรอก
+const normalizeYear = (dateValue: string) => {
+    if (!dateValue || !dateValue.includes("-")) return dateValue;
+
+    const [year, month, day] = dateValue.split("-");
+    const yearNum = parseInt(year, 10);
+
+    // ถ้าเป็นปี ค.ศ. (1900-2100) ให้แปลงเป็น พ.ศ.
+    if (yearNum >= 1900 && yearNum <= 2100) {
+        const thaiYear = yearNum + 543;
+        return `${thaiYear.toString().padStart(4, "0")}-${month}-${day}`;
+    }
+
+    // ถ้าเป็นปี พ.ศ. ที่สมเหตุสมผล (2443-2643) ให้ใช้ตามเดิม
+    if (yearNum >= 2443 && yearNum <= 2643) {
+        return dateValue;
+    }
+
+    // ถ้าเป็นปีสั้น (เช่น 67, 68) ให้ตีความเป็นปี พ.ศ. ในศตวรรษที่ 26
+    if (yearNum >= 0 && yearNum <= 99) {
+        const currentYear = new Date().getFullYear() + 543; // ปีปัจจุบันเป็น พ.ศ.
+        const currentCentury = Math.floor(currentYear / 100) * 100;
+        const fullYear = currentCentury + yearNum;
+
+        // ถ้าปีที่คำนวณได้มากกว่าปีปัจจุบัน 10 ปี ให้ลดศตวรรษลง 1
+        if (fullYear > currentYear + 10) {
+            return `${(fullYear - 100).toString().padStart(4, "0")}-${month}-${day}`;
+        }
+
+        return `${fullYear.toString().padStart(4, "0")}-${month}-${day}`;
+    }
+
+    return dateValue;
+};
+
 type Me = {
     fullName: string;
     role: "ADMIN" | "INTERNAL" | "EXTERNAL";
@@ -269,6 +304,11 @@ const BorrowKaruphan = ({
                             min={ceToThai(toInputDate(new Date()))}
                             onChange={(e) => {
                                 let v = e.target.value;
+
+                                // ใช้ฟังก์ชัน normalizeYear เพื่อจัดการปีที่ผู้ใช้กรอก
+                                v = normalizeYear(v);
+
+                                // เก็บการแปลงเดิมไว้เป็น fallback
                                 if (/^\d{4}-\d{2}-\d{2}$/.test(v)) {
                                     const [y] = v.split("-");
                                     if (Number(y) < 2500) v = ceToThai(v);
@@ -292,7 +332,8 @@ const BorrowKaruphan = ({
                             required
                         />
                         <p className="text-xs text-gray-500 mt-1">
-                            * สามารถเลือกวันที่วันนี้หรือในอนาคตเท่านั้น (สำหรับการจองล่วงหน้า)
+                            * สามารถเลือกวันที่วันนี้หรือในอนาคตเท่านั้น (สำหรับการจองล่วงหน้า)<br />
+                            * สามารถกรอกปี ค.ศ. (เช่น 2025) หรือ พ.ศ. (เช่น 2568) หรือปีสั้น (เช่น 68) ได้
                         </p>
                     </FormRow>
 
@@ -303,6 +344,11 @@ const BorrowKaruphan = ({
                             min={borrowDateBE || ceToThai(toInputDate(new Date()))}
                             onChange={(e) => {
                                 let v = e.target.value;
+
+                                // ใช้ฟังก์ชัน normalizeYear เพื่อจัดการปีที่ผู้ใช้กรอก
+                                v = normalizeYear(v);
+
+                                // เก็บการแปลงเดิมไว้เป็น fallback
                                 if (/^\d{4}-\d{2}-\d{2}$/.test(v)) {
                                     const [y] = v.split("-");
                                     if (Number(y) < 2500) v = ceToThai(v);
@@ -314,7 +360,8 @@ const BorrowKaruphan = ({
                             required
                         />
                         <p className="text-xs text-gray-500 mt-1">
-                            * วันที่คืนต้องเป็นวันเดียวกันหรือหลังจากวันที่ยืม
+                            * วันที่คืนต้องเป็นวันเดียวกันหรือหลังจากวันที่ยืม<br />
+                            * สามารถกรอกปี ค.ศ. (เช่น 2025) หรือ พ.ศ. (เช่น 2568) หรือปีสั้น (เช่น 68) ได้
                         </p>
                     </FormRow>
 
