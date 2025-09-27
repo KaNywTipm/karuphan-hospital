@@ -179,7 +179,7 @@ export async function PATCH(
     if (e?.code === "P2002") {
       // unique ซ้ำ (code / [categoryId,idnum])
       return NextResponse.json(
-        { ok: false, error: "ข้อมูลนี้มีอยู่ในระบบแล้ว" },
+        { ok: false, error: "เลขครุภัณฑ์นี้มีอยู่ในระบบแล้ว" },
         { status: 409 }
       );
     }

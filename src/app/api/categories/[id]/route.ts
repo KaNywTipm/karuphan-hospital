@@ -111,8 +111,7 @@ export async function PATCH(
 }
 
 // DELETE /api/categories/:id
-// ?hard=1 -> ลบจริง (ยอมเมื่อไม่มีอุปกรณ์อ้างถึงเท่านั้น)
-// ไม่ส่ง -> soft delete โดย set isActive=false (ถ้ามีฟิลด์นี้ใน schema)
+// ลบหมวดหมู่แบบ hard delete (ลบจริงออกจากฐานข้อมูล)
 export async function DELETE(
   req: Request,
   { params }: { params: { id: string } }
@@ -123,8 +122,6 @@ export async function DELETE(
   const idParsed = parseId(params);
   if (!idParsed.ok) return idParsed.error;
   const id = idParsed.id;
-
-  const hard = new URL(req.url).searchParams.get("hard") === "1";
 
   try {
     // เช็คว่ามีจริงก่อน
@@ -145,27 +142,8 @@ export async function DELETE(
       );
     }
 
-    if (!hard) {
-      // Soft delete (ถ้า schema ไม่มี isActive ให้เปลี่ยนมาใช้ delete แทน)
-      try {
-        await prisma.category.update({
-          where: { id },
-          data: { isActive: false as any },
-        });
-        return NextResponse.json(
-          { ok: true, id, hard: false },
-          { status: 200 }
-        );
-      } catch {
-        // กรณีไม่มีฟิลด์ isActive ให้ fallback เป็น hard delete
-        await prisma.category.delete({ where: { id } });
-        return NextResponse.json({ ok: true, id, hard: true }, { status: 200 });
-      }
-    }
-
-    // Hard delete
+    // Hard delete - ลบจริงออกจากฐานข้อมูล
     await prisma.category.delete({ where: { id } });
-    return NextResponse.json({ ok: true, id, hard: true }, { status: 200 });
   } catch (e: any) {
     if (e?.code === "P2025") {
       return NextResponse.json(

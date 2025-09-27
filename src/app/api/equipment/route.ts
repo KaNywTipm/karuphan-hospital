@@ -196,7 +196,7 @@ export async function POST(req: Request) {
     if (e?.code === "P2002") {
       // unique: code (หรือ unique [categoryId,idnum])
       return NextResponse.json(
-        { ok: false, error: "รหัสอุปกรณ์นี้มีอยู่ในระบบแล้ว" },
+        { ok: false, error: "เลขไอดีนี้มีอยู่ในระบบแล้ว" },
         { status: 409 }
       );
     }
