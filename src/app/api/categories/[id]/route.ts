@@ -144,6 +144,7 @@ export async function DELETE(
 
     // Hard delete - ลบจริงออกจากฐานข้อมูล
     await prisma.category.delete({ where: { id } });
+    return NextResponse.json({ ok: true, id }, { status: 200 });
   } catch (e: any) {
     if (e?.code === "P2025") {
       return NextResponse.json(

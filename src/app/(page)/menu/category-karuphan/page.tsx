@@ -167,37 +167,17 @@ export default function CategoryKaruphan() {
             "ยืนยันการลบหมวดหมู่นี้?",
             async () => {
                 try {
-                    // ตรวจสอบว่าหมวดหมู่นี้มีครุภัณฑ์อยู่หรือไม่
-                    const checkRes = await fetch(`/api/categories/${id}/equipment-count`, { cache: "no-store" });
-                    const checkData = await safeJson(checkRes);
-
-                    if (checkRes.ok && checkData?.count > 0) {
-                        confirm.show(
-                            `หมวดหมู่นี้มีครุภัณฑ์ ${checkData.count} รายการ\nต้องการลบแบบ Hard Delete หรือไม่?\n(ครุภัณฑ์ทั้งหมดในหมวดนี้จะถูกลบด้วย)`,
-                            async () => {
-                                // ส่ง query parameter hardDelete=true เพื่อบอก API ให้ลบแบบ hard delete
-                                const res = await fetch(`/api/categories/${id}?hardDelete=true`, { method: "DELETE" });
-                                const data = await safeJson(res);
-                                if (!res.ok) throw new Error(data?.error || "ไม่สามารถลบหมวดหมู่ได้ กรุณาลองใหม่อีกครั้ง");
-                                await load();
-                                alert.success("ลบหมวดหมู่และครุภัณฑ์ทั้งหมดเรียบร้อยแล้ว");
-                                // ถ้าลบแล้วหน้าปัจจุบันไม่มีรายการ ให้ถอยหน้าลง
-                                setCurrentPage((p) => {
-                                    const after = Math.ceil((filteredData.length - 1) / itemsPerPage) || 1;
-                                    return Math.min(p, after);
-                                });
-                            },
-                            { type: "danger", title: "คำเตือน: การลบแบบ Hard Delete" }
-                        );
-                        return;
-                    }
-
-                    // ถ้าไม่มีครุภัณฑ์ในหมวดนี้ ลบได้เลย
                     const res = await fetch(`/api/categories/${id}`, { method: "DELETE" });
                     const data = await safeJson(res);
-                    if (!res.ok) throw new Error(data?.error || "ไม่สามารถลบหมวดหมู่ได้ กรุณาลองใหม่อีกครั้ง");
+
+                    if (!res.ok) {
+                        // แสดง error message จาก API
+                        throw new Error(data?.error || "ไม่สามารถลบหมวดหมู่ได้ กรุณาลองใหม่อีกครั้ง");
+                    }
+
                     await load();
                     alert.success("ลบหมวดหมู่เรียบร้อยแล้ว");
+
                     // ถ้าลบแล้วหน้าปัจจุบันไม่มีรายการ ให้ถอยหน้าลง
                     setCurrentPage((p) => {
                         const after = Math.ceil((filteredData.length - 1) / itemsPerPage) || 1;
