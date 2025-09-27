@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Inter, Noto_Sans_Thai } from "next/font/google";
-import "./globals.css";
+import "@/app/globals.css";
 import Providers from "@/components/Providers";
 
 const inter = Inter({ subsets: ["latin"] });
