@@ -11,7 +11,7 @@ async function requireAdmin() {
     return {
       ok: false,
       res: NextResponse.json(
-        { ok: false, error: "unauthorized" },
+        { ok: false, error: "กรุณาเข้าสู่ระบบก่อน" },
         { status: 401 }
       ),
     };
@@ -21,7 +21,7 @@ async function requireAdmin() {
     return {
       ok: false,
       res: NextResponse.json(
-        { ok: false, error: "forbidden" },
+        { ok: false, error: "คุณไม่มีสิทธิ์ใช้งานฟีเจอร์นี้" },
         { status: 403 }
       ),
     };
@@ -35,7 +35,7 @@ function parseId(params: { id?: string }) {
     return {
       ok: false as const,
       error: NextResponse.json(
-        { ok: false, error: "invalid-id" },
+        { ok: false, error: "รหัสหมวดหมู่ไม่ถูกต้อง" },
         { status: 400 }
       ),
     };
@@ -60,7 +60,7 @@ export async function PATCH(
     payload = await req.json();
   } catch {
     return NextResponse.json(
-      { ok: false, error: "invalid-json" },
+      { ok: false, error: "ข้อมูลที่ส่งมาไม่ถูกต้อง" },
       { status: 400 }
     );
   }
@@ -71,7 +71,7 @@ export async function PATCH(
 
   if (!nameRaw) {
     return NextResponse.json(
-      { ok: false, error: "name-required" },
+      { ok: false, error: "กรุณากรอกชื่อหมวดหมู่" },
       { status: 400 }
     );
   }
@@ -91,20 +91,20 @@ export async function PATCH(
     // not found
     if (e?.code === "P2025") {
       return NextResponse.json(
-        { ok: false, error: "not-found" },
+        { ok: false, error: "ไม่พบหมวดหมู่นี้" },
         { status: 404 }
       );
     }
     // unique conflict (เช่นชื่อซ้ำ)
     if (e?.code === "P2002") {
       return NextResponse.json(
-        { ok: false, error: "duplicate-name" },
+        { ok: false, error: "ชื่อหมวดหมู่นี้มีอยู่ในระบบแล้ว" },
         { status: 409 }
       );
     }
     console.error("PATCH /api/categories/:id error:", e);
     return NextResponse.json(
-      { ok: false, error: "server-error" },
+      { ok: false, error: "เกิดข้อผิดพลาดของเซิร์ฟเวอร์" },
       { status: 500 }
     );
   }
@@ -169,7 +169,7 @@ export async function DELETE(
   } catch (e: any) {
     if (e?.code === "P2025") {
       return NextResponse.json(
-        { ok: false, error: "not-found" },
+        { ok: false, error: "ไม่พบหมวดหมู่นี้" },
         { status: 404 }
       );
     }
@@ -189,7 +189,7 @@ export async function DELETE(
     }
     console.error("DELETE /api/categories/:id error:", e);
     return NextResponse.json(
-      { ok: false, error: "server-error" },
+      { ok: false, error: "เกิดข้อผิดพลาดของเซิร์ฟเวอร์" },
       { status: 500 }
     );
   }

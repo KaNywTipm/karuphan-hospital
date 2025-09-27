@@ -115,7 +115,7 @@ model Category {
 // ข้อมูลครุภัณฑ์
 model Equipment {
     number       Int      @id @default(autoincrement())
-    idnum        String?
+    idnum        String   @unique
     code         String   @unique
     name         String
     description  String?

@@ -84,7 +84,7 @@ export async function GET(req: Request) {
   } catch (e: any) {
     console.error("[GET /api/equipment] Error:", e);
     return NextResponse.json(
-      { ok: false, error: e?.message || "internal-error" },
+      { ok: false, error: "เกิดข้อผิดพลาดภายในระบบ" },
       { status: 500 }
     );
   }
@@ -95,14 +95,14 @@ export async function POST(req: Request) {
   const session: any = await auth();
   if (!session)
     return NextResponse.json(
-      { ok: false, error: "unauthorized" },
+      { ok: false, error: "กรุณาเข้าสู่ระบบก่อน" },
       { status: 401 }
     );
 
   const role = String(session.role ?? session.user?.role ?? "").toUpperCase();
   if (role !== "ADMIN")
     return NextResponse.json(
-      { ok: false, error: "forbidden" },
+      { ok: false, error: "คุณไม่มีสิทธิ์ใช้งานฟีเจอร์นี้" },
       { status: 403 }
     );
 
@@ -111,7 +111,7 @@ export async function POST(req: Request) {
     body = await req.json();
   } catch {
     return NextResponse.json(
-      { ok: false, error: "invalid-json" },
+      { ok: false, error: "ข้อมูลที่ส่งมาไม่ถูกต้อง" },
       { status: 400 }
     );
   }
@@ -133,7 +133,7 @@ export async function POST(req: Request) {
     return NextResponse.json(
       {
         ok: false,
-        error: "missing-fields",
+        error: "กรุณากรอกข้อมูลให้ครบถ้วน",
         require: ["code", "name", "categoryId", "receivedDate"],
       },
       { status: 400 }
@@ -143,14 +143,14 @@ export async function POST(req: Request) {
   const statusFinal = String(status ?? "NORMAL").toUpperCase();
   if (!ALLOWED_STATUS.has(statusFinal)) {
     return NextResponse.json(
-      { ok: false, error: "invalid-status" },
+      { ok: false, error: "สถานะที่เลือกไม่ถูกต้อง" },
       { status: 400 }
     );
   }
   if (statusFinal === "IN_USE") {
     // กันการสร้างเป็น IN_USE ด้วยมือ (ให้เกิดจาก borrow เท่านั้น)
     return NextResponse.json(
-      { ok: false, error: "cannot-set-in-use-manually" },
+      { ok: false, error: "ไม่สามารถตั้งสถานะ 'กำลังใช้งาน' ด้วยตนเองได้" },
       { status: 409 }
     );
   }
@@ -196,20 +196,20 @@ export async function POST(req: Request) {
     if (e?.code === "P2002") {
       // unique: code (หรือ unique [categoryId,idnum])
       return NextResponse.json(
-        { ok: false, error: "duplicate-unique" },
+        { ok: false, error: "รหัสอุปกรณ์นี้มีอยู่ในระบบแล้ว" },
         { status: 409 }
       );
     }
     if (e?.code === "P2003") {
       // FK: categoryId ไม่ถูกต้อง
       return NextResponse.json(
-        { ok: false, error: "invalid-category" },
+        { ok: false, error: "หมวดหมู่ที่เลือกไม่ถูกต้อง" },
         { status: 400 }
       );
     }
     console.error("[POST /api/equipment]", e);
     return NextResponse.json(
-      { ok: false, error: "server-error" },
+      { ok: false, error: "เกิดข้อผิดพลาดของเซิร์ฟเวอร์" },
       { status: 500 }
     );
   }

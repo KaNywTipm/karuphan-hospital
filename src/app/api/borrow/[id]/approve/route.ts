@@ -16,13 +16,13 @@ export async function PATCH(
 
     if (!userId) {
       return NextResponse.json(
-        { ok: false, error: "unauthenticated" },
+        { ok: false, error: "กรุณาเข้าสู่ระบบก่อน" },
         { status: 401 }
       );
     }
     if (role !== "ADMIN") {
       return NextResponse.json(
-        { ok: false, error: "forbidden" },
+        { ok: false, error: "คุณไม่มีสิทธิ์ใช้งานฟีเจอร์นี้" },
         { status: 403 }
       );
     }
@@ -30,7 +30,7 @@ export async function PATCH(
     const id = Number(params.id);
     if (!Number.isFinite(id)) {
       return NextResponse.json(
-        { ok: false, error: "invalid-id" },
+        { ok: false, error: "รหัสคำขอไม่ถูกต้อง" },
         { status: 400 }
       );
     }
@@ -42,13 +42,13 @@ export async function PATCH(
     });
     if (!br) {
       return NextResponse.json(
-        { ok: false, error: "not-found" },
+        { ok: false, error: "ไม่พบคำขอยืมนี้" },
         { status: 404 }
       );
     }
     if (br.status !== "PENDING") {
       return NextResponse.json(
-        { ok: false, error: "invalid-status" },
+        { ok: false, error: "ไม่สามารถอนุมัติคำขอนี้ได้" },
         { status: 409 }
       );
     }
@@ -101,7 +101,7 @@ export async function PATCH(
   } catch (e: any) {
     console.error("[approve]", e);
     return NextResponse.json(
-      { ok: false, error: "internal-error" },
+      { ok: false, error: "เกิดข้อผิดพลาดภายในระบบ" },
       { status: 500 }
     );
   }

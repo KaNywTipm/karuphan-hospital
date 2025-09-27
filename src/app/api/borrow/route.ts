@@ -154,7 +154,7 @@ export async function POST(req: Request) {
     );
     if (!equipmentNumbers.length) {
       return NextResponse.json(
-        { ok: false, error: "no-items" },
+        { ok: false, error: "กรุณาเลือกครุภัณฑ์ที่ต้องการยืม" },
         { status: 400 }
       );
     }
@@ -165,7 +165,7 @@ export async function POST(req: Request) {
       const d = new Date(body.returnDue);
       if (isNaN(d.getTime())) {
         return NextResponse.json(
-          { ok: false, error: "invalid-returnDue" },
+          { ok: false, error: "วันที่คืนครุภัณฑ์ไม่ถูกต้อง" },
           { status: 400 }
         );
       }
@@ -178,7 +178,7 @@ export async function POST(req: Request) {
       const d = new Date(body.borrowDate);
       if (isNaN(d.getTime())) {
         return NextResponse.json(
-          { ok: false, error: "invalid-borrowDate" },
+          { ok: false, error: "วันที่ยืมครุภัณฑ์ไม่ถูกต้อง" },
           { status: 400 }
         );
       }
@@ -192,7 +192,7 @@ export async function POST(req: Request) {
     const requesterId = isInternal ? Number(me?.id) : null;
     if (isInternal && !Number.isFinite(requesterId)) {
       return NextResponse.json(
-        { ok: false, error: "unauthenticated" },
+        { ok: false, error: "กรุณาเข้าสู่ระบบก่อนทำการยืม" },
         { status: 401 }
       );
     }
@@ -214,7 +214,7 @@ export async function POST(req: Request) {
       return NextResponse.json(
         {
           ok: false,
-          error: "items-invalid",
+          error: "ครุภัณฑ์ที่เลือกไม่ถูกต้องหรือไม่พร้อมใช้งาน",
           details: { notFound, unavailable },
         },
         { status: 409 }
@@ -331,7 +331,7 @@ export async function POST(req: Request) {
     }
 
     return NextResponse.json(
-      { ok: false, error: "internal-error" },
+      { ok: false, error: "เกิดข้อผิดพลาดภายในระบบ" },
       { status: 500 }
     );
   }

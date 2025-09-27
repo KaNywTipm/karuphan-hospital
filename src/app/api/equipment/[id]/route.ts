@@ -43,14 +43,14 @@ export async function GET(_: Request, { params }: { params: { id: string } }) {
     });
     if (!row)
       return NextResponse.json(
-        { ok: false, error: "not-found" },
+        { ok: false, error: "ไม่พบครุภัณฑ์นี้" },
         { status: 404 }
       );
     return NextResponse.json({ ok: true, data: row });
   } catch (e: any) {
     console.error("[GET /api/equipment/:id]", e);
     return NextResponse.json(
-      { ok: false, error: "server-error" },
+      { ok: false, error: "เกิดข้อผิดพลาดของเซิร์ฟเวอร์" },
       { status: 500 }
     );
   }
@@ -64,13 +64,13 @@ export async function PATCH(
   const session: any = await auth();
   if (!session)
     return NextResponse.json(
-      { ok: false, error: "unauthorized" },
+      { ok: false, error: "กรุณาเข้าสู่ระบบก่อน" },
       { status: 401 }
     );
   const role = String(session.role ?? session.user?.role ?? "").toUpperCase();
   if (role !== "ADMIN")
     return NextResponse.json(
-      { ok: false, error: "forbidden" },
+      { ok: false, error: "คุณไม่มีสิทธิ์ใช้งานฟีเจอร์นี้" },
       { status: 403 }
     );
 
@@ -87,7 +87,7 @@ export async function PATCH(
     body = await req.json();
   } catch {
     return NextResponse.json(
-      { ok: false, error: "invalid-json" },
+      { ok: false, error: "ข้อมูลที่ส่งมาไม่ถูกต้อง" },
       { status: 400 }
     );
   }
@@ -99,7 +99,7 @@ export async function PATCH(
   });
   if (!current)
     return NextResponse.json(
-      { ok: false, error: "not-found" },
+      { ok: false, error: "ไม่พบครุภัณฑ์นี้" },
       { status: 404 }
     );
 
@@ -121,14 +121,17 @@ export async function PATCH(
     const newStatus = String(body.status).toUpperCase();
     if (!ALLOWED_STATUS.has(newStatus)) {
       return NextResponse.json(
-        { ok: false, error: "invalid-status" },
+        { ok: false, error: "สถานะที่เลือกไม่ถูกต้อง" },
         { status: 400 }
       );
     }
     // ห้ามเซ็ตเป็น IN_USE หรือ RESERVED ด้วยมือ
     if (newStatus === "IN_USE" || newStatus === "RESERVED") {
       return NextResponse.json(
-        { ok: false, error: "cannot-set-in-use-or-reserved-manually" },
+        {
+          ok: false,
+          error: "ไม่สามารถตั้งสถานะเป็น 'กำลังใช้งาน' หรือ 'จอง' ด้วยตนเองได้",
+        },
         { status: 409 }
       );
     }
@@ -137,7 +140,7 @@ export async function PATCH(
 
   if (Object.keys(updates).length === 0) {
     return NextResponse.json(
-      { ok: false, error: "no-updates" },
+      { ok: false, error: "ไม่มีข้อมูลที่ต้องปรับปรุง" },
       { status: 400 }
     );
   }
@@ -176,20 +179,20 @@ export async function PATCH(
     if (e?.code === "P2002") {
       // unique ซ้ำ (code / [categoryId,idnum])
       return NextResponse.json(
-        { ok: false, error: "duplicate-unique" },
+        { ok: false, error: "ข้อมูลนี้มีอยู่ในระบบแล้ว" },
         { status: 409 }
       );
     }
     if (e?.code === "P2003") {
       // FK ไม่ถูกต้อง เช่น categoryId ไม่มี
       return NextResponse.json(
-        { ok: false, error: "invalid-category" },
+        { ok: false, error: "หมวดหมู่ที่เลือกไม่ถูกต้อง" },
         { status: 400 }
       );
     }
     console.error("[PATCH /api/equipment/:id]", e);
     return NextResponse.json(
-      { ok: false, error: "server-error" },
+      { ok: false, error: "เกิดข้อผิดพลาดของเซิร์ฟเวอร์" },
       { status: 500 }
     );
   }

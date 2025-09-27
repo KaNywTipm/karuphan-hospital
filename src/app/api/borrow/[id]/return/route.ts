@@ -42,13 +42,13 @@ export async function PATCH(
 
     if (!userId) {
       return NextResponse.json(
-        { ok: false, error: "unauthenticated" },
+        { ok: false, error: "กรุณาเข้าสู่ระบบก่อน" },
         { status: 401 }
       );
     }
     if (role !== "ADMIN") {
       return NextResponse.json(
-        { ok: false, error: "forbidden" },
+        { ok: false, error: "คุณไม่มีสิทธิ์ใช้งานฟีเจอร์นี้" },
         { status: 403 }
       );
     }
@@ -56,7 +56,7 @@ export async function PATCH(
     const id = Number(params.id);
     if (!Number.isFinite(id)) {
       return NextResponse.json(
-        { ok: false, error: "invalid-id" },
+        { ok: false, error: "รหัสคำขอไม่ถูกต้อง" },
         { status: 400 }
       );
     }
@@ -66,7 +66,7 @@ export async function PATCH(
       body = await req.json();
     } catch {
       return NextResponse.json(
-        { ok: false, error: "invalid-json" },
+        { ok: false, error: "ข้อมูลที่ส่งมาไม่ถูกต้อง" },
         { status: 400 }
       );
     }
@@ -78,7 +78,7 @@ export async function PATCH(
 
     if (!returnConditions.length) {
       return NextResponse.json(
-        { ok: false, error: "missing-return-conditions" },
+        { ok: false, error: "กรุณาระบุสภาพครุภัณฑ์ที่คืน" },
         { status: 400 }
       );
     }
@@ -95,7 +95,7 @@ export async function PATCH(
     }
     if (br.status !== "APPROVED") {
       return NextResponse.json(
-        { ok: false, error: "invalid-status" },
+        { ok: false, error: "ไม่สามารถรับคืนครุภัณฑ์นี้ได้" },
         { status: 409 }
       );
     }
@@ -173,19 +173,19 @@ export async function PATCH(
     }
     if (e?.code === "BAD_STATE") {
       return NextResponse.json(
-        { ok: false, error: "invalid-state" },
+        { ok: false, error: "สถานะคำขอไม่ถูกต้อง" },
         { status: 409 }
       );
     }
     if (e?.code === "NO_ITEMS") {
       return NextResponse.json(
-        { ok: false, error: "no-items" },
+        { ok: false, error: "ไม่มีรายการครุภัณฑ์" },
         { status: 422 }
       );
     }
     console.error("[return]", e);
     return NextResponse.json(
-      { ok: false, error: "internal-error" },
+      { ok: false, error: "เกิดข้อผิดพลาดภายในระบบ" },
       { status: 500 }
     );
   }
