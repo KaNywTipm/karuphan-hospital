@@ -9,6 +9,8 @@ export default function ForgotPasswordPage() {
     const [code, setCode] = useState(["", "", "", "", "", ""]);
     const [password, setPassword] = useState("");
     const [confirm, setConfirm] = useState("");
+    const [showPassword, setShowPassword] = useState(false);
+    const [showConfirm, setShowConfirm] = useState(false);
     const otpInputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
     async function requestCode(e: React.FormEvent) {
@@ -121,14 +123,26 @@ export default function ForgotPasswordPage() {
                             <Image src="/icons/key.png" alt="รหัสผ่าน" width={18} height={18} />
                             รหัสผ่านใหม่
                         </label>
-                        <input className="w-full border rounded px-3 py-2 mb-3" type="password"
-                            value={password} onChange={e => setPassword(e.target.value)} />
+                        <div className="relative mb-3">
+                            <input className="w-full border rounded px-3 py-2 pr-10" type={showPassword ? "text" : "password"}
+                                value={password} onChange={e => setPassword(e.target.value)} />
+                            <button type="button" className="absolute right-2 top-1/2 -translate-y-1/2"
+                                onClick={() => setShowPassword(s => !s)}>
+                                <Image src={showPassword ? "/icons/openEye.png" : "/icons/closeEye.png"} alt="toggle" width={18} height={18} />
+                            </button>
+                        </div>
                         <label className="text-sm flex items-center gap-2 mb-1">
                             <Image src="/icons/key.png" alt="ยืนยันรหัสผ่าน" width={18} height={18} />
                             ยืนยันรหัสผ่าน
                         </label>
-                        <input className="w-full border rounded px-3 py-2 mb-5" type="password"
-                            value={confirm} onChange={e => setConfirm(e.target.value)} />
+                        <div className="relative mb-5">
+                            <input className="w-full border rounded px-3 py-2 pr-10" type={showConfirm ? "text" : "password"}
+                                value={confirm} onChange={e => setConfirm(e.target.value)} />
+                            <button type="button" className="absolute right-2 top-1/2 -translate-y-1/2"
+                                onClick={() => setShowConfirm(s => !s)}>
+                                <Image src={showConfirm ? "/icons/openEye.png" : "/icons/closeEye.png"} alt="toggle" width={18} height={18} />
+                            </button>
+                        </div>
 
                         <button type="submit" className="w-full bg-gray-200 hover:bg-gray-300 rounded py-2">รีเซ็ตรหัสผ่าน</button>
                         <div className="text-xs text-center mt-3">
