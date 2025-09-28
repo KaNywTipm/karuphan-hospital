@@ -162,6 +162,7 @@ model BorrowRequest {
     returnDue        DateTime
     actualReturnDate DateTime?
     returnCondition  ReturnCondition?
+    returnNotes      String?
 
     receivedById Int?
     receivedBy   User? @relation("Receiver", fields: [receivedById], references: [id], onUpdate: Cascade, onDelete: SetNull)

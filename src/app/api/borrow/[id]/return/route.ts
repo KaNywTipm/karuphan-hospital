@@ -145,6 +145,7 @@ export async function PATCH(
         data: {
           status: "RETURNED",
           actualReturnDate: now,
+          returnNotes: returnNotes,
           receivedById: userId, // ← ผู้รับคืน = แอดมินที่กำลังกด
         },
         include: {
