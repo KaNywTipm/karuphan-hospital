@@ -214,3 +214,166 @@ export async function POST(req: Request) {
     );
   }
 }
+
+/** ---------- PUT /api/equipment (แก้ไข) ---------- */
+export async function PUT(req: Request) {
+  const session: any = await auth();
+  if (!session)
+    return NextResponse.json(
+      { ok: false, error: "กรุณาเข้าสู่ระบบก่อน" },
+      { status: 401 }
+    );
+
+  const role = String(session.role ?? session.user?.role ?? "").toUpperCase();
+  if (role !== "ADMIN")
+    return NextResponse.json(
+      { ok: false, error: "คุณไม่มีสิทธิ์ใช้งานฟีเจอร์นี้" },
+      { status: 403 }
+    );
+
+  let body: any = {};
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json(
+      { ok: false, error: "ข้อมูลที่ส่งมาไม่ถูกต้อง" },
+      { status: 400 }
+    );
+  }
+
+  const { id, number, ...updateData } = body ?? {};
+  const equipmentId = id ?? number;
+
+  if (!equipmentId) {
+    return NextResponse.json(
+      { ok: false, error: "กรุณาระบุรหัสครุภัณฑ์ที่ต้องการแก้ไข" },
+      { status: 400 }
+    );
+  }
+
+  try {
+    // ตรวจสอบสถานะปัจจุบันก่อนแก้ไข
+    const currentEquipment = await prisma.equipment.findUnique({
+      where: { number: Number(equipmentId) },
+      select: { number: true, status: true, currentRequestId: true },
+    });
+
+    if (!currentEquipment) {
+      return NextResponse.json(
+        { ok: false, error: "ไม่พบครุภัณฑ์ที่ต้องการแก้ไข" },
+        { status: 404 }
+      );
+    }
+
+    // ป้องกันการแก้ไขครุภัณฑ์ที่กำลังใช้งานหรือรออนุมัติ
+    if (
+      currentEquipment.status === "IN_USE" ||
+      currentEquipment.status === "RESERVED"
+    ) {
+      const statusText =
+        currentEquipment.status === "IN_USE" ? "กำลังใช้งาน" : "รออนุมัติ";
+      return NextResponse.json(
+        {
+          ok: false,
+          error: `ไม่สามารถแก้ไขครุภัณฑ์ที่อยู่ในสถานะ "${statusText}" ได้`,
+        },
+        { status: 409 }
+      );
+    }
+
+    // ตรวจสอบสถานะใหม่ที่จะอัปเดต
+    if (updateData.status) {
+      const newStatus = String(updateData.status).toUpperCase();
+      if (!ALLOWED_STATUS.has(newStatus)) {
+        return NextResponse.json(
+          { ok: false, error: "สถานะที่เลือกไม่ถูกต้อง" },
+          { status: 400 }
+        );
+      }
+      if (newStatus === "IN_USE" || newStatus === "RESERVED") {
+        return NextResponse.json(
+          {
+            ok: false,
+            error:
+              "ไม่สามารถตั้งสถานะ 'กำลังใช้งาน' หรือ 'รออนุมัติ' ด้วยตนเองได้",
+          },
+          { status: 409 }
+        );
+      }
+      updateData.status = newStatus as any;
+    }
+
+    // จัดการข้อมูลที่จะอัปเดต
+    const cleanUpdateData: any = {};
+
+    if (updateData.code) cleanUpdateData.code = String(updateData.code).trim();
+    if (updateData.name) cleanUpdateData.name = String(updateData.name).trim();
+    if (updateData.categoryId)
+      cleanUpdateData.categoryId = Number(updateData.categoryId);
+    if (updateData.receivedDate)
+      cleanUpdateData.receivedDate = new Date(updateData.receivedDate);
+    if (updateData.price !== undefined)
+      cleanUpdateData.price = updateData.price
+        ? String(updateData.price)
+        : null;
+    if (updateData.idnum !== undefined)
+      cleanUpdateData.idnum = updateData.idnum
+        ? String(updateData.idnum).trim()
+        : null;
+    if (updateData.status) cleanUpdateData.status = updateData.status;
+    if (updateData.statusNote !== undefined)
+      cleanUpdateData.statusNote = updateData.statusNote
+        ? String(updateData.statusNote)
+        : null;
+
+    const descRaw = updateData.description ?? updateData.details;
+    if (descRaw !== undefined) {
+      cleanUpdateData.description =
+        descRaw && String(descRaw).trim().length > 0
+          ? String(descRaw).trim()
+          : null;
+    }
+
+    const updated = await prisma.equipment.update({
+      where: { number: Number(equipmentId) },
+      data: cleanUpdateData,
+      select: {
+        number: true,
+        code: true,
+        idnum: true,
+        description: true,
+        name: true,
+        status: true,
+        receivedDate: true,
+        price: true,
+        category: { select: { id: true, name: true } },
+      },
+    });
+
+    return NextResponse.json({ ok: true, data: updated });
+  } catch (e: any) {
+    if (e?.code === "P2002") {
+      return NextResponse.json(
+        { ok: false, error: "เลขไอดีนี้มีอยู่ในระบบแล้ว" },
+        { status: 409 }
+      );
+    }
+    if (e?.code === "P2003") {
+      return NextResponse.json(
+        { ok: false, error: "หมวดหมู่ที่เลือกไม่ถูกต้อง" },
+        { status: 400 }
+      );
+    }
+    if (e?.code === "P2025") {
+      return NextResponse.json(
+        { ok: false, error: "ไม่พบครุภัณฑ์ที่ต้องการแก้ไข" },
+        { status: 404 }
+      );
+    }
+    console.error("[PUT /api/equipment]", e);
+    return NextResponse.json(
+      { ok: false, error: "เกิดข้อผิดพลาดของเซิร์ฟเวอร์" },
+      { status: 500 }
+    );
+  }
+}

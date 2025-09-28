@@ -35,11 +35,10 @@ type Me = {
 
 interface CartItem {
     id: number;
-    code: string;
+    code: string; // เลขครุภัณฑ์
     name: string;
     category: string;
     quantity: number;
-    number?: number; // เพิ่มเลขครุภัณฑ์
 }
 
 type BorrowKaruphanProps = {
@@ -242,7 +241,7 @@ const BorrowKaruphan = ({
                                     <tr key={item.id}>
                                         <td className="border border-gray-300 px-4 py-2 text-center">{index + 1}</td>
                                         <td className="border border-gray-300 px-4 py-2 text-center font-medium text-blue-600">
-                                            {item.number || item.id}
+                                            {item.code}
                                         </td>
                                         <td className="border border-gray-300 px-4 py-2 text-center">{item.name}</td>
                                         <td className="border border-gray-300 px-4 py-2 text-center">{item.category}</td>
@@ -253,7 +252,7 @@ const BorrowKaruphan = ({
                                 <tr>
                                     <td className="border border-gray-300 px-4 py-2 text-center">1</td>
                                     <td className="border border-gray-300 px-4 py-2 text-center font-medium text-blue-600">
-                                        {selectedEquipment?.id || "-"}
+                                        {selectedEquipment?.code || "-"}
                                     </td>
                                     <td className="border border-gray-300 px-4 py-2 text-center">
                                         {selectedEquipment?.name || "ชื่อครุภัณฑ์"}
