@@ -39,6 +39,7 @@ interface CartItem {
     name: string;
     category: string;
     quantity: number;
+    number?: number; // เพิ่มเลขครุภัณฑ์
 }
 
 type BorrowKaruphanProps = {
@@ -229,6 +230,7 @@ const BorrowKaruphan = ({
                         <thead>
                             <tr className="bg-red-300">
                                 <th className="border border-gray-300 px-4 py-2 text-center font-medium">ลำดับ</th>
+                                <th className="border border-gray-300 px-4 py-2 text-center font-medium">เลขครุภัณฑ์</th>
                                 <th className="border border-gray-300 px-4 py-2 text-center font-medium">ชื่อครุภัณฑ์</th>
                                 <th className="border border-gray-300 px-4 py-2 text-center font-medium">ยี่ห้อ/รุ่น/แบบ</th>
                                 <th className="border border-gray-300 px-4 py-2 text-center font-medium">จำนวน</th>
@@ -239,6 +241,9 @@ const BorrowKaruphan = ({
                                 cartItems.map((item: CartItem, index: number) => (
                                     <tr key={item.id}>
                                         <td className="border border-gray-300 px-4 py-2 text-center">{index + 1}</td>
+                                        <td className="border border-gray-300 px-4 py-2 text-center font-medium text-blue-600">
+                                            {item.number || item.id}
+                                        </td>
                                         <td className="border border-gray-300 px-4 py-2 text-center">{item.name}</td>
                                         <td className="border border-gray-300 px-4 py-2 text-center">{item.category}</td>
                                         <td className="border border-gray-300 px-4 py-2 text-center">{item.quantity}</td>
@@ -247,6 +252,9 @@ const BorrowKaruphan = ({
                             ) : (
                                 <tr>
                                     <td className="border border-gray-300 px-4 py-2 text-center">1</td>
+                                    <td className="border border-gray-300 px-4 py-2 text-center font-medium text-blue-600">
+                                        {selectedEquipment?.id || "-"}
+                                    </td>
                                     <td className="border border-gray-300 px-4 py-2 text-center">
                                         {selectedEquipment?.name || "ชื่อครุภัณฑ์"}
                                     </td>
