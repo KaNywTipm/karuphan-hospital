@@ -270,22 +270,6 @@ export default function EditPersonnel({ user, onClose, onSave }: Props) {
                                 placeholder="เช่น 0812345678"
                             />
                         </div>
-
-                        {/* เหตุผล/บันทึกการเปลี่ยนแปลง */}
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                                บันทึกการเปลี่ยนแปลง (ถ้ามี)
-                            </label>
-                            <textarea
-                                value={form.changeNote}
-                                onChange={(e) =>
-                                    setForm((s) => ({ ...s, changeNote: e.target.value }))
-                                }
-                                rows={3}
-                                className="w-full rounded-md border border-gray-300 px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                placeholder="เช่น ปรับให้เป็น INTERNAL และกำหนดกลุ่มงาน …"
-                            />
-                        </div>
                     </div>
 
                     {/* Footer */}
