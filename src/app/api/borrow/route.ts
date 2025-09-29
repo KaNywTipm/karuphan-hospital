@@ -114,7 +114,7 @@ type PostBody = {
   borrowDate?: string | Date;
   returnDue?: string | Date;
   reason?: string | null;
-  // notes field ไม่มีใน schema - ใช้ reason แทน
+  notes?: string | null;
   externalName?: string | null;
   externalDept?: string | null;
   externalPhone?: string | null;
@@ -229,6 +229,7 @@ export async function POST(req: Request) {
       const borrowRequestData: any = {
         borrowerType: borrowerType as any,
         status: (isInternal ? "APPROVED" : "PENDING") as any,
+        requesterId: isInternal ? requesterId : null,
         externalName: isInternal ? null : String(body?.externalName || ""),
         externalDept: isInternal ? null : String(body?.externalDept || ""),
         externalPhone: isInternal ? null : String(body?.externalPhone || ""),
@@ -236,6 +237,7 @@ export async function POST(req: Request) {
         notes: body?.notes ?? null,
         borrowDate: borrowDate || (isInternal ? now : null),
         approvedAt: isInternal ? now : null,
+        approvedById: isInternal ? requesterId : null,
 
         // ห้ามตั้ง receivedById/actualReturnDate ตอนนี้
         rejectedById: null,
@@ -262,12 +264,6 @@ export async function POST(req: Request) {
           }),
         },
       };
-
-      // จัดการ requester และ approver relation
-      if (isInternal && requesterId) {
-        borrowRequestData.requester = { connect: { id: requesterId } };
-        borrowRequestData.approvedBy = { connect: { id: requesterId } };
-      }
 
       // เพิ่ม returnDue ถ้ามี
       if (returnDue) {

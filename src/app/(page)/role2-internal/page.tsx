@@ -226,7 +226,7 @@ export default function InternalBorrowPage() {
             borrowDate: borrowData?.borrowDate, // เพิ่มวันที่ยืม
             returnDue: borrowData?.returnDue,
             reason: borrowData?.reason ?? null,
-            // notes field ไม่มีใน schema, ใช้ reason แทน
+            notes: borrowData?.notes ?? null,
             items: cartItems.map((it) => ({ equipmentId: it.id, quantity: it.quantity })),
         };
         const res = await fetch("/api/borrow", {
@@ -420,7 +420,7 @@ export default function InternalBorrowPage() {
                                 borrowDate: form.borrowDate, // เพิ่มวันที่ยืม
                                 returnDue: form.returnDue,
                                 reason: form.reason ?? null,
-                                // notes field ไม่มีใน schema, ใช้ reason แทน
+                                notes: form.notes ?? null,
                                 items: [{ equipmentId: quickItem.id, quantity: 1 }],
                             };
                             const res = await fetch("/api/borrow", {
