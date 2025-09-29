@@ -123,6 +123,24 @@ export async function DELETE(
       );
     }
 
+    // ตรวจสอบการยืมที่ยังไม่เสร็จสิ้น
+    const activeBorrows = await prisma.borrowRequest.count({
+      where: {
+        requesterId: id,
+        status: { in: ["PENDING", "APPROVED"] },
+      },
+    });
+
+    if (activeBorrows > 0) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error: `ไม่สามารถลบผู้ใช้ได้ เนื่องจากมีการยืมครุภัณฑ์ที่ยังไม่เสร็จสิ้น ${activeBorrows} รายการ`,
+        },
+        { status: 409 }
+      );
+    }
+
     const deleted = await prisma.user.delete({
       where: { id },
       select: { id: true, fullName: true, email: true },

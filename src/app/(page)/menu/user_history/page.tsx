@@ -123,7 +123,7 @@ export default function UserHistory() {
                     const status = String(x.status).toUpperCase() as Status;
                     const reason = x.reason ?? x.notes ?? x.rejectReason ?? "";
                     const approverOrReceiver =
-                        x.approverOrReceiver ?? x.receivedBy?.fullName ?? x.approvedBy?.fullName ?? "-";
+                        x.approverOrReceiver ?? x.receivedBy?.fullName ?? x.approvedBy?.fullName ?? "(ผู้ใช้ถูกลบ)";
 
                     if (flattenLike(x)) {
                         perItem.push({

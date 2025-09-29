@@ -120,12 +120,12 @@ export default function ReturnPage({
         if (!r) return { borrowerName: "-", department: "-" };
         if (r.borrowerType === "INTERNAL") {
             return {
-                borrowerName: r.requester?.fullName ?? "-",
-                department: r.requester?.department?.name ?? "-",
+                borrowerName: r.requester?.fullName ?? "(ผู้ใช้ถูกลบ)",
+                department: r.requester?.department?.name ?? "(ไม่ระบุหน่วยงาน)",
             };
         }
         return {
-            borrowerName: r.externalName || r.requester?.fullName || "-",
+            borrowerName: r.externalName || r.requester?.fullName || "(ผู้ใช้ถูกลบ)",
             department: r.externalDept || "ภายนอกกลุ่มงาน",
         };
     }, [borrowRequest]);
@@ -213,7 +213,7 @@ export default function ReturnPage({
     const adminName =
         borrowRequest?.receivedBy?.fullName ??
         borrowRequest?.approvedBy?.fullName ??
-        "ผู้ดูแลระบบ";
+        "(ผู้ใช้ถูกลบ)";
 
     return (
         <div className="min-h-screen bg-gray-100">
@@ -298,8 +298,8 @@ export default function ReturnPage({
                                     กำหนดคืน {fmt(borrowRequest.returnDue)}
                                     {statusMessage && (
                                         <span className={`ml-2 inline-block px-2 py-0.5 rounded text-xs font-medium ${statusColor === "text-red-600" ? "text-red-600 bg-red-100" :
-                                                statusColor === "text-green-600" ? "text-green-600 bg-green-100" :
-                                                    "text-yellow-600 bg-yellow-100"
+                                            statusColor === "text-green-600" ? "text-green-600 bg-green-100" :
+                                                "text-yellow-600 bg-yellow-100"
                                             }`}>
                                             {statusMessage}
                                         </span>

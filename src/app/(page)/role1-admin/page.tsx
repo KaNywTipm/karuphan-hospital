@@ -180,16 +180,16 @@ function AdminPageInner() {
                     borrowerType: r.borrowerType,
                     borrowerName:
                         r.borrowerType === "INTERNAL"
-                            ? (r.requester?.fullName ?? "-")
-                            : (r.externalName || r.requester?.fullName || "-")
+                            ? (r.requester?.fullName ?? "(ผู้ใช้ถูกลบ)")
+                            : (r.externalName || r.requester?.fullName || "(ผู้ใช้ถูกลบ)")
                     ,
                     adminName:
                         r.status === "REJECTED"
-                            ? (r.rejectedBy?.fullName ?? "-")
-                            : (r.receivedBy?.fullName ?? r.approvedBy?.fullName ?? "-"),
+                            ? (r.rejectedBy?.fullName ?? "(ผู้ใช้ถูกลบ)")
+                            : (r.receivedBy?.fullName ?? r.approvedBy?.fullName ?? "(ผู้ใช้ถูกลบ)"),
                     department:
                         r.borrowerType === "INTERNAL"
-                            ? (r.requester?.department?.name ?? "-")
+                            ? (r.requester?.department?.name ?? "(ไม่ระบุหน่วยงาน)")
                             : (r.externalDept ?? "ภายนอกกลุ่มงาน")
                     ,
                     equipmentCode: (r.items ?? []).map((it: any) => it?.equipment?.code).filter(Boolean).join(", "),
