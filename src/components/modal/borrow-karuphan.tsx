@@ -240,7 +240,7 @@ const BorrowKaruphan = ({
                                 cartItems.map((item: CartItem, index: number) => (
                                     <tr key={item.id}>
                                         <td className="border border-gray-300 px-4 py-2 text-center">{index + 1}</td>
-                                        <td className="border border-gray-300 px-4 py-2 text-center font-medium text-blue-600">
+                                        <td className="border border-gray-300 px-4 py-2 text-center font-medium">
                                             {item.code}
                                         </td>
                                         <td className="border border-gray-300 px-4 py-2 text-center">{item.name}</td>
@@ -251,7 +251,7 @@ const BorrowKaruphan = ({
                             ) : (
                                 <tr>
                                     <td className="border border-gray-300 px-4 py-2 text-center">1</td>
-                                    <td className="border border-gray-300 px-4 py-2 text-center font-medium text-blue-600">
+                                    <td className="border border-gray-300 px-4 py-2 text-center font-medium">
                                         {selectedEquipment?.code || "-"}
                                     </td>
                                     <td className="border border-gray-300 px-4 py-2 text-center">
