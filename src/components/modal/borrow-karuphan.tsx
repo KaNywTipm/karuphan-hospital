@@ -357,7 +357,7 @@ const BorrowKaruphan = ({
                         <button
                             type="submit"
                             disabled={submitting}
-                            className="bg-BlueLight hover:bg-BlueDark disabled:opacity-50 text-white px-6 py-2 rounded-md font-medium"
+                            className="bg-BlueLight hover:bg-Blue disabled:opacity-50 text-white px-6 py-2 rounded-md font-medium"
                         >
                             {submitting ? "กำลังบันทึก..." : "บันทึก"}
                         </button>
