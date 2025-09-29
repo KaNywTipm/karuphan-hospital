@@ -223,7 +223,10 @@ export default function ExternalBorrowPage() {
         );
     };
     const handleSelectAll = () => {
-        const selectableIds = currentItems.filter((x) => !x.busy).map((x) => x.id);
+        // Only select items that are not busy and not in cart
+        const selectableIds = currentItems
+            .filter((x) => !x.busy && !cartItems.some(cartItem => cartItem.id === x.id))
+            .map((x) => x.id);
         if (
             selectedIds.filter((id) => selectableIds.includes(id)).length ===
             selectableIds.length &&
@@ -344,8 +347,9 @@ export default function ExternalBorrowPage() {
                                                 <input
                                                     type="checkbox"
                                                     checked={
-                                                        selectedIds.length === currentItems.length &&
-                                                        currentItems.length > 0
+                                                        currentItems.filter(x => !x.busy && !cartItems.some(cartItem => cartItem.id === x.id)).length > 0 &&
+                                                        selectedIds.filter(id => currentItems.some(item => item.id === id && !item.busy && !cartItems.some(cartItem => cartItem.id === item.id))).length ===
+                                                        currentItems.filter(x => !x.busy && !cartItems.some(cartItem => cartItem.id === x.id)).length
                                                     }
                                                     onChange={handleSelectAll}
                                                 />
@@ -373,6 +377,8 @@ export default function ExternalBorrowPage() {
                                     <tbody className="divide-y divide-gray-200">
                                         {currentItems.map((row, idx) => {
                                             const isBusy = row.status !== "NORMAL";
+                                            const inCart = cartItems.some(cartItem => cartItem.id === row.id);
+                                            const isDisabled = isBusy || inCart;
                                             return (
                                                 <tr key={row.id} className="hover:bg-gray-50">
                                                     <td className="border px-4 py-3 text-center">
@@ -380,7 +386,7 @@ export default function ExternalBorrowPage() {
                                                             type="checkbox"
                                                             checked={selectedIds.includes(row.id)}
                                                             onChange={() => handleSelectItem(row.id)}
-                                                            disabled={isBusy}
+                                                            disabled={isDisabled}
                                                         />
                                                     </td>
                                                     <td className="border px-4 py-3 text-center">
@@ -399,13 +405,19 @@ export default function ExternalBorrowPage() {
                                                         <StatusBadge status={row.status} />
                                                     </td>
                                                     <td className="border px-4 py-3 text-center">
-                                                        <BorrowButton
-                                                            disabled={isBusy}
-                                                            onClick={() => {
-                                                                setQuickItem(row);
-                                                                setShowQuickBorrow(true);
-                                                            }}
-                                                        />
+                                                        {inCart ? (
+                                                            <span className="inline-flex items-center px-2 py-1 rounded-lg text-xs font-medium bg-green-100 text-green-800">
+                                                                อยู่ในตะกร้า
+                                                            </span>
+                                                        ) : (
+                                                            <BorrowButton
+                                                                disabled={isBusy}
+                                                                onClick={() => {
+                                                                    setQuickItem(row);
+                                                                    setShowQuickBorrow(true);
+                                                                }}
+                                                            />
+                                                        )}
                                                     </td>
                                                 </tr>
                                             );

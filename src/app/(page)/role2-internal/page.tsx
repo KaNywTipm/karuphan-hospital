@@ -153,7 +153,8 @@ export default function InternalBorrowPage() {
         setCartItems((prev) => {
             const exist = prev.find((x) => x.id === equipment.id);
             if (exist) {
-                return prev.map((x) => (x.id === equipment.id ? { ...x, quantity: x.quantity + 1 } : x));
+                alert.warning("ครุภัณฑ์ชิ้นนี้อยู่ในรายการยืมแล้ว");
+                return prev; // ไม่เพิ่ม quantity เพราะของมีอย่างละชิ้น
             }
             return [
                 ...prev,
@@ -198,12 +199,14 @@ export default function InternalBorrowPage() {
         setSelectedIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
     };
     const handleSelectAll = () => {
-        // Only select items that are not busy (status === 'NORMAL')
-        const selectableIds = currentItems.filter((x) => !x.busy).map((x) => x.id);
+        // Only select items that are not busy and not in cart
+        const selectableIds = currentItems
+            .filter((x) => !x.busy && !cartItems.some(cartItem => cartItem.id === x.id))
+            .map((x) => x.id);
         if (selectedIds.filter(id => selectableIds.includes(id)).length === selectableIds.length && selectableIds.length > 0) {
             setSelectedIds(selectedIds.filter(id => !selectableIds.includes(id)));
         } else {
-            // Merge with any already selected busy items (shouldn't happen, but for safety)
+            // Merge with any already selected items
             setSelectedIds([
                 ...selectedIds.filter(id => !selectableIds.includes(id)),
                 ...selectableIds
@@ -295,7 +298,11 @@ export default function InternalBorrowPage() {
                                             <th className="border px-4 py-3 text-center w-[40px]">
                                                 <input
                                                     type="checkbox"
-                                                    checked={selectedIds.length === currentItems.length && currentItems.length > 0}
+                                                    checked={
+                                                        currentItems.filter(x => !x.busy && !cartItems.some(cartItem => cartItem.id === x.id)).length > 0 &&
+                                                        selectedIds.filter(id => currentItems.some(item => item.id === id && !item.busy && !cartItems.some(cartItem => cartItem.id === item.id))).length ===
+                                                        currentItems.filter(x => !x.busy && !cartItems.some(cartItem => cartItem.id === x.id)).length
+                                                    }
                                                     onChange={handleSelectAll}
                                                 />
                                             </th>
@@ -310,6 +317,8 @@ export default function InternalBorrowPage() {
                                     <tbody className="divide-y divide-gray-200">
                                         {currentItems.map((row, idx) => {
                                             const isBusy = row.status !== "NORMAL";
+                                            const inCart = cartItems.some(cartItem => cartItem.id === row.id);
+                                            const isDisabled = isBusy || inCart;
                                             return (
                                                 <tr key={row.id} className="hover:bg-gray-50 align-middle">
                                                     <td className="border px-4 py-3 text-center">
@@ -317,7 +326,7 @@ export default function InternalBorrowPage() {
                                                             type="checkbox"
                                                             checked={selectedIds.includes(row.id)}
                                                             onChange={() => handleSelectItem(row.id)}
-                                                            disabled={isBusy}
+                                                            disabled={isDisabled}
                                                         />
                                                     </td>
                                                     <td className="border px-4 py-3 text-center">{startIndex + idx + 1}</td>
@@ -328,13 +337,19 @@ export default function InternalBorrowPage() {
                                                         <StatusBadge status={row.status} />
                                                     </td>
                                                     <td className="border px-4 py-3 text-center">
-                                                        <BorrowButton
-                                                            disabled={isBusy}
-                                                            onClick={() => {
-                                                                setQuickItem(row);
-                                                                setShowQuickBorrow(true);
-                                                            }}
-                                                        />
+                                                        {inCart ? (
+                                                            <span className="inline-flex items-center px-2 py-1 rounded-lg text-xs font-medium bg-green-100 text-green-800">
+                                                                อยู่ในตะกร้า
+                                                            </span>
+                                                        ) : (
+                                                            <BorrowButton
+                                                                disabled={isBusy}
+                                                                onClick={() => {
+                                                                    setQuickItem(row);
+                                                                    setShowQuickBorrow(true);
+                                                                }}
+                                                            />
+                                                        )}
                                                     </td>
                                                 </tr>
                                             );
