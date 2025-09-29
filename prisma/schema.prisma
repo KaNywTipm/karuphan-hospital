@@ -176,6 +176,7 @@ model BorrowRequest {
     rejectedAt   DateTime?
 
     reason       String?
+    notes        String?
     rejectReason String?
 
     items BorrowItem[]
