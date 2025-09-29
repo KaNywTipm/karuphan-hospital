@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 
@@ -21,6 +21,7 @@ export default function UserHistory() {
     const [rows, setRows] = useState<Row[]>([]);
     const [search, setSearch] = useState("");
     const [sort, setSort] = useState<"newest" | "oldest">("newest");
+    const [statusFilter, setStatusFilter] = useState<"ALL" | Status>("ALL");
     const [page, setPage] = useState(1);
     const perPage = 5;
 
@@ -41,6 +42,50 @@ export default function UserHistory() {
             return new Date(d).toLocaleDateString("th-TH");
         } catch {
             return "-";
+        }
+    };
+
+    // คำนวณจำนวนวันที่เหลือจนกำหนดคืน
+    const getDaysRemaining = (returnDue: string | null, status: Status) => {
+        if (!returnDue || status === "RETURNED" || status === "REJECTED") return null;
+
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        const dueDate = new Date(returnDue);
+        dueDate.setHours(0, 0, 0, 0);
+
+        const diffTime = dueDate.getTime() - today.getTime();
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+        return diffDays;
+    };
+
+    // สี/สไตล์สำหรับวันที่เหลือ
+    const getDaysRemainingStyle = (daysRemaining: number | null) => {
+        if (daysRemaining === null) return "";
+
+        if (daysRemaining < 0) {
+            return "text-red-600 font-bold"; // เกินกำหนด
+        } else if (daysRemaining === 0) {
+            return "text-green-600 font-bold"; // วันนี้กำหนดคืน
+        } else if (daysRemaining <= 3) {
+            return "text-yellow-600 font-bold"; // เหลือน้อยกว่า 3 วัน
+        } else {
+            return "text-blue-600"; // ยังมีเวลาเหลือ
+        }
+    };
+
+    // ข้อความสำหรับวันที่เหลือ
+    const getDaysRemainingText = (daysRemaining: number | null) => {
+        if (daysRemaining === null) return "";
+
+        if (daysRemaining < 0) {
+            return `เกินกำหนด ${Math.abs(daysRemaining)} วัน`;
+        } else if (daysRemaining === 0) {
+            return "กำหนดคืนวันนี้";
+        } else {
+            return `เหลือ ${daysRemaining} วัน`;
         }
     };
 
@@ -178,6 +223,12 @@ export default function UserHistory() {
         const q = search.trim().toLowerCase();
         return rows
             .filter((r) => {
+                // กรองตามสถานะ
+                if (statusFilter !== "ALL" && r.status !== statusFilter) {
+                    return false;
+                }
+
+                // กรองตามข้อความค้นหา
                 const text =
                     [
                         r.requestId,
@@ -197,7 +248,7 @@ export default function UserHistory() {
                 const bT = new Date(b.borrowDate ?? 0).getTime();
                 return sort === "newest" ? bT - aT : aT - bT;
             });
-    }, [STATUS_TEXT, rows, search, sort]);
+    }, [STATUS_TEXT, rows, search, sort, statusFilter]);
 
     // สรุปจำนวนตามสถานะ
     const statusCounts = useMemo(() => {
@@ -246,6 +297,24 @@ export default function UserHistory() {
                                 className="absolute left-3 top-1/2 -translate-y-1/2 opacity-70"
                             />
                         </div>
+
+                        {/* Status Filter Dropdown */}
+                        <div className="relative">
+                            <select
+                                value={statusFilter}
+                                onChange={(e) => {
+                                    setStatusFilter(e.target.value as "ALL" | Status);
+                                    setPage(1);
+                                }}
+                                className="pl-3 pr-8 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm"
+                            >
+                                <option value="ALL">ทุกสถานะ</option>
+                                <option value="APPROVED">อนุมัติแล้ว/รอคืน</option>
+                                <option value="RETURNED">คืนแล้ว</option>
+                                <option value="REJECTED">ไม่อนุมัติ</option>
+                            </select>
+                        </div>
+
                         <button
                             onClick={() => setSort((p) => (p === "newest" ? "oldest" : "newest"))}
                             className={`p-2 border border-gray-300 rounded-lg hover:bg-gray-100 transition duration-150 flex items-center justify-center ${sort === "newest" ? "bg-blue-50" : "bg-pink-50"
@@ -263,36 +332,67 @@ export default function UserHistory() {
                     <div className="flex flex-wrap gap-3 items-center">
                         <span className="text-sm font-medium text-gray-700">สรุปรายการ:</span>
 
-                        {statusCounts.APPROVED > 0 && (
+                        {statusFilter === "ALL" && (
+                            <>
+                                {statusCounts.APPROVED > 0 && (
+                                    <div className="flex items-center gap-1">
+                                        <div className="w-3 h-3 bg-orange-500 rounded-full"></div>
+                                        <span className="text-sm text-gray-600">
+                                            อนุมัติแล้ว/รอคืน ({statusCounts.APPROVED})
+                                        </span>
+                                    </div>
+                                )}
+
+                                {statusCounts.RETURNED > 0 && (
+                                    <div className="flex items-center gap-1">
+                                        <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                                        <span className="text-sm text-gray-600">
+                                            คืนแล้ว ({statusCounts.RETURNED})
+                                        </span>
+                                    </div>
+                                )}
+
+                                {statusCounts.REJECTED > 0 && (
+                                    <div className="flex items-center gap-1">
+                                        <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+                                        <span className="text-sm text-gray-600">
+                                            ไม่อนุมัติ ({statusCounts.REJECTED})
+                                        </span>
+                                    </div>
+                                )}
+                            </>
+                        )}
+
+                        {statusFilter === "APPROVED" && (
                             <div className="flex items-center gap-1">
                                 <div className="w-3 h-3 bg-orange-500 rounded-full"></div>
-                                <span className="text-sm text-gray-600">
-                                    อนุมัติแล้ว/รอคืน ({statusCounts.APPROVED})
+                                <span className="text-sm text-orange-600 font-medium">
+                                    กำลังแสดงรายการที่ต้องคืน ({filtered.length} รายการ)
                                 </span>
                             </div>
                         )}
 
-                        {statusCounts.RETURNED > 0 && (
+                        {statusFilter === "RETURNED" && (
                             <div className="flex items-center gap-1">
                                 <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                                <span className="text-sm text-gray-600">
-                                    คืนแล้ว ({statusCounts.RETURNED})
+                                <span className="text-sm text-green-600 font-medium">
+                                    กำลังแสดงรายการที่คืนแล้ว ({filtered.length} รายการ)
                                 </span>
                             </div>
                         )}
 
-                        {statusCounts.REJECTED > 0 && (
+                        {statusFilter === "REJECTED" && (
                             <div className="flex items-center gap-1">
                                 <div className="w-3 h-3 bg-red-500 rounded-full"></div>
-                                <span className="text-sm text-gray-600">
-                                    ไม่อนุมัติ ({statusCounts.REJECTED})
+                                <span className="text-sm text-red-600 font-medium">
+                                    กำลังแสดงรายการที่ไม่อนุมัติ ({filtered.length} รายการ)
                                 </span>
                             </div>
                         )}
 
                         <div className="flex items-center gap-1 ml-auto">
                             <span className="text-sm font-medium text-gray-700">
-                                รวมทั้งหมด: {filtered.length} รายการ
+                                {statusFilter === "ALL" ? `รวมทั้งหมด: ${filtered.length} รายการ` : `แสดง: ${filtered.length} รายการ`}
                             </span>
                         </div>
                     </div>
@@ -306,54 +406,66 @@ export default function UserHistory() {
                                 <th className="px-4 py-3 text-left text-sm font-medium w-2/12">วันที่ยืม</th>
                                 <th className="px-4 py-3 text-left text-sm font-medium w-2/12">กำหนดคืน</th>
                                 <th className="px-4 py-3 text-left text-sm font-medium w-2/12">เลขครุภัณฑ์</th>
-                                <th className="px-4 py-3 text-left text-sm font-medium w-3/12">ชื่อครุภัณฑ์</th>
+                                <th className="px-4 py-3 text-left text-sm font-medium w-2/12">ชื่อครุภัณฑ์</th>
                                 <th className="px-4 py-3 text-left text-sm font-medium w-2/12">สถานะ</th>
                                 <th className="px-4 py-3 text-left text-sm font-medium w-2/12">เหตุผล/บันทึก</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-200">
-                            {current.map((r, idx) => (
-                                <tr key={r.requestId} className="hover:bg-gray-50">
-                                    <td className="px-4 py-3 text-sm">{start + idx + 1}</td>
-                                    <td className="px-4 py-3 text-sm">{fmtThaiDate(r.borrowDate)}</td>
-                                    <td className="px-4 py-3 text-sm">{fmtThaiDate(r.returnDue)}</td>
-                                    <td className="px-4 py-3 text-sm align-top max-w-[36rem] whitespace-normal break-words leading-6">
-                                        {r.equipmentCodes.join(", ")}
-                                    </td>
-                                    <td className="px-4 py-3 align-top max-w-[40rem]">
-                                        <div className={`whitespace-normal break-words leading-6 ${isExpanded(r.requestId) ? "" : "line-clamp-2"}`}>
-                                            {r.equipmentNames.join(", ")}
-                                        </div>
-                                        {r.equipmentNames.join(", ").length > 50 && (
-                                            <button
-                                                onClick={() => toggle(r.requestId)}
-                                                className="mt-1 text-xs text-blue-600 hover:underline">
-                                                {isExpanded(r.requestId) ? "ย่อ" : "ดูทั้งหมด"}
-                                            </button>
-                                        )}
-                                    </td>
-                                    <td className="px-4 py-3">
-                                        <span
-                                            className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_BADGE[r.status]
-                                                }`}
-                                        >
-                                            {r.status === "APPROVED" && !r.actualReturnDate ? "อนุมัติแล้ว/รอคืน" :
-                                                r.status === "RETURNED" ? "คืนแล้ว" :
-                                                    r.status === "REJECTED" ? "ไม่อนุมัติ" : "รออนุมัติ"}
-                                        </span>
-                                    </td>
-                                    <td className="px-4 py-3 text-sm">
-                                        {r.status === "REJECTED" && r.reason ? (
+                            {current.map((r, idx) => {
+                                const daysRemaining = getDaysRemaining(r.returnDue, r.status);
+                                return (
+                                    <tr key={r.requestId} className="hover:bg-gray-50">
+                                        <td className="px-4 py-3 text-sm">{start + idx + 1}</td>
+                                        <td className="px-4 py-3 text-sm">{fmtThaiDate(r.borrowDate)}</td>
+                                        <td className="px-4 py-3 text-sm">
                                             <div>
-                                                <span className="text-red-600 font-medium">เหตุผลไม่อนุมัติ: </span>
-                                                <span>{r.reason}</span>
+                                                <div>{fmtThaiDate(r.returnDue)}</div>
+                                                {daysRemaining !== null && (
+                                                    <div className={`text-xs mt-1 ${getDaysRemainingStyle(daysRemaining)}`}>
+                                                        {getDaysRemainingText(daysRemaining)}
+                                                    </div>
+                                                )}
                                             </div>
-                                        ) : (
-                                            r.reason || "-"
-                                        )}
-                                    </td>
-                                </tr>
-                            ))}
+                                        </td>
+                                        <td className="px-4 py-3 text-sm align-top max-w-[36rem] whitespace-normal break-words leading-6">
+                                            {r.equipmentCodes.join(", ")}
+                                        </td>
+                                        <td className="px-4 py-3 align-top max-w-[36rem]">
+                                            <div className={`whitespace-normal break-words leading-6 ${isExpanded(r.requestId) ? "" : "line-clamp-2"}`}>
+                                                {r.equipmentNames.join(", ")}
+                                            </div>
+                                            {r.equipmentNames.join(", ").length > 50 && (
+                                                <button
+                                                    onClick={() => toggle(r.requestId)}
+                                                    className="mt-1 text-xs text-blue-600 hover:underline">
+                                                    {isExpanded(r.requestId) ? "ย่อ" : "ดูทั้งหมด"}
+                                                </button>
+                                            )}
+                                        </td>
+                                        <td className="px-4 py-3">
+                                            <span
+                                                className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_BADGE[r.status]
+                                                    }`}
+                                            >
+                                                {r.status === "APPROVED" && !r.actualReturnDate ? "อนุมัติแล้ว/รอคืน" :
+                                                    r.status === "RETURNED" ? "คืนแล้ว" :
+                                                        r.status === "REJECTED" ? "ไม่อนุมัติ" : "รออนุมัติ"}
+                                            </span>
+                                        </td>
+                                        <td className="px-4 py-3 text-sm">
+                                            {r.status === "REJECTED" && r.reason ? (
+                                                <div>
+                                                    <span className="text-red-600 font-medium">เหตุผลไม่อนุมัติ: </span>
+                                                    <span>{r.reason}</span>
+                                                </div>
+                                            ) : (
+                                                r.reason || "-"
+                                            )}
+                                        </td>
+                                    </tr>
+                                );
+                            })}
                             {!current.length && (
                                 <tr>
                                     <td colSpan={7} className="px-4 py-6 text-center text-sm text-gray-500">
