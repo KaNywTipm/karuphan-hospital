@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { signOut, useSession } from "next-auth/react";
 import { useEffect, useMemo, useState, useCallback } from "react";
+import { usePathname } from "next/navigation";
 import { useUserModals } from "./Modal-Notification/UserModalSystem";
 
 type Role = "ADMIN" | "INTERNAL" | "EXTERNAL";
@@ -62,6 +63,7 @@ type Me = {
 
 export default function Menu() {
   const { data: session, status } = useSession();
+  const pathname = usePathname();
   const [me, setMe] = useState<Me | null>(null);
   const [openSubMenus, setOpenSubMenus] = useState<string[]>([]);
   const { confirm, AlertModal, ConfirmModal } = useUserModals();
@@ -111,6 +113,17 @@ export default function Menu() {
       prev.includes(label) ? prev.filter((l) => l !== label) : [...prev, label]
     );
 
+  // ฟังก์ชันตรวจสอบว่าเมนูกำลังถูกเลือกอยู่หรือไม่
+  const isActive = (href: string) => {
+    if (href === "#") return false;
+    return pathname === href;
+  };
+
+  // ฟังก์ชันตรวจสอบว่าเมนูหลักมี sub-menu ที่กำลังถูกเลือกหรือไม่
+  const hasActiveSubItem = (subItems?: MenuItem[]) => {
+    return subItems?.some((sub) => isActive(sub.href)) || false;
+  };
+
   return (
     <div className="flex flex-col h-full">
       {/* โปรไฟล์ */}
@@ -138,7 +151,8 @@ export default function Menu() {
                   {hasSub ? (
                     <button
                       onClick={() => toggleSub(item.label)}
-                      className="flex items-center justify-center lg:justify-start gap-4 py-2 md:px-2 rounded-md text-White hover:bg-gray-700 w-full text-left"
+                      className={`flex items-center justify-center lg:justify-start gap-4 py-2 md:px-2 rounded-md text-White hover:bg-gray-700 w-full text-left ${hasActiveSubItem(item.subItems) ? "bg-gray-700" : ""
+                        }`}
                     >
                       <Image src={item.icon} alt="" width={20} height={20} />
                       <span className="hidden lg:block flex-1">{item.label}</span>
@@ -172,7 +186,8 @@ export default function Menu() {
                   ) : (
                     <Link
                       href={item.href}
-                      className="flex items-center justify-center lg:justify-start gap-4 py-2 md:px-2 rounded-md text-White hover:bg-gray-700"
+                      className={`flex items-center justify-center lg:justify-start gap-4 py-2 md:px-2 rounded-md text-White hover:bg-gray-700 ${isActive(item.href) ? "bg-gray-700 font-semibold" : ""
+                        }`}
                     >
                       <Image src={item.icon} alt="" width={20} height={20} />
                       <span className="hidden lg:block">{item.label}</span>
@@ -187,7 +202,8 @@ export default function Menu() {
                         <Link
                           href={s.href}
                           key={s.label}
-                          className="ml-8 flex items-center justify-start gap-3 text-white py-1 px-2 rounded hover:bg-gray-700 text-sm"
+                          className={`ml-8 flex items-center justify-start gap-3 text-white py-1 px-2 rounded hover:bg-gray-700 text-sm ${isActive(s.href) ? "bg-gray-700 font-semibold" : ""
+                            }`}
                         >
                           <Image src={s.icon} alt="" width={20} height={20} className="filter invert-0" />
                           <span>{s.label}</span>
