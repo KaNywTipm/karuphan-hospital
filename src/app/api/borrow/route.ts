@@ -114,7 +114,7 @@ type PostBody = {
   borrowDate?: string | Date;
   returnDue?: string | Date;
   reason?: string | null;
-  notes?: string | null;
+  // notes field ไม่มีใน schema - ใช้ reason แทน
   externalName?: string | null;
   externalDept?: string | null;
   externalPhone?: string | null;

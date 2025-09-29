@@ -254,7 +254,7 @@ export default function ExternalBorrowPage() {
             borrowDate: borrowData?.borrowDate, // เพิ่มวันที่ยืม
             returnDue: borrowData?.returnDue,
             reason: borrowData?.reason ?? null,
-            notes: borrowData?.notes ?? null,
+            // notes field ไม่มีใน schema, ใช้ reason แทน
             externalName: borrowData?.externalName ?? null,
             externalDept: borrowData?.externalDept?.trim() || "ภายนอกกลุ่มงาน",
             externalPhone: borrowData?.externalPhone ?? null,
@@ -513,7 +513,7 @@ export default function ExternalBorrowPage() {
                                 borrowDate: form.borrowDate, // เพิ่มวันที่ยืม
                                 returnDue: form.returnDue,
                                 reason: form.reason ?? null,
-                                notes: form.notes ?? null,
+                                // notes field ไม่มีใน schema, ใช้ reason แทน
                                 externalName: form.externalName ?? null,
                                 externalDept: form.externalDept?.trim() || "ภายนอกกลุ่มงาน",
                                 externalPhone: form.externalPhone ?? null,
