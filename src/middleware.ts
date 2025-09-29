@@ -1,4 +1,4 @@
-// middleware.ts
+// ไม่ได้ใช้แล้ว
 export { auth as middleware } from "@/lib/auth";
 
 // เลือกแมตช์ทุกเส้นทาง ยกเว้นไฟล์สเตติกและ route ที่ไม่ควรดัก
