@@ -2,6 +2,7 @@
 import Image from "next/image";
 import { useState, useRef } from "react";
 import Link from "next/link";
+import { useModal } from "@/components/Modal-Notification/ModalProvider";
 
 export default function ForgotPasswordPage() {
     const [step, setStep] = useState<1 | 2 | 3>(1);
@@ -11,22 +12,101 @@ export default function ForgotPasswordPage() {
     const [confirm, setConfirm] = useState("");
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirm, setShowConfirm] = useState(false);
+    const [loading, setLoading] = useState(false);
     const otpInputRefs = useRef<(HTMLInputElement | null)[]>([]);
+    const modal = useModal();
 
     async function requestCode(e: React.FormEvent) {
         e.preventDefault();
-        const r = await fetch("/api/auth/password/request", {
-            method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email })
-        }).then(r => r.json());
-        if (r.ok) setStep(2); else alert(r.error || "ไม่สามารถส่งรหัสยืนยันได้ กรุณาลองใหม่อีกครั้ง");
+        setLoading(true);
+
+        try {
+            const response = await fetch("/api/auth/password/request", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ email })
+            });
+
+            const result = await response.json();
+
+            if (result.ok) {
+                modal.alert.success(
+                    result.message || "รหัสยืนยันถูกส่งไปยังอีเมลของคุณแล้ว กรุณาตรวจสอบกล่องจดหมาย",
+                    result.title || "ส่งรหัสยืนยันสำเร็จ"
+                );
+                setStep(2);
+            } else {
+                // ใช้ type และ title จาก API response
+                const alertType = result.type || "error";
+                const alertTitle = result.title || "เกิดข้อผิดพลาด";
+
+                if (alertType === "success") {
+                    modal.alert.success(result.error, alertTitle);
+                } else if (alertType === "warning") {
+                    modal.alert.warning(result.error, alertTitle);
+                } else if (alertType === "info") {
+                    modal.alert.info(result.error, alertTitle);
+                } else {
+                    modal.alert.error(result.error, alertTitle);
+                }
+            }
+        } catch (error) {
+            modal.alert.error(
+                "เกิดข้อผิดพลาดในการเชื่อมต่อกับเซิร์ฟเวอร์ กรุณาลองใหม่อีกครั้ง",
+                "ข้อผิดพลาดการเชื่อมต่อ"
+            );
+        } finally {
+            setLoading(false);
+        }
     }
+
     async function resetPassword(e: React.FormEvent) {
         e.preventDefault();
-        const r = await fetch("/api/auth/password/reset", {
-            method: "POST", headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ email, code: code.join(""), password, confirmPassword: confirm })
-        }).then(r => r.json());
-        if (r.ok) { setStep(3); } else alert(r.error || "ไม่สามารถรีเซ็ตรหัสผ่านได้ กรุณาตรวจสอบข้อมูลและลองใหม่อีกครั้ง");
+        setLoading(true);
+
+        try {
+            const response = await fetch("/api/auth/password/reset", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    email,
+                    code: code.join(""),
+                    password,
+                    confirmPassword: confirm
+                })
+            });
+
+            const result = await response.json();
+
+            if (result.ok) {
+                modal.alert.success(
+                    result.message || "รีเซ็ตรหัสผ่านเรียบร้อยแล้ว คุณสามารถเข้าสู่ระบบด้วยรหัสผ่านใหม่ได้",
+                    result.title || "รีเซ็ตรหัสผ่านสำเร็จ"
+                );
+                setStep(3);
+            } else {
+                // ใช้ type และ title จาก API response
+                const alertType = result.type || "error";
+                const alertTitle = result.title || "เกิดข้อผิดพลาด";
+
+                if (alertType === "success") {
+                    modal.alert.success(result.error, alertTitle);
+                } else if (alertType === "warning") {
+                    modal.alert.warning(result.error, alertTitle);
+                } else if (alertType === "info") {
+                    modal.alert.info(result.error, alertTitle);
+                } else {
+                    modal.alert.error(result.error, alertTitle);
+                }
+            }
+        } catch (error) {
+            modal.alert.error(
+                "เกิดข้อผิดพลาดในการเชื่อมต่อกับเซิร์ฟเวอร์ กรุณาลองใหม่อีกครั้ง",
+                "ข้อผิดพลาดการเชื่อมต่อ"
+            );
+        } finally {
+            setLoading(false);
+        }
     }
 
     return (
@@ -42,7 +122,23 @@ export default function ForgotPasswordPage() {
                         </label>
                         <input className="w-full border rounded px-3 py-2 mb-4" placeholder="example@mail.com"
                             value={email} onChange={e => setEmail(e.target.value)} />
-                        <button className="w-full bg-gray-200 hover:bg-gray-300 rounded py-2">รีเซ็ตรหัสผ่าน</button>
+                        <button
+                            type="submit"
+                            disabled={loading || !email.trim()}
+                            className="w-full bg-gray-200 hover:bg-gray-300 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed rounded py-2 transition-colors duration-200 flex items-center justify-center"
+                        >
+                            {loading ? (
+                                <>
+                                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-gray-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                    </svg>
+                                    กำลังส่งรหัส...
+                                </>
+                            ) : (
+                                "รีเซ็ตรหัสผ่าน"
+                            )}
+                        </button>
                         <div className="flex justify-between text-xs mt-4">
                             <Link href="/sign-in">เข้าสู่ระบบ</Link>
                             <Link href="/sign-up">สมัครสมาชิก</Link>
@@ -144,7 +240,23 @@ export default function ForgotPasswordPage() {
                             </button>
                         </div>
 
-                        <button type="submit" className="w-full bg-gray-200 hover:bg-gray-300 rounded py-2">รีเซ็ตรหัสผ่าน</button>
+                        <button
+                            type="submit"
+                            disabled={loading || !code.every(c => c) || !password || !confirm || password !== confirm}
+                            className="w-full bg-gray-200 hover:bg-gray-300 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed rounded py-2 transition-colors duration-200 flex items-center justify-center"
+                        >
+                            {loading ? (
+                                <>
+                                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-gray-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                    </svg>
+                                    กำลังรีเซ็ต...
+                                </>
+                            ) : (
+                                "รีเซ็ตรหัสผ่าน"
+                            )}
+                        </button>
                         <div className="text-xs text-center mt-3">
                             <button type="button" className="underline" onClick={() => setStep(1)}>ขอรหัสใหม่</button>
                         </div>
