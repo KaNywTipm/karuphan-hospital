@@ -45,6 +45,7 @@ export default function EditPersonnel({ user, onClose, onSave }: Props) {
     const [loadingDept, setLoadingDept] = useState(false);
     const [saving, setSaving] = useState(false);
     const [errors, setErrors] = useState<Record<string, string>>({});
+    const [copySuccess, setCopySuccess] = useState(false);
 
     const deptOptions = useMemo(
         () => departments.slice().sort((a, b) => a.name.localeCompare(b.name, "th")),
@@ -114,6 +115,17 @@ export default function EditPersonnel({ user, onClose, onSave }: Props) {
 
     // ถ้าไม่มี user ให้ไม่แสดง (กัน crash)
     if (!user) return null;
+
+    const handleCopyEmail = async () => {
+        if (!user.email) return;
+        try {
+            await navigator.clipboard.writeText(user.email);
+            setCopySuccess(true);
+            setTimeout(() => setCopySuccess(false), 2000);
+        } catch (err) {
+            console.error('Failed to copy email:', err);
+        }
+    };
 
     function validate(): boolean {
         const e: Record<string, string> = {};
@@ -253,6 +265,44 @@ export default function EditPersonnel({ user, onClose, onSave }: Props) {
                                     </p>
                                 )}
                             </div>
+                        </div>
+
+                        {/* อีเมล (แสดงอย่างเดียว ไม่สามารถแก้ไขได้) */}
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                อีเมล
+                            </label>
+                            <div className="relative">
+                                <input
+                                    type="email"
+                                    value={user?.email || "ไม่มีอีเมล"}
+                                    readOnly
+                                    className="w-full rounded-md border border-gray-300 px-3 py-2 bg-gray-100 text-gray-600 cursor-not-allowed pr-10"
+                                    placeholder="ไม่มีอีเมล"
+                                />
+                                {user?.email && (
+                                    <button
+                                        type="button"
+                                        onClick={handleCopyEmail}
+                                        className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                                        title="คัดลอกอีเมล"
+                                    >
+                                        {copySuccess ? (
+                                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-green-600">
+                                                <polyline points="20,6 9,17 4,12"></polyline>
+                                            </svg>
+                                        ) : (
+                                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                                            </svg>
+                                        )}
+                                    </button>
+                                )}
+                            </div>
+                            {copySuccess && (
+                                <p className="mt-1 text-xs text-green-600">คัดลอกอีเมลแล้ว!</p>
+                            )}
                         </div>
 
                         {/* เบอร์โทร */}

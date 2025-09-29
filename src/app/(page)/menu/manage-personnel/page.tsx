@@ -299,6 +299,7 @@ export default function Managepersonnel() {
                   <th className="px-4 py-3 text-left text-sm font-medium">ชื่อ</th>
                   <th className="px-4 py-3 text-left text-sm font-medium">สิทธิ์ในการเข้าถึง</th>
                   <th className="px-4 py-3 text-left text-sm font-medium">บุคลากรกลุ่มงาน</th>
+                  <th className="px-4 py-3 text-left text-sm font-medium">อีเมล</th>
                   <th className="px-4 py-3 text-left text-sm font-medium">เบอร์โทร</th>
                   <th className="px-2 py-3 text-center text-sm font-medium w-[80px]">แก้ไข</th>
                   <th className="px-2 py-3 text-center text-sm font-medium w-[80px]">ลบ</th>
@@ -307,7 +308,7 @@ export default function Managepersonnel() {
               <tbody>
                 {loading && (
                   <tr>
-                    <td colSpan={7} className="text-center py-6">
+                    <td colSpan={8} className="text-center py-6">
                       กำลังโหลด...
                     </td>
                   </tr>
@@ -323,6 +324,26 @@ export default function Managepersonnel() {
                         {displayUnitLabel(user.role.toLowerCase() as any)}
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-900">{user.department?.name ?? "-"}</td>
+                      <td className="px-4 py-3 text-sm text-gray-900">
+                        <div className="flex items-center gap-2">
+                          <span className="flex-1 truncate">{user.email ?? "-"}</span>
+                          {user.email && (
+                            <button
+                              onClick={() => {
+                                navigator.clipboard.writeText(user.email!);
+                                alert.success("คัดลอกอีเมลแล้ว");
+                              }}
+                              className="p-1 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                              title="คัดลอกอีเมล"
+                            >
+                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                              </svg>
+                            </button>
+                          )}
+                        </div>
+                      </td>
                       <td className="px-4 py-3 text-sm text-gray-900">{user.phone ?? "-"}</td>
                       <td className="px-4 py-3 text-sm text-center">
                         <button
@@ -344,7 +365,7 @@ export default function Managepersonnel() {
                   ))}
                 {!loading && filteredData.length === 0 && (
                   <tr>
-                    <td colSpan={7} className="text-center text-gray-400 py-4">
+                    <td colSpan={8} className="text-center text-gray-400 py-4">
                       ไม่พบข้อมูลบุคลากร
                     </td>
                   </tr>
