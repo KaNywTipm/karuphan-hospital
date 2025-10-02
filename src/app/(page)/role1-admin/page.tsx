@@ -438,7 +438,7 @@ function AdminPageInner() {
                     </div>
 
                     {/* ตัวกรองและค้นหา */}
-                    <div className="flex flex-wrap items-center gap-4">
+                    <div className="flex flex-wrap items-center gap-4 justify-end">
                         {/* ช่องค้นหา */}
                         <div className="min-w-[200px]">
                             <div className="relative">
