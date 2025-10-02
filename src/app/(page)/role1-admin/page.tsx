@@ -438,7 +438,22 @@ function AdminPageInner() {
                     </div>
 
                     {/* ตัวกรองและค้นหา */}
-                    <div className="flex flex-wrap items-center gap-4 justify-end">
+                    <div className="flex flex-wrap items-center gap-4">
+                        {/* ตัวกรองช่วงเวลา */}
+                        <div className="flex items-center gap-2">
+                            <label className="text-sm font-medium text-gray-700">ช่วงเวลา:</label>
+                            <select
+                                value={dateFilter}
+                                onChange={(e) => setDateFilter(e.target.value as any)}
+                                className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            >
+                                <option value="this-week">สัปดาห์นี้</option>
+                                <option value="this-month">เดือนนี้</option>
+                                <option value="last-month">เดือนที่แล้ว</option>
+                                <option value="all">ทั้งหมด</option>
+                            </select>
+                        </div>
+
                         {/* ช่องค้นหา */}
                         <div className="min-w-[200px]">
                             <div className="relative">
@@ -469,21 +484,6 @@ function AdminPageInner() {
                             <Image src="/icons/HamBmenu.png" alt="เรียงข้อมูล" width={20} height={20} />
                             <span className="sr-only">เรียงข้อมูล</span>
                         </button>
-
-                        {/* ตัวกรองช่วงเวลา */}
-                        <div className="flex items-center gap-2">
-                            <label className="text-sm font-medium text-gray-700">ช่วงเวลา:</label>
-                            <select
-                                value={dateFilter}
-                                onChange={(e) => setDateFilter(e.target.value as any)}
-                                className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                            >
-                                <option value="this-week">สัปดาห์นี้</option>
-                                <option value="this-month">เดือนนี้</option>
-                                <option value="last-month">เดือนที่แล้ว</option>
-                                <option value="all">ทั้งหมด</option>
-                            </select>
-                        </div>
                     </div>
 
                     {/* แสดงข้อมูลช่วงเวลาที่เลือก */}
