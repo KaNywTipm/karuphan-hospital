@@ -32,6 +32,7 @@ type Item = {
     receivedDate: string; // ค.ศ.
     status: "NORMAL" | "RESERVED" | "IN_USE" | "BROKEN" | "LOST" | "WAIT_DISPOSE" | "DISPOSED";
     category?: { id: number; name: string } | null;
+    currentRequestId?: number | null; // เพิ่มฟิลด์นี้
 };
 
 const statusOptions: { value: Item["status"]; label: string }[] = [
@@ -92,18 +93,14 @@ export default function Editkaruphan({
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
-        // ตรวจสอบสถานะที่ไม่อนุญาตให้แก้ไข
-        if (item.status === "IN_USE" || item.status === "RESERVED") {
-            if (form.status !== item.status) {
-                modalSystem.alert.error(
-                    `ไม่สามารถเปลี่ยนสถานะของครุภัณฑ์ที่กำลัง${item.status === "IN_USE" ? "ใช้งาน" : "รออนุมัติ"}อยู่ได้ กรุณาตรวจสภาพตามคำขอก่อน`,
-                    "ไม่สามารถแก้ไขได้"
-                );
-                return;
-            }
-        }
-
-        const payload = {
+        // ตรวจสอบครุภัณฑ์ที่มีคำขอค้างอยู่
+        if (item.currentRequestId) {
+            modalSystem.alert.error(
+                `ไม่สามารถแก้ไขครุภัณฑ์ได้ เนื่องจากมีคำขอค้างอยู่ (คำขอ #${item.currentRequestId}) กรุณาดำเนินการตามคำขอให้เสร็จสิ้นก่อน`,
+                "ไม่สามารถแก้ไขได้"
+            );
+            return;
+        } const payload = {
             code: form.code.trim(),
             idnum: form.idnum?.trim() || null,
             name: form.name.trim(),
@@ -149,14 +146,24 @@ export default function Editkaruphan({
                 </div>
                 <div className="flex justify-between items-center mb-6">
                     <h2 className="text-lg font-semibold">ฟอร์มแก้ไขข้อมูลครุภัณฑ์</h2>
-                    {(item.status === "IN_USE" || item.status === "RESERVED") && (
-                        <div className="bg-orange-100 border border-orange-300 rounded-md px-3 py-1">
-                            <span className="text-orange-700 text-sm font-medium">
-                                {item.status === "IN_USE" ? "กำลังใช้งาน" : "รออนุมัติ"}
+                    {item.currentRequestId && (
+                        <div className="bg-red-100 border border-red-300 rounded-md px-3 py-1">
+                            <span className="text-red-700 text-sm font-medium">
+                                ⚠️ มีคำขอค้างอยู่
                             </span>
                         </div>
                     )}
                 </div>
+
+                {/* เพิ่มข้อความเตือนสำหรับครุภัณฑ์ที่มีคำขอค้าง */}
+                {item.currentRequestId && (
+                    <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                        <p className="text-sm text-yellow-800">
+                            <span className="font-medium">หมายเหตุ:</span> ครุภัณฑ์นี้มีคำขอค้างอยู่ (คำขอ #{item.currentRequestId})
+                            การแก้ไขจะถูกจำกัดจนกว่าจะดำเนินการตามคำขอให้เสร็จสิ้น
+                        </p>
+                    </div>
+                )}
 
                 <form onSubmit={handleSubmit} className="flex flex-col gap-4 text-sm">
                     <FormRow label="ลำดับ (ID)">
@@ -243,13 +250,13 @@ export default function Editkaruphan({
                     </FormRow>
 
                     <FormRow label="สถานะ">
-                        {(form.status === "IN_USE" || form.status === "RESERVED") ? (
+                        {item.currentRequestId ? (
                             <div className="flex flex-col gap-2">
                                 <div className="form-input border border-gray-300 rounded px-2 py-1 w-full bg-gray-100 text-gray-600">
                                     {statusOptions.find(opt => opt.value === form.status)?.label}
                                 </div>
                                 <p className="text-sm text-orange-600">
-                                    <span className="font-medium">หมายเหตุ:</span> ครุภัณฑ์ที่กำลัง{form.status === "IN_USE" ? "ใช้งาน" : "รออนุมัติ"}อยู่
+                                    <span className="font-medium">หมายเหตุ:</span> ครุภัณฑ์ที่มีคำขอค้างอยู่
                                     ไม่สามารถเปลี่ยนสถานะได้จนกว่าจะตรวจสภาพตามคำขอ
                                 </p>
                             </div>
@@ -265,9 +272,7 @@ export default function Editkaruphan({
                                 ))}
                             </select>
                         )}
-                    </FormRow>
-
-                    <div className="flex justify-center gap-4 mt-6">
+                    </FormRow>                    <div className="flex justify-center gap-4 mt-6">
                         <button type="submit" className="bg-BlueLight hover:bg-[#70a8b6] text-White px-4 py-2 rounded-md">
                             บันทึกการแก้ไข
                         </button>

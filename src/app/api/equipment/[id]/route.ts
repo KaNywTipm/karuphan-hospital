@@ -95,13 +95,47 @@ export async function PATCH(
   // ดึงของเดิมมาก่อนเพื่อเช็กเงื่อนไขการเปลี่ยนสถานะ
   const current = await prisma.equipment.findUnique({
     where: { number: id },
-    select: { number: true, status: true, currentRequestId: true },
+    select: {
+      number: true,
+      status: true,
+      currentRequestId: true,
+      currentRequest: {
+        select: {
+          id: true,
+          status: true,
+          borrowerType: true,
+          requester: { select: { fullName: true } },
+          externalName: true,
+        },
+      },
+    },
   });
   if (!current)
     return NextResponse.json(
       { ok: false, error: "ไม่พบครุภัณฑ์นี้" },
       { status: 404 }
     );
+
+  // ตรวจสอบว่ามีคำขอค้างอยู่หรือไม่
+  if (current.currentRequestId && current.currentRequest) {
+    const activeRequest = current.currentRequest;
+    const requesterName =
+      activeRequest.borrowerType === "INTERNAL"
+        ? activeRequest.requester?.fullName
+        : activeRequest.externalName;
+
+    return NextResponse.json(
+      {
+        ok: false,
+        error: `ไม่สามารถแก้ไขครุภัณฑ์ได้ เนื่องจากมีคำขอ ${
+          activeRequest.status === "PENDING" ? "รอการอนุมัติ" : "กำลังดำเนินการ"
+        } โดย ${requesterName || "ผู้ใช้"} (คำขอ #${
+          activeRequest.id
+        }) กรุณาดำเนินการให้เสร็จสิ้นก่อน`,
+      },
+      { status: 409 }
+    );
+  }
 
   const updates: any = {};
   if (body.code != null) updates.code = String(body.code).trim();

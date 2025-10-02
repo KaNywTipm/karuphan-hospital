@@ -18,6 +18,7 @@ type Row = {
     receivedDate: string; // ISO date string
     status: "NORMAL" | "RESERVED" | "IN_USE" | "BROKEN" | "LOST" | "WAIT_DISPOSE" | "DISPOSED";
     category?: { id: number; name: string } | null;
+    currentRequestId?: number | null; // เพิ่มฟิลด์นี้
     busy?: boolean;
     available?: number;
 };
