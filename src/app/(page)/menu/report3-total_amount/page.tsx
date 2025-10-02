@@ -152,7 +152,7 @@ export default function TotalAmountReport() {
                     </div>
 
                     <div className="flex items-center gap-2">
-                        <label className="text-sm font-medium text-NavyBlue">ช่วงเวลา:</label>
+                        <label className="text-sm font-medium text-NavyBlue">ช่วงเวลา(กรองตามวันที่ยืม):</label>
                         <select
                             value={dateFilter}
                             onChange={(e) => setDateFilter(e.target.value as any)}
