@@ -62,7 +62,7 @@ export default function TotalAmountReport() {
 
         if (dateFilter === "last-month") {
             startDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-            endDate = new Date(now.getFullYear(), now.getMonth(), 0);
+            endDate = new Date(now.getFullYear(), now.getMonth() - 1 + 1, 0); // วันสุดท้ายของเดือนก่อนหน้า
         } else if (dateFilter === "last-3-months") {
             startDate = new Date(now.getFullYear(), now.getMonth() - 3, 1);
             endDate = now;
