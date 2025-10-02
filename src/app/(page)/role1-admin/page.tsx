@@ -459,6 +459,17 @@ function AdminPageInner() {
                             </div>
                         </div>
 
+                        {/* ปุ่มเรียง */}
+                        <button
+                            onClick={() => setSortOrder((p) => (p === "newest" ? "oldest" : "newest"))}
+                            className={`p-2 border border-gray-300 rounded-lg hover:bg-gray-100 transition duration-150 flex items-center justify-center ${sortOrder === "newest" ? "bg-blue-50" : "bg-pink-50"
+                                }`}
+                            title={sortOrder === "newest" ? "เรียงจากใหม่ไปเก่า" : "เรียงจากเก่าไปใหม่"}
+                        >
+                            <Image src="/icons/HamBmenu.png" alt="เรียงข้อมูล" width={20} height={20} />
+                            <span className="sr-only">เรียงข้อมูล</span>
+                        </button>
+
                         {/* ตัวกรองช่วงเวลา */}
                         <div className="flex items-center gap-2">
                             <label className="text-sm font-medium text-gray-700">ช่วงเวลา:</label>
@@ -473,17 +484,6 @@ function AdminPageInner() {
                                 <option value="all">ทั้งหมด</option>
                             </select>
                         </div>
-
-                        {/* ปุ่มเรียง */}
-                        <button
-                            onClick={() => setSortOrder((p) => (p === "newest" ? "oldest" : "newest"))}
-                            className={`p-2 border border-gray-300 rounded-lg hover:bg-gray-100 transition duration-150 flex items-center justify-center ${sortOrder === "newest" ? "bg-blue-50" : "bg-pink-50"
-                                }`}
-                            title={sortOrder === "newest" ? "เรียงจากใหม่ไปเก่า" : "เรียงจากเก่าไปใหม่"}
-                        >
-                            <Image src="/icons/HamBmenu.png" alt="เรียงข้อมูล" width={20} height={20} />
-                            <span className="sr-only">เรียงข้อมูล</span>
-                        </button>
                     </div>
 
                     {/* แสดงข้อมูลช่วงเวลาที่เลือก */}
