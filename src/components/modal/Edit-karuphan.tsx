@@ -91,6 +91,18 @@ export default function Editkaruphan({
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+
+        // ตรวจสอบสถานะที่ไม่อนุญาตให้แก้ไข
+        if (item.status === "IN_USE" || item.status === "RESERVED") {
+            if (form.status !== item.status) {
+                modalSystem.alert.error(
+                    `ไม่สามารถเปลี่ยนสถานะของครุภัณฑ์ที่กำลัง${item.status === "IN_USE" ? "ใช้งาน" : "รออนุมัติ"}อยู่ได้ กรุณาตรวจสภาพตามคำขอก่อน`,
+                    "ไม่สามารถแก้ไขได้"
+                );
+                return;
+            }
+        }
+
         const payload = {
             code: form.code.trim(),
             idnum: form.idnum?.trim() || null,
@@ -137,6 +149,13 @@ export default function Editkaruphan({
                 </div>
                 <div className="flex justify-between items-center mb-6">
                     <h2 className="text-lg font-semibold">ฟอร์มแก้ไขข้อมูลครุภัณฑ์</h2>
+                    {(item.status === "IN_USE" || item.status === "RESERVED") && (
+                        <div className="bg-orange-100 border border-orange-300 rounded-md px-3 py-1">
+                            <span className="text-orange-700 text-sm font-medium">
+                                {item.status === "IN_USE" ? "กำลังใช้งาน" : "รออนุมัติ"}
+                            </span>
+                        </div>
+                    )}
                 </div>
 
                 <form onSubmit={handleSubmit} className="flex flex-col gap-4 text-sm">
@@ -224,16 +243,28 @@ export default function Editkaruphan({
                     </FormRow>
 
                     <FormRow label="สถานะ">
-                        <select
-                            className="form-input border border-gray-300 rounded px-2 py-1 w-full"
-                            value={form.status}
-                            onChange={(e) => setForm(s => ({ ...s, status: e.target.value as Item["status"] }))}
-                            required
-                        >
-                            {statusOptions.map((opt) => (
-                                <option key={opt.value} value={opt.value}>{opt.label}</option>
-                            ))}
-                        </select>
+                        {(form.status === "IN_USE" || form.status === "RESERVED") ? (
+                            <div className="flex flex-col gap-2">
+                                <div className="form-input border border-gray-300 rounded px-2 py-1 w-full bg-gray-100 text-gray-600">
+                                    {statusOptions.find(opt => opt.value === form.status)?.label}
+                                </div>
+                                <p className="text-sm text-orange-600">
+                                    <span className="font-medium">หมายเหตุ:</span> ครุภัณฑ์ที่กำลัง{form.status === "IN_USE" ? "ใช้งาน" : "รออนุมัติ"}อยู่
+                                    ไม่สามารถเปลี่ยนสถานะได้จนกว่าจะตรวจสภาพตามคำขอ
+                                </p>
+                            </div>
+                        ) : (
+                            <select
+                                className="form-input border border-gray-300 rounded px-2 py-1 w-full"
+                                value={form.status}
+                                onChange={(e) => setForm(s => ({ ...s, status: e.target.value as Item["status"] }))}
+                                required
+                            >
+                                {statusOptions.map((opt) => (
+                                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                                ))}
+                            </select>
+                        )}
                     </FormRow>
 
                     <div className="flex justify-center gap-4 mt-6">

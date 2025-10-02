@@ -125,6 +125,7 @@ export async function PATCH(
         { status: 400 }
       );
     }
+
     // ห้ามเซ็ตเป็น IN_USE หรือ RESERVED ด้วยมือ
     if (newStatus === "IN_USE" || newStatus === "RESERVED") {
       return NextResponse.json(
@@ -135,6 +136,20 @@ export async function PATCH(
         { status: 409 }
       );
     }
+
+    // ห้ามเปลี่ยนสถานะจาก IN_USE หรือ RESERVED เป็นอย่างอื่น จนกว่าจะตรวจสภาพตามคำขอ
+    if (current.status === "IN_USE" || current.status === "RESERVED") {
+      return NextResponse.json(
+        {
+          ok: false,
+          error: `ไม่สามารถเปลี่ยนสถานะของครุภัณฑ์ที่กำลัง${
+            current.status === "IN_USE" ? "ใช้งาน" : "รออนุมัติ"
+          }อยู่ได้ กรุณาตรวจสภาพตามคำขอก่อน`,
+        },
+        { status: 409 }
+      );
+    }
+
     updates.status = newStatus as any;
   }
 
