@@ -438,8 +438,8 @@ function AdminPageInner() {
                     </div>
 
                     {/* ตัวกรองและค้นหา */}
-                    <div className="flex flex-wrap items-center gap-4">
-                        {/* ตัวกรองช่วงเวลา */}
+                    <div className="flex flex-wrap items-center justify-between gap-4">
+                        {/* ตัวกรองช่วงเวลา - ซ้าย */}
                         <div className="flex items-center gap-2">
                             <label className="text-sm font-medium text-gray-700">ช่วงเวลา:</label>
                             <select
@@ -454,36 +454,39 @@ function AdminPageInner() {
                             </select>
                         </div>
 
-                        {/* ช่องค้นหา */}
-                        <div className="min-w-[200px]">
-                            <div className="relative">
-                                <input
-                                    type="text"
-                                    placeholder="ค้นหารายการ"
-                                    value={searchTerm}
-                                    onChange={(e) => setSearchTerm(e.target.value)}
-                                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                />
-                                <Image
-                                    src="/icons/search.png"
-                                    alt="search"
-                                    width={20}
-                                    height={20}
-                                    className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-                                />
+                        {/* ช่องค้นหาและปุ่มเรียง - ขวา */}
+                        <div className="flex items-center gap-4">
+                            {/* ช่องค้นหา */}
+                            <div className="min-w-[200px]">
+                                <div className="relative">
+                                    <input
+                                        type="text"
+                                        placeholder="ค้นหารายการ"
+                                        value={searchTerm}
+                                        onChange={(e) => setSearchTerm(e.target.value)}
+                                        className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                    />
+                                    <Image
+                                        src="/icons/search.png"
+                                        alt="search"
+                                        width={20}
+                                        height={20}
+                                        className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+                                    />
+                                </div>
                             </div>
-                        </div>
 
-                        {/* ปุ่มเรียง */}
-                        <button
-                            onClick={() => setSortOrder((p) => (p === "newest" ? "oldest" : "newest"))}
-                            className={`p-2 border border-gray-300 rounded-lg hover:bg-gray-100 transition duration-150 flex items-center justify-center ${sortOrder === "newest" ? "bg-blue-50" : "bg-pink-50"
-                                }`}
-                            title={sortOrder === "newest" ? "เรียงจากใหม่ไปเก่า" : "เรียงจากเก่าไปใหม่"}
-                        >
-                            <Image src="/icons/HamBmenu.png" alt="เรียงข้อมูล" width={20} height={20} />
-                            <span className="sr-only">เรียงข้อมูล</span>
-                        </button>
+                            {/* ปุ่มเรียง */}
+                            <button
+                                onClick={() => setSortOrder((p) => (p === "newest" ? "oldest" : "newest"))}
+                                className={`p-2 border border-gray-300 rounded-lg hover:bg-gray-100 transition duration-150 flex items-center justify-center ${sortOrder === "newest" ? "bg-blue-50" : "bg-pink-50"
+                                    }`}
+                                title={sortOrder === "newest" ? "เรียงจากใหม่ไปเก่า" : "เรียงจากเก่าไปใหม่"}
+                            >
+                                <Image src="/icons/HamBmenu.png" alt="เรียงข้อมูล" width={20} height={20} />
+                                <span className="sr-only">เรียงข้อมูล</span>
+                            </button>
+                        </div>
                     </div>
 
                     {/* แสดงข้อมูลช่วงเวลาที่เลือก */}
