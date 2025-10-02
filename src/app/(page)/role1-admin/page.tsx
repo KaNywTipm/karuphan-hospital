@@ -140,6 +140,10 @@ function AdminPageInner() {
     const [currentPage, setCurrentPage] = useState(1);
     const [rows, setRows] = useState<Row[]>([]);
     const [loading, setLoading] = useState(true);
+
+    // เพิ่มตัวกรองช่วงเวลา
+    const [dateFilter, setDateFilter] = useState<"this-week" | "this-month" | "last-month" | "all">("this-week");
+
     const itemsPerPage = 5;
 
     // ---------- Fetch + Poll ----------
@@ -238,8 +242,49 @@ function AdminPageInner() {
         };
         const statusFilter = tabMap[activeTab] ?? null;
 
+        // กรองตามช่วงเวลา
+        const now = new Date();
+        let dateFilterFn = (item: Row) => true; // default: แสดงทั้งหมด
+
+        if (dateFilter === "this-week") {
+            // สัปดาห์นี้ (จันทร์-อาทิตย์)
+            const startOfWeek = new Date(now);
+            const dayOfWeek = startOfWeek.getDay();
+            const daysToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1; // 0=อาทิตย์, 1=จันทร์
+            startOfWeek.setDate(startOfWeek.getDate() - daysToMonday);
+            startOfWeek.setHours(0, 0, 0, 0);
+
+            const endOfWeek = new Date(startOfWeek);
+            endOfWeek.setDate(endOfWeek.getDate() + 6);
+            endOfWeek.setHours(23, 59, 59, 999);
+
+            dateFilterFn = (item: Row) => {
+                const date = new Date(item.borrowDate || "");
+                return date >= startOfWeek && date <= endOfWeek;
+            };
+        } else if (dateFilter === "this-month") {
+            // เดือนนี้
+            const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+            const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+
+            dateFilterFn = (item: Row) => {
+                const date = new Date(item.borrowDate || "");
+                return date >= startOfMonth && date <= endOfMonth;
+            };
+        } else if (dateFilter === "last-month") {
+            // เดือนที่แล้ว
+            const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+            const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
+
+            dateFilterFn = (item: Row) => {
+                const date = new Date(item.borrowDate || "");
+                return date >= startOfLastMonth && date <= endOfLastMonth;
+            };
+        }
+
         return list
             .filter((item) => (statusFilter ? item.status === statusFilter : true))
+            .filter(dateFilterFn) // เพิ่มการกรองตามวันที่
             .filter((item) =>
                 (item.borrowerName || "").toLowerCase().includes(q) ||
                 (item.equipmentCode || "").toLowerCase().includes(q) ||
@@ -266,7 +311,7 @@ function AdminPageInner() {
 
                 return sortOrder === "newest" ? bDate - aDate : aDate - bDate;
             });
-    }, [rows, searchTerm, activeTab, sortOrder]);
+    }, [rows, searchTerm, activeTab, sortOrder, dateFilter]);
 
     // Pagination
     const totalPages = Math.ceil(filteredData.length / itemsPerPage);
@@ -274,10 +319,10 @@ function AdminPageInner() {
     const endIndex = startIndex + itemsPerPage;
     const currentData = filteredData.slice(startIndex, endIndex);
 
-    // Reset to page 1 when changing tabs or search
+    // Reset to page 1 when changing tabs, search, or date filter
     useEffect(() => {
         setCurrentPage(1);
-    }, [activeTab, searchTerm]);
+    }, [activeTab, searchTerm, dateFilter]);
 
     // นับจำนวนตามแท็บ
     const counts = useMemo(() => {
@@ -385,19 +430,39 @@ function AdminPageInner() {
                 )}
             </div>
 
-            {/* Search + Sort */}
+            {/* Search + Sort + Date Filter */}
             <div className="bg-white rounded-lg shadow-sm border">
                 <div className="p-4 border-b">
-                    <div className="flex justify-between items-center">
+                    <div className="flex justify-between items-center mb-4">
                         <h2 className="text-lg font-semibold text-gray-800">{activeTab}</h2>
-                        <div className="flex items-center gap-4">
+                    </div>
+
+                    {/* ตัวกรองและค้นหา */}
+                    <div className="flex flex-wrap items-center gap-4">
+                        {/* ตัวกรองช่วงเวลา */}
+                        <div className="flex items-center gap-2">
+                            <label className="text-sm font-medium text-gray-700">ช่วงเวลา:</label>
+                            <select
+                                value={dateFilter}
+                                onChange={(e) => setDateFilter(e.target.value as any)}
+                                className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            >
+                                <option value="this-week">สัปดาห์นี้</option>
+                                <option value="this-month">เดือนนี้</option>
+                                <option value="last-month">เดือนที่แล้ว</option>
+                                <option value="all">ทั้งหมด</option>
+                            </select>
+                        </div>
+
+                        {/* ช่องค้นหา */}
+                        <div className="flex-1 min-w-[200px]">
                             <div className="relative">
                                 <input
                                     type="text"
                                     placeholder="ค้นหารายการ"
                                     value={searchTerm}
                                     onChange={(e) => setSearchTerm(e.target.value)}
-                                    className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                                 />
                                 <Image
                                     src="/icons/search.png"
@@ -407,16 +472,29 @@ function AdminPageInner() {
                                     className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
                                 />
                             </div>
-                            <button
-                                onClick={() => setSortOrder((p) => (p === "newest" ? "oldest" : "newest"))}
-                                className={`p-2 border border-gray-300 rounded-lg hover:bg-gray-100 transition duration-150 flex items-center justify-center ${sortOrder === "newest" ? "bg-blue-50" : "bg-pink-50"
-                                    }`}
-                                title={sortOrder === "newest" ? "เรียงจากใหม่ไปเก่า" : "เรียงจากเก่าไปใหม่"}
-                            >
-                                <Image src="/icons/HamBmenu.png" alt="เรียงข้อมูล" width={20} height={20} />
-                                <span className="sr-only">เรียงข้อมูล</span>
-                            </button>
                         </div>
+
+                        {/* ปุ่มเรียง */}
+                        <button
+                            onClick={() => setSortOrder((p) => (p === "newest" ? "oldest" : "newest"))}
+                            className={`p-2 border border-gray-300 rounded-lg hover:bg-gray-100 transition duration-150 flex items-center justify-center ${sortOrder === "newest" ? "bg-blue-50" : "bg-pink-50"
+                                }`}
+                            title={sortOrder === "newest" ? "เรียงจากใหม่ไปเก่า" : "เรียงจากเก่าไปใหม่"}
+                        >
+                            <Image src="/icons/HamBmenu.png" alt="เรียงข้อมูล" width={20} height={20} />
+                            <span className="sr-only">เรียงข้อมูล</span>
+                        </button>
+                    </div>
+
+                    {/* แสดงข้อมูลช่วงเวลาที่เลือก */}
+                    <div className="mt-3 text-sm text-gray-600">
+                        {dateFilter === "this-week" && "แสดงข้อมูลสัปดาห์นี้ (จันทร์-อาทิตย์)"}
+                        {dateFilter === "this-month" && "แสดงข้อมูลเดือนนี้"}
+                        {dateFilter === "last-month" && "แสดงข้อมูลเดือนที่แล้ว"}
+                        {dateFilter === "all" && "แสดงข้อมูลทั้งหมด"}
+                        <span className="ml-2 text-blue-600">
+                            • ดูรายงานสรุปทั้งหมดได้ที่เมนู &quot;รายงาน&quot;
+                        </span>
                     </div>
                 </div>
 
