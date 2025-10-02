@@ -438,24 +438,9 @@ function AdminPageInner() {
                     </div>
 
                     {/* ตัวกรองและค้นหา */}
-                    <div className="flex flex-wrap items-center gap-4">
-                        {/* ตัวกรองช่วงเวลา */}
-                        <div className="flex items-center gap-2">
-                            <label className="text-sm font-medium text-gray-700">ช่วงเวลา:</label>
-                            <select
-                                value={dateFilter}
-                                onChange={(e) => setDateFilter(e.target.value as any)}
-                                className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                            >
-                                <option value="this-week">สัปดาห์นี้</option>
-                                <option value="this-month">เดือนนี้</option>
-                                <option value="last-month">เดือนที่แล้ว</option>
-                                <option value="all">ทั้งหมด</option>
-                            </select>
-                        </div>
-
+                    <div className="flex items-center gap-4">
                         {/* ช่องค้นหา */}
-                        <div className="flex-1 min-w-[200px]">
+                        <div className="flex-1">
                             <div className="relative">
                                 <input
                                     type="text"
@@ -472,6 +457,21 @@ function AdminPageInner() {
                                     className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
                                 />
                             </div>
+                        </div>
+
+                        {/* ตัวกรองช่วงเวลา */}
+                        <div className="flex items-center gap-2">
+                            <label className="text-sm font-medium text-gray-700">ช่วงเวลา:</label>
+                            <select
+                                value={dateFilter}
+                                onChange={(e) => setDateFilter(e.target.value as any)}
+                                className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            >
+                                <option value="this-week">สัปดาห์นี้</option>
+                                <option value="this-month">เดือนนี้</option>
+                                <option value="last-month">เดือนที่แล้ว</option>
+                                <option value="all">ทั้งหมด</option>
+                            </select>
                         </div>
 
                         {/* ปุ่มเรียง */}
