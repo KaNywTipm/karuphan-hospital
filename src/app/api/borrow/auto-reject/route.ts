@@ -32,29 +32,29 @@ export async function POST(req: Request) {
 
     const now = new Date();
     // คำนวณวันที่ 3 วันที่แล้ว
-    const threeDaysAgo = new Date(now.getTime() - (3 * 24 * 60 * 60 * 1000));
+    const threeDaysAgo = new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000);
 
     // ค้นหาคำขอยืมภายนอกที่:
     // 1. borrowerType = EXTERNAL
-    // 2. status = PENDING 
+    // 2. status = PENDING
     // 3. createdAt < threeDaysAgo (ส่งมาเกิน 3 วันแล้ว)
     const expiredRequests = await prisma.borrowRequest.findMany({
       where: {
         borrowerType: "EXTERNAL",
         status: "PENDING",
         createdAt: {
-          lt: threeDaysAgo
-        }
+          lt: threeDaysAgo,
+        },
       },
       include: {
         items: {
           include: {
             equipment: {
-              select: { number: true, code: true, name: true }
-            }
-          }
-        }
-      }
+              select: { number: true, code: true, name: true },
+            },
+          },
+        },
+      },
     });
 
     if (expiredRequests.length === 0) {
@@ -62,14 +62,14 @@ export async function POST(req: Request) {
         ok: true,
         message: "ไม่พบคำขอยืมที่เกินกำหนด",
         processed: 0,
-        data: []
+        data: [],
       });
     }
 
     // ปรับสถานะเป็น REJECTED สำหรับคำขอที่เกินกำหนด
     const rejectedRequests = await prisma.$transaction(async (tx) => {
       const results = [];
-      
+
       for (const request of expiredRequests) {
         // อัปเดตสถานะคำขอ
         const updated = await tx.borrowRequest.update({
@@ -78,29 +78,29 @@ export async function POST(req: Request) {
             status: "REJECTED",
             rejectedById: userId, // แอดมินที่รันคำสั่งนี้
             rejectedAt: now,
-            rejectReason: "คำขอหมดอายุ - ไม่ได้รับการอนุมัติภายใน 3 วัน"
+            rejectReason: "คำขอหมดอายุ - ไม่ได้รับการอนุมัติภายใน 3 วัน",
           },
           include: {
             items: {
               include: {
                 equipment: {
-                  select: { number: true, code: true, name: true }
-                }
-              }
-            }
-          }
+                  select: { number: true, code: true, name: true },
+                },
+              },
+            },
+          },
         });
 
         // อัปเดตสถานะอุปกรณ์ที่เคยถูก reserve ให้กลับเป็น NORMAL
         await tx.equipment.updateMany({
-          where: { 
-            currentRequestId: request.id 
+          where: {
+            currentRequestId: request.id,
           },
-          data: { 
+          data: {
             status: "NORMAL",
             currentRequestId: null,
-            statusChangedAt: now 
-          }
+            statusChangedAt: now,
+          },
         });
 
         results.push({
@@ -109,10 +109,10 @@ export async function POST(req: Request) {
           externalDept: request.externalDept,
           createdAt: request.createdAt,
           itemCount: request.items.length,
-          items: request.items.map(item => ({
+          items: request.items.map((item) => ({
             equipmentCode: item.equipment.code,
-            equipmentName: item.equipment.name
-          }))
+            equipmentName: item.equipment.name,
+          })),
         });
       }
 
@@ -123,9 +123,8 @@ export async function POST(req: Request) {
       ok: true,
       message: `ปรับสถานะคำขอที่เกินกำหนดเรียบร้อยแล้ว จำนวน ${rejectedRequests.length} รายการ`,
       processed: rejectedRequests.length,
-      data: rejectedRequests
+      data: rejectedRequests,
     });
-
   } catch (e: any) {
     console.error("[auto-reject]", e);
     return NextResponse.json(
@@ -154,7 +153,7 @@ export async function GET(req: Request) {
     }
 
     const now = new Date();
-    const threeDaysAgo = new Date(now.getTime() - (3 * 24 * 60 * 60 * 1000));
+    const threeDaysAgo = new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000);
 
     // ค้นหาคำขอยืมภายนอกที่เกิน 3 วันแล้ว
     const expiredRequests = await prisma.borrowRequest.findMany({
@@ -162,42 +161,44 @@ export async function GET(req: Request) {
         borrowerType: "EXTERNAL",
         status: "PENDING",
         createdAt: {
-          lt: threeDaysAgo
-        }
+          lt: threeDaysAgo,
+        },
       },
       include: {
         items: {
           include: {
             equipment: {
-              select: { number: true, code: true, name: true }
-            }
-          }
-        }
+              select: { number: true, code: true, name: true },
+            },
+          },
+        },
       },
-      orderBy: { createdAt: "asc" }
+      orderBy: { createdAt: "asc" },
     });
 
-    const results = expiredRequests.map(request => ({
+    const results = expiredRequests.map((request) => ({
       id: request.id,
       externalName: request.externalName,
       externalDept: request.externalDept,
       externalPhone: request.externalPhone,
       createdAt: request.createdAt,
-      daysOverdue: Math.floor((now.getTime() - new Date(request.createdAt).getTime()) / (24 * 60 * 60 * 1000)),
+      daysOverdue: Math.floor(
+        (now.getTime() - new Date(request.createdAt).getTime()) /
+          (24 * 60 * 60 * 1000)
+      ),
       itemCount: request.items.length,
-      items: request.items.map(item => ({
+      items: request.items.map((item) => ({
         equipmentCode: item.equipment.code,
         equipmentName: item.equipment.name,
-        quantity: item.quantity
-      }))
+        quantity: item.quantity,
+      })),
     }));
 
     return NextResponse.json({
       ok: true,
       count: results.length,
-      data: results
+      data: results,
     });
-
   } catch (e: any) {
     console.error("[get auto-reject candidates]", e);
     return NextResponse.json(
