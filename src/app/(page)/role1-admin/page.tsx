@@ -392,7 +392,7 @@ function AdminPageInner() {
         <div className="p-6 bg-white min-h-screen">
             {/* Header */}
             <div className="mb-6">
-                <div className="flex justify-between items-center mb-4">
+                {/* <div className="flex justify-between items-center mb-4">
                     <h1 className="text-2xl font-bold text-gray-800">รายการยืม-คืน</h1>
                     <button
                         onClick={() => router.push("/role1-admin/auto-reject")}
@@ -402,7 +402,7 @@ function AdminPageInner() {
                         <Image src="/icons/status.png" alt="Auto Reject" width={16} height={16} />
                         จัดการคำขอเกินกำหนด
                     </button>
-                </div>
+                </div> ขยายผลนะจ๊ะ */}
 
                 {/* Tabs */}
                 <div className="flex gap-4 mb-6">
