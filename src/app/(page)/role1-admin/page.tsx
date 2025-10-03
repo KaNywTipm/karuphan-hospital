@@ -392,7 +392,17 @@ function AdminPageInner() {
         <div className="p-6 bg-white min-h-screen">
             {/* Header */}
             <div className="mb-6">
-                <h1 className="text-2xl font-bold text-gray-800 mb-4">รายการยืม-คืน</h1>
+                <div className="flex justify-between items-center mb-4">
+                    <h1 className="text-2xl font-bold text-gray-800">รายการยืม-คืน</h1>
+                    <button
+                        onClick={() => router.push("/role1-admin/auto-reject")}
+                        className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors flex items-center gap-2"
+                        title="จัดการคำขอยืมที่เกินกำหนด 3 วัน"
+                    >
+                        <Image src="/icons/status.png" alt="Auto Reject" width={16} height={16} />
+                        จัดการคำขอเกินกำหนด
+                    </button>
+                </div>
 
                 {/* Tabs */}
                 <div className="flex gap-4 mb-6">

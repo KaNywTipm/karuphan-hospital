@@ -19,9 +19,70 @@ function pickBorrower(v: string | null | undefined) {
   return ALLOWED_BORROWER.has(s) ? (s as any) : undefined;
 }
 
+/**
+ * ฟังก์ชันตรวจสอบและปรับสถานะคำขอยืมภายนอกที่เกิน 3 วันโดยอัตโนมัติ
+ */
+async function autoRejectExpiredExternalRequests() {
+  try {
+    const now = new Date();
+    const threeDaysAgo = new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000);
+
+    // ค้นหาคำขอยืมภายนอกที่เกิน 3 วันแล้ว
+    const expiredRequests = await prisma.borrowRequest.findMany({
+      where: {
+        borrowerType: "EXTERNAL",
+        status: "PENDING",
+        createdAt: {
+          lt: threeDaysAgo,
+        },
+      },
+      select: { id: true },
+    });
+
+    if (expiredRequests.length > 0) {
+      // ปรับสถานะเป็น REJECTED พร้อมทั้งปล่อยอุปกรณ์
+      await prisma.$transaction(async (tx) => {
+        // อัปเดตสถานะคำขอ
+        await tx.borrowRequest.updateMany({
+          where: {
+            id: { in: expiredRequests.map((r) => r.id) },
+          },
+          data: {
+            status: "REJECTED",
+            rejectedAt: now,
+            rejectReason: "คำขอหมดอายุ - ไม่ได้รับการอนุมัติภายใน 3 วัน",
+          },
+        });
+
+        // ปล่อยอุปกรณ์ที่ถูก reserve
+        await tx.equipment.updateMany({
+          where: {
+            currentRequestId: { in: expiredRequests.map((r) => r.id) },
+          },
+          data: {
+            status: "NORMAL",
+            currentRequestId: null,
+            statusChangedAt: now,
+          },
+        });
+      });
+
+      console.log(
+        `Auto-rejected ${expiredRequests.length} expired external requests`
+      );
+    }
+  } catch (error) {
+    console.error("Error in autoRejectExpiredExternalRequests:", error);
+    // ไม่ throw error เพื่อไม่ให้กระทบต่อการทำงานหลัก
+  }
+}
+
 // GET /api/borrow
 export async function GET(req: Request) {
   try {
+    // ตรวจสอบและปรับสถานะคำขอยืมภายนอกที่เกิน 3 วันอัตโนมัติ
+    await autoRejectExpiredExternalRequests();
+
     const sp = new URL(req.url).searchParams;
 
     // filter / paging
