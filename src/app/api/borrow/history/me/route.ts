@@ -40,6 +40,8 @@ function flattenBorrowRequests(list: any[]) {
         equipmentName: "-",
         equipmentCode: "-", // ไม่มี items ก็ใส่ "-"
         approverOrReceiver,
+        returnCondition: null, // สภาพหลังคืน
+        returnNotes: req.returnNotes ?? null, // เหตุผลที่คืน
       });
       continue;
     }
@@ -48,16 +50,22 @@ function flattenBorrowRequests(list: any[]) {
     for (const it of items) {
       let equipmentName = "-";
       let equipmentCode = "-";
+      let returnCondition = null;
 
       if (it && typeof it === "object" && it.equipment) {
         equipmentName = it.equipment.name ?? "-";
-        // ✅ ดึง "เลขครุภัณฑ์จริง" โดยให้ priority กับ equipment.code
+        // ดึง "เลขครุภัณฑ์จริง" โดยให้ priority กับ equipment.code
         // ถ้าไม่มี code จะ fallback เป็น number
         equipmentCode =
           it.equipment.code ??
           (it.equipment.number !== undefined && it.equipment.number !== null
             ? String(it.equipment.number)
             : "-");
+      }
+
+      // ดึงสภาพหลังคืนจาก BorrowItem
+      if (it && typeof it === "object") {
+        returnCondition = it.returnCondition ?? null;
       }
 
       rows.push({
@@ -70,6 +78,8 @@ function flattenBorrowRequests(list: any[]) {
         equipmentName,
         equipmentCode,
         approverOrReceiver,
+        returnCondition, // สภาพหลังคืน
+        returnNotes: req.returnNotes ?? null, // เหตุผลที่คืน
       });
     }
   }
@@ -144,9 +154,14 @@ export async function GET(req: Request) {
           receivedBy: { select: { fullName: true } },
           rejectedBy: { select: { fullName: true } },
           items: {
-            include: {
-              // ✅ เลือก code มาด้วย เพื่อให้ส่ง “เลขครุภัณฑ์จริง” ไปหน้า UI
-              equipment: { select: { code: true, number: true, name: true } },
+            select: {
+              id: true,
+              equipmentId: true,
+              quantity: true,
+              returnCondition: true,
+              equipment: {
+                select: { code: true, number: true, name: true },
+              },
             },
           },
         },
