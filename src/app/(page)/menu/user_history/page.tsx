@@ -89,6 +89,36 @@ export default function UserHistory() {
         }
     };
 
+    // ฟังก์ชันสำหรับคำนวณสถานะวันที่คืน
+    const getDateStatus = (returnDue: string | null) => {
+        if (!returnDue) return { text: "-", color: "text-gray-500" };
+
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const dueDate = new Date(returnDue);
+        dueDate.setHours(0, 0, 0, 0);
+
+        const diffTime = dueDate.getTime() - today.getTime();
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+        if (diffDays > 0) {
+            return {
+                text: `ถึงกำหนดคืนในอีก ${diffDays} วัน`,
+                color: "text-yellow-600 font-medium"
+            };
+        } else if (diffDays === 0) {
+            return {
+                text: "ถึงกำหนดวันนี้",
+                color: "text-green-600 font-medium"
+            };
+        } else {
+            return {
+                text: `เกินกำหนด ${Math.abs(diffDays)} วัน`,
+                color: "text-red-600 font-medium"
+            };
+        }
+    };
+
     // Group items by request ID
     const groupedData = useMemo((): GroupedHistoryItem[] => {
         const grouped = new Map<number, GroupedHistoryItem>();
@@ -285,6 +315,7 @@ export default function UserHistory() {
                                 <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider">สถานะ</th>
                                 <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider">วันที่ยืม</th>
                                 <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider">วันที่คืน</th>
+                                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider">สถานะการคืน</th>
                                 <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider">รายการครุภัณฑ์</th>
                                 <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider">สภาพหลังคืน</th>
                                 <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider">เหตุผลที่คืน</th>
@@ -294,7 +325,7 @@ export default function UserHistory() {
                         <tbody className="divide-y divide-gray-200">
                             {currentData.length === 0 ? (
                                 <tr>
-                                    <td colSpan={8} className="px-4 py-8 text-center text-gray-500">
+                                    <td colSpan={9} className="px-4 py-8 text-center text-gray-500">
                                         <div className="flex flex-col items-center gap-2">
                                             <Image src="/icons/data.png" alt="No data" width={48} height={48} className="opacity-50" />
                                             <span>ไม่พบข้อมูลประวัติการยืม</span>
@@ -319,6 +350,19 @@ export default function UserHistory() {
                                             <div>กำหนด: {formatDate(item.returnDue)}</div>
                                             {item.actualReturnDate && (
                                                 <div className="text-green-600">คืนแล้ว: {formatDate(item.actualReturnDate)}</div>
+                                            )}
+                                        </td>
+                                        <td className="px-4 py-4 text-sm">
+                                            {item.status === "APPROVED" && !item.actualReturnDate && (
+                                                <span className={getDateStatus(item.returnDue).color}>
+                                                    {getDateStatus(item.returnDue).text}
+                                                </span>
+                                            )}
+                                            {item.status === "RETURNED" && (
+                                                <span className="text-green-600 font-medium">คืนแล้ว</span>
+                                            )}
+                                            {(item.status === "PENDING" || item.status === "REJECTED") && (
+                                                <span className="text-gray-400">-</span>
                                             )}
                                         </td>
                                         <td className="px-4 py-4 text-sm text-gray-900">
