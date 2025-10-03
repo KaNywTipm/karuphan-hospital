@@ -80,7 +80,8 @@ export async function PATCH(
           status: "APPROVED",
           approvedById: userId, // ← ผู้อนุมัติ = แอดมินที่กำลังกด
           approvedAt: now,
-          borrowDate: now,
+          // ใช้ borrowDate ที่ผู้ใช้เลือกไว้แล้ว ไม่ใช่วันที่ปัจจุบัน
+          borrowDate: br.borrowDate || now,
         },
         include: {
           requester: { select: { id: true, fullName: true, department: true } },

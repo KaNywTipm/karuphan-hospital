@@ -218,7 +218,7 @@ export default function UserHistory() {
                             ไม่อนุมัติ: {statusCounts.REJECTED}
                         </span>
                         <span className="px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800">
-                            รวม: {data.length}
+                            ทั้งหมด: {data.length}
                         </span>
                     </div>
                 </div>
