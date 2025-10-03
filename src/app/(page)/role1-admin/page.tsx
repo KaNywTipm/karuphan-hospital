@@ -192,7 +192,7 @@ function AdminPageInner() {
                     ,
                     adminName:
                         r.status === "REJECTED"
-                            ? (r.rejectedBy?.fullName ?? "(ผู้ใช้ถูกลบ)")
+                            ? (r.rejectedBy?.fullName ?? (r.rejectReason === "คำขอเกินกำหนด 3 วัน ระบบปฏิเสธอัตโนมัติ" ? "ระบบย้ายวันให้อัตโนมัติ" : "(ผู้ใช้ถูกลบ)"))
                             : (r.receivedBy?.fullName ?? r.approvedBy?.fullName ?? "(ผู้ใช้ถูกลบ)"),
                     department:
                         r.borrowerType === "INTERNAL"
@@ -448,8 +448,8 @@ function AdminPageInner() {
                             <button
                                 onClick={() => setDueDateFilter(dueDateFilter === "yellow" ? "all" : "yellow")}
                                 className={`flex items-center gap-2 px-3 py-1 rounded transition-colors ${dueDateFilter === "yellow"
-                                        ? "bg-yellow-200 text-yellow-800 font-medium"
-                                        : "hover:bg-yellow-100"
+                                    ? "bg-yellow-200 text-yellow-800 font-medium"
+                                    : "hover:bg-yellow-100"
                                     }`}
                             >
                                 <div className="w-4 h-4 bg-yellow-500 rounded"></div>
@@ -458,8 +458,8 @@ function AdminPageInner() {
                             <button
                                 onClick={() => setDueDateFilter(dueDateFilter === "green" ? "all" : "green")}
                                 className={`flex items-center gap-2 px-3 py-1 rounded transition-colors ${dueDateFilter === "green"
-                                        ? "bg-green-200 text-green-800 font-medium"
-                                        : "hover:bg-green-100"
+                                    ? "bg-green-200 text-green-800 font-medium"
+                                    : "hover:bg-green-100"
                                     }`}
                             >
                                 <div className="w-4 h-4 bg-green-500 rounded"></div>
@@ -468,8 +468,8 @@ function AdminPageInner() {
                             <button
                                 onClick={() => setDueDateFilter(dueDateFilter === "red" ? "all" : "red")}
                                 className={`flex items-center gap-2 px-3 py-1 rounded transition-colors ${dueDateFilter === "red"
-                                        ? "bg-red-200 text-red-800 font-medium"
-                                        : "hover:bg-red-100"
+                                    ? "bg-red-200 text-red-800 font-medium"
+                                    : "hover:bg-red-100"
                                     }`}
                             >
                                 <div className="w-4 h-4 bg-red-500 rounded"></div>
