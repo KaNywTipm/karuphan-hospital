@@ -144,6 +144,9 @@ function AdminPageInner() {
     // เพิ่มตัวกรองช่วงเวลา
     const [dateFilter, setDateFilter] = useState<"this-week" | "this-month" | "last-month" | "all">("this-week");
 
+    // เพิ่มตัวกรองสถานะปุ่มตรวจสอบ
+    const [dueDateFilter, setDueDateFilter] = useState<"all" | "yellow" | "green" | "red">("all");
+
     const itemsPerPage = 5;
 
     // ---------- Fetch + Poll ----------
@@ -285,6 +288,25 @@ function AdminPageInner() {
         return list
             .filter((item) => (statusFilter ? item.status === statusFilter : true))
             .filter(dateFilterFn) // เพิ่มการกรองตามวันที่
+            .filter((item) => {
+                // กรองตามสถานะปุ่มตรวจสอบ (เฉพาะในแท็บอนุมัติแล้ว)
+                if (activeTab === "อนุมัติแล้ว/รอตรวจสอบก่อนคืน" && dueDateFilter !== "all") {
+                    if (!item.returnDue) return false;
+
+                    const today = new Date();
+                    today.setHours(0, 0, 0, 0);
+                    const dueDate = new Date(item.returnDue);
+                    dueDate.setHours(0, 0, 0, 0);
+
+                    const diffTime = dueDate.getTime() - today.getTime();
+                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+                    if (dueDateFilter === "yellow" && diffDays <= 0) return false;
+                    if (dueDateFilter === "green" && diffDays !== 0) return false;
+                    if (dueDateFilter === "red" && diffDays >= 0) return false;
+                }
+                return true;
+            })
             .filter((item) =>
                 (item.borrowerName || "").toLowerCase().includes(q) ||
                 (item.equipmentCode || "").toLowerCase().includes(q) ||
@@ -311,7 +333,7 @@ function AdminPageInner() {
 
                 return sortOrder === "newest" ? bDate - aDate : aDate - bDate;
             });
-    }, [rows, searchTerm, activeTab, sortOrder, dateFilter]);
+    }, [rows, searchTerm, activeTab, sortOrder, dateFilter, dueDateFilter]);
 
     // Pagination
     const totalPages = Math.ceil(filteredData.length / itemsPerPage);
@@ -322,7 +344,7 @@ function AdminPageInner() {
     // Reset to page 1 when changing tabs, search, or date filter
     useEffect(() => {
         setCurrentPage(1);
-    }, [activeTab, searchTerm, dateFilter]);
+    }, [activeTab, searchTerm, dateFilter, dueDateFilter]);
 
     // นับจำนวนตามแท็บ
     const counts = useMemo(() => {
@@ -423,18 +445,44 @@ function AdminPageInner() {
                     <div className="mb-4 p-3 bg-gray-50 rounded-lg">
                         <h3 className="text-sm font-medium text-gray-700 mb-2">สถานะปุ่มตรวจสอบ:</h3>
                         <div className="flex gap-4 text-sm">
-                            <div className="flex items-center gap-2">
+                            <button
+                                onClick={() => setDueDateFilter(dueDateFilter === "yellow" ? "all" : "yellow")}
+                                className={`flex items-center gap-2 px-3 py-1 rounded transition-colors ${dueDateFilter === "yellow"
+                                        ? "bg-yellow-200 text-yellow-800 font-medium"
+                                        : "hover:bg-yellow-100"
+                                    }`}
+                            >
                                 <div className="w-4 h-4 bg-yellow-500 rounded"></div>
                                 <span>ยังไม่ถึงกำหนด ({approvedCounts.yellow})</span>
-                            </div>
-                            <div className="flex items-center gap-2">
+                            </button>
+                            <button
+                                onClick={() => setDueDateFilter(dueDateFilter === "green" ? "all" : "green")}
+                                className={`flex items-center gap-2 px-3 py-1 rounded transition-colors ${dueDateFilter === "green"
+                                        ? "bg-green-200 text-green-800 font-medium"
+                                        : "hover:bg-green-100"
+                                    }`}
+                            >
                                 <div className="w-4 h-4 bg-green-500 rounded"></div>
                                 <span>ถึงกำหนดคืน ({approvedCounts.green})</span>
-                            </div>
-                            <div className="flex items-center gap-2">
+                            </button>
+                            <button
+                                onClick={() => setDueDateFilter(dueDateFilter === "red" ? "all" : "red")}
+                                className={`flex items-center gap-2 px-3 py-1 rounded transition-colors ${dueDateFilter === "red"
+                                        ? "bg-red-200 text-red-800 font-medium"
+                                        : "hover:bg-red-100"
+                                    }`}
+                            >
                                 <div className="w-4 h-4 bg-red-500 rounded"></div>
                                 <span>เกินกำหนด ({approvedCounts.red})</span>
-                            </div>
+                            </button>
+                            {dueDateFilter !== "all" && (
+                                <button
+                                    onClick={() => setDueDateFilter("all")}
+                                    className="text-blue-600 hover:text-blue-800 text-sm underline ml-2"
+                                >
+                                    แสดงทั้งหมด
+                                </button>
+                            )}
                         </div>
                     </div>
                 )}
