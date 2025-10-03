@@ -193,7 +193,7 @@ function AdminPageInner() {
                     adminName:
                         r.status === "REJECTED"
                             ? (r.rejectedBy?.fullName ?? (r.rejectReason === "คำขอเกินกำหนด 3 วัน ระบบปฏิเสธอัตโนมัติ" ? "ระบบย้ายวันให้อัตโนมัติ" : "(ผู้ใช้ถูกลบ)"))
-                            : (r.receivedBy?.fullName ?? r.approvedBy?.fullName ?? "(ผู้ใช้ถูกลบ)"),
+                            : (r.receivedBy?.fullName ?? r.approvedBy?.fullName ?? "(ระบบย้ายวันให้อัตโนมัติ)"),
                     department:
                         r.borrowerType === "INTERNAL"
                             ? (r.requester?.department?.name ?? "(ไม่ระบุหน่วยงาน)")
