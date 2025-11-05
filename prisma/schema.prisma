@@ -1,0 +1,232 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+    provider = "prisma-client-js"
+}
+
+datasource db {
+    provider  = "postgresql"
+    url       = env("DATABASE_URL")
+    directUrl = env("DIRECT_URL")
+}
+
+// ---------- Enum ----------
+enum Role {
+    ADMIN
+    INTERNAL // บุคลากรภายในกลุ่มงาน
+    EXTERNAL // บุคลากรภายนอกกลุ่มงาน
+}
+
+enum BorrowerType {
+    INTERNAL
+    EXTERNAL
+}
+
+enum BorrowStatus {
+    PENDING // รออนุมัติ
+    APPROVED // อนุมัติแล้ว/รอคืน
+    RETURNED // คืนแล้ว
+    REJECTED // ไม่อนุมัติ / ยกเลิก
+    OVERDUE // เกินกำหนด
+}
+
+enum EquipmentStatus {
+    NORMAL // ปกติ (ว่าง)
+    IN_USE // กำลังใช้งาน/ถูกยืม
+    RESERVED // จองไว้/รออนุมัติ
+    BROKEN // ชำรุด
+    LOST // สูญหาย
+    WAIT_DISPOSE // รอจำหน่าย
+    DISPOSED // จำหน่ายแล้ว
+}
+
+// ใช้สำหรับ "สภาพตอนคืน" โดยตัดค่า IN_USE ออก
+enum ReturnCondition {
+    NORMAL
+    BROKEN
+    LOST
+    WAIT_DISPOSE
+    DISPOSED
+}
+
+// ---------- Models ----------
+
+// หน่วยงาน/สังกัด
+model Department {
+    id       Int     @id @default(autoincrement())
+    name     String  @unique
+    isActive Boolean @default(true)
+
+    users User[]
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    @@index([isActive])
+}
+
+model User {
+    id           Int     @id @default(autoincrement())
+    fullName     String
+    phone        String?
+    email        String  @unique
+    passwordHash String
+    role         Role
+    isActive     Boolean @default(true)
+
+    departmentId Int?
+    department   Department? @relation(fields: [departmentId], references: [id], onUpdate: Cascade, onDelete: SetNull)
+
+    // ❗ ฝั่งตรงข้ามของ BorrowRequest ต้องมี @relation ชื่อเดียวกัน
+    requests       BorrowRequest[] @relation("Requester")
+    returnReceipts BorrowRequest[] @relation("Receiver")
+    approvals      BorrowRequest[] @relation("Approver")
+    rejected       BorrowRequest[] @relation("Rejector")
+
+    passwordResetRequests PasswordResetRequest[]
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    @@index([role])
+    @@index([isActive])
+    @@index([departmentId])
+}
+
+// หมวดหมู่ครุภัณฑ์
+model Category {
+    id          Int     @id @default(autoincrement())
+    name        String  @unique // เช่น "คอมพิวเตอร์", "เครื่องมือแพทย์"
+    description String? // รายละเอียดเพิ่มเติม
+    isActive    Boolean @default(true)
+
+    equipments Equipment[]
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    @@index([isActive])
+}
+
+// ข้อมูลครุภัณฑ์
+model Equipment {
+    number       Int      @id @default(autoincrement())
+    idnum        String   @unique
+    code         String   @unique
+    name         String
+    description  String?
+    receivedDate DateTime
+    price        Decimal? @db.Decimal(12, 2)
+
+    status          EquipmentStatus @default(NORMAL)
+    statusNote      String?
+    statusChangedAt DateTime        @default(now())
+
+    currentRequestId Int?
+    currentRequest   BorrowRequest? @relation("CurrentEquipmentRequest", fields: [currentRequestId], references: [id], onUpdate: Cascade, onDelete: SetNull)
+
+    categoryId Int
+    category   Category @relation(fields: [categoryId], references: [id], onUpdate: Cascade, onDelete: Restrict)
+
+    borrowItems BorrowItem[]
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    @@unique([categoryId, idnum])
+    @@index([status])
+    @@index([categoryId])
+    @@index([code])
+    @@index([name])
+    @@index([currentRequestId])
+}
+
+model BorrowRequest {
+    id           Int          @id @default(autoincrement())
+    borrowerType BorrowerType
+
+    requesterId Int?
+    requester   User? @relation("Requester", fields: [requesterId], references: [id], onUpdate: Cascade, onDelete: SetNull)
+
+    externalName  String?
+    externalDept  String?
+    externalPhone String?
+
+    status           BorrowStatus     @default(PENDING)
+    borrowDate       DateTime? // วันที่เริ่ม "ตามแผน" (ผู้ใช้เลือกได้ อนุมัติล่วงหน้าได้)
+    // actualBorrowDate DateTime? // วันที่เริ่ม "จริง" (รับของแล้ว) เผื่อได้ใช้ในอนาคต
+    returnDue        DateTime
+    actualReturnDate DateTime?
+    returnCondition  ReturnCondition?
+    returnNotes      String?
+
+    receivedById Int?
+    receivedBy   User? @relation("Receiver", fields: [receivedById], references: [id], onUpdate: Cascade, onDelete: SetNull)
+
+    approvedById Int?
+    approvedBy   User?     @relation("Approver", fields: [approvedById], references: [id], onUpdate: Cascade, onDelete: SetNull)
+    approvedAt   DateTime?
+
+    rejectedById Int?
+    rejectedBy   User?     @relation("Rejector", fields: [rejectedById], references: [id], onUpdate: Cascade, onDelete: SetNull)
+    rejectedAt   DateTime?
+
+    reason       String?
+    notes        String?
+    rejectReason String?
+
+    items BorrowItem[]
+
+    // ฝั่งกลับของอุปกรณ์ที่ “ถือครองอยู่ตอนนี้”
+    currentEquipments Equipment[] @relation("CurrentEquipmentRequest")
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    @@index([status])
+    @@index([borrowerType])
+    @@index([returnDue])
+    @@index([requesterId])
+    @@index([approvedById])
+    @@index([receivedById])
+    @@index([createdAt])
+}
+
+// รายการครุภัณฑ์ที่อยู่ภายใต้คำขอยืม
+model BorrowItem {
+    id Int @id @default(autoincrement())
+
+    requestId   Int
+    equipmentId Int
+
+    quantity Int @default(1)
+
+    request   BorrowRequest @relation(fields: [requestId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+    equipment Equipment     @relation(fields: [equipmentId], references: [number], onUpdate: Cascade, onDelete: Restrict)
+
+    // สภาพคืนของแต่ละชิ้น (nullable)
+    returnCondition ReturnCondition?
+
+    // ป้องกันการซ้ำอุปกรณ์เดียวกันในคำขอเดียว
+    @@unique([requestId, equipmentId])
+    // หลายรายงาน/หน้าจอมัก JOIN ตามคู่คีย์นี้
+    @@index([equipmentId])
+}
+
+model PasswordResetRequest {
+    id          Int      @id @default(autoincrement())
+    user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+    userId      Int
+    otpHash     String
+    expiresAt   DateTime
+    attempts    Int      @default(0)
+    maxAttempts Int      @default(5)
+    consumed    Boolean  @default(false)
+    createdAt   DateTime @default(now())
+
+    @@index([userId, expiresAt, consumed])
+}

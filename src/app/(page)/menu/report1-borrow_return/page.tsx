@@ -1,0 +1,336 @@
+"use client";
+
+import React, { useEffect, useMemo, useState } from "react";
+import Image from "next/image";
+
+type Row = {
+    id: number;
+    borrowerName?: string | null;
+    department?: string | null;
+    equipmentCode?: string | null;   // รวมหลายชิ้นแล้วเป็น string เดียว เช่น "A,B,C"
+    equipmentName?: string | null;   // เช่น "โน้ตบุ๊ก, จอภาพ"
+    borrowDate?: string | null;
+    returnDue?: string | null;
+    actualReturnDate?: string | null;
+    reason?: string | null;
+    status?: "PENDING" | "APPROVED" | "RETURNED" | "REJECTED";
+    categoryNames?: string | string[] | null; // ถ้า API ยังไม่ส่งมา จะเป็น undefined ก็ได้
+};
+
+type Category = { id: number; name: string };
+
+const statusTH = (s?: Row["status"]) =>
+    s === "PENDING" ? "รออนุมัติ" :
+        s === "APPROVED" ? "อนุมัติแล้ว/รอคืน" :
+            s === "RETURNED" ? "คืนแล้ว" :
+                s === "REJECTED" ? "ไม่อนุมัติ" : "-";
+// s === "OVERDUE" ? "เกินกำหนด" : "-" พัฒนาต่อในอนาคต
+
+export default function BorrowReturnReport() {
+    const [search, setSearch] = useState("");
+    const [statusFilter, setStatusFilter] = useState<"" | "PENDING" | "APPROVED" | "RETURNED" | "REJECTED">("");
+    const [rows, setRows] = useState<Row[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [sort, setSort] = useState<"newest" | "oldest">("newest");
+    const [dateFilter, setDateFilter] = useState<"all" | "last-month" | "last-3-months" | "last-6-months" | "last-year" | "custom">("all");
+    const [customStartDate, setCustomStartDate] = useState("");
+    const [customEndDate, setCustomEndDate] = useState("");
+
+    useEffect(() => {
+        let alive = true;
+        (async () => {
+            try {
+                setLoading(true);
+                const bRes = await fetch("/api/borrow?pageSize=1000", { cache: "no-store" });
+                const bJson = await bRes.json().catch(() => ({ data: [] }));
+                if (!alive) return;
+                // Map ข้อมูลให้ครบทุกช่องเหมือนหน้า admin (with improved categoryNames logic)
+                const borrowRows = Array.isArray(bJson?.data)
+                    ? bJson.data.map((r: any) => {
+                        const namesFromItems = Array.from(
+                            new Set(
+                                (r.items ?? [])
+                                    .map((it: any) => it?.equipment?.category?.name)
+                                    .filter(Boolean)
+                            )
+                        );
+
+                        const normalizedCategoryNames =
+                            Array.isArray(r.categoryNames) && r.categoryNames.length
+                                ? r.categoryNames
+                                : typeof r.categoryNames === "string" && r.categoryNames.trim()
+                                    ? r.categoryNames.split(",").map((s: string) => s.trim())
+                                    : namesFromItems; // fallback จาก items
+
+                        return {
+                            id: r.id,
+                            borrowerName:
+                                r.borrowerType === "INTERNAL"
+                                    ? (r.requester?.fullName ?? "-")
+                                    : (r.externalName || r.requester?.fullName || "-"),
+                            department:
+                                r.borrowerType === "INTERNAL"
+                                    ? (r.requester?.department?.name ?? "-")
+                                    : (r.externalDept ?? "ภายนอกกลุ่มงาน"),
+                            equipmentCode: (r.items ?? []).map((it: any) => it?.equipment?.code).filter(Boolean).join(", "),
+                            equipmentName: (r.items ?? []).map((it: any) => it?.equipment?.name).filter(Boolean).join(", "),
+                            borrowDate: r.borrowDate ?? null,
+                            returnDue: r.returnDue ?? null,
+                            actualReturnDate: r.actualReturnDate ?? null,
+                            reason: r.reason ?? null,
+                            status: r.status,
+                            categoryNames: normalizedCategoryNames,
+                        };
+                    })
+                    : [];
+                setRows(borrowRows);
+            } finally {
+                if (alive) setLoading(false);
+            }
+        })();
+        return () => { alive = false; };
+    }, []);
+
+    const filtered = useMemo(() => {
+        const q = (search || "").toLowerCase();
+
+        // กำหนดช่วงวันที่ตามตัวเลือก
+        let startDate: Date | null = null;
+        let endDate: Date | null = null;
+        const now = new Date();
+
+        if (dateFilter === "last-month") {
+            startDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+            endDate = new Date(now.getFullYear(), now.getMonth() - 1 + 1, 0); // วันสุดท้ายของเดือนก่อนหน้า
+        } else if (dateFilter === "last-3-months") {
+            startDate = new Date(now.getFullYear(), now.getMonth() - 3, 1);
+            endDate = now;
+        } else if (dateFilter === "last-6-months") {
+            startDate = new Date(now.getFullYear(), now.getMonth() - 6, 1);
+            endDate = now;
+        } else if (dateFilter === "last-year") {
+            startDate = new Date(now.getFullYear() - 1, now.getMonth(), now.getDate());
+            endDate = now;
+        } else if (dateFilter === "custom" && customStartDate && customEndDate) {
+            startDate = new Date(customStartDate);
+            endDate = new Date(customEndDate);
+        }
+
+        return (rows || [])
+            .filter(r => !statusFilter || r.status === statusFilter)
+            .filter(r => {
+                // กรองตามวันที่ยืม
+                if (startDate && endDate && r.borrowDate) {
+                    const borrowDate = new Date(r.borrowDate);
+                    return borrowDate >= startDate && borrowDate <= endDate;
+                }
+                return true;
+            })
+            .filter(r =>
+                (r.borrowerName || "").toLowerCase().includes(q) ||
+                (r.department || "").toLowerCase().includes(q) ||
+                (r.equipmentCode || "").toLowerCase().includes(q) ||
+                (r.equipmentName || "").toLowerCase().includes(q)
+            )
+            .sort((a, b) => {
+                const da = new Date(a.borrowDate || "").getTime();
+                const db = new Date(b.borrowDate || "").getTime();
+                return sort === "newest" ? db - da : da - db;
+            });
+    }, [rows, search, sort, statusFilter, dateFilter, customStartDate, customEndDate]);
+
+    function toDate(s?: string | null) {
+        return s ? new Date(s).toLocaleDateString("th-TH") : "-";
+    }
+
+    // CSV export (รองรับ UTF-8 BOM)
+    const handleExcelExport = () => {
+        const headers = [
+            "ลำดับ", "ผู้ยืม", "หน่วยงาน", "เลขครุภัณฑ์", "ชื่อครุภัณฑ์", "หมวดหมู่", "วันที่ยืม", "เหตุผลการยืม", "สถานะ", "วันที่คืน"
+        ];
+
+        // ฟังก์ชันสำหรับทำความสะอาดข้อความใน CSV
+        const cleanText = (text: string | undefined | null): string => {
+            if (!text) return "-";
+            // ลบ newline, tab, และ quote ที่เป็นปัญหา
+            return text.toString()
+                .replace(/[\r\n\t]/g, " ") // แทนที่ newline และ tab ด้วยช่องว่าง
+                .replace(/"/g, '""') // escape double quotes
+                .trim();
+        };
+
+        const lines = filtered.map((r, i) => {
+            const catText = Array.isArray(r.categoryNames)
+                ? r.categoryNames.join(" / ")
+                : (r.categoryNames ?? "");
+            const returned = r.actualReturnDate || r.returnDue || "";
+            return [
+                i + 1,
+                `"${cleanText(r.borrowerName)}"`,
+                `"${cleanText(r.department)}"`,
+                `"${cleanText(r.equipmentCode)}"`,
+                `"${cleanText(r.equipmentName)}"`,
+                `"${cleanText(catText)}"`,
+                `"${r.borrowDate ? toDate(r.borrowDate) : "-"}"`,
+                `"${cleanText(r.reason)}"`,
+                `"${cleanText(statusTH(r.status))}"`,
+                `"${returned ? toDate(returned) : "-"}"`
+            ].join(",");
+        });
+
+        const csv = [headers.join(","), ...lines].join("\n");
+        const blob = new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8;" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `รายงานสรุปการยืมคืน_${new Date().toLocaleDateString("th-TH")}.csv`;
+        a.click();
+        URL.revokeObjectURL(url);
+    };
+
+    return (
+        <div className="bg-White rounded-lg shadow-sm p-6">
+            <div className="flex justify-between items-center mb-6">
+                <h1 className="text-2xl font-bold text-NavyBlue">รายงานสรุปการยืมคืน</h1>
+                <button onClick={handleExcelExport} className="bg-Green text-White px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-green-600">
+                    <span>ดาวน์โหลด Excel</span>
+                </button>
+            </div>
+
+            {/* Filters: Only status dropdown remains */}
+            <div className="mb-6 flex flex-wrap gap-4 items-center">
+                <div className="flex items-center gap-2">
+                    <label className="text-sm font-medium text-NavyBlue">สถานะ:</label>
+                    <select
+                        value={statusFilter}
+                        onChange={(e) => setStatusFilter(e.target.value as any)}
+                        className="px-3 py-2 border border-Grey rounded-lg"
+                    >
+                        <option value="">ทั้งหมด</option>
+                        <option value="PENDING">รออนุมัติ</option>
+                        <option value="APPROVED">อนุมัติแล้ว/รอคืน</option>
+                        <option value="RETURNED">คืนแล้ว</option>
+                        <option value="REJECTED">ไม่อนุมัติ</option>
+                        {/* <option value="OVERDUE">เกินกำหนด</option> */}
+                    </select>
+                </div>
+
+                <div className="flex items-center gap-2">
+                    <label className="text-sm font-medium text-NavyBlue">ช่วงเวลา(กรองตามวันที่ยืม):</label>
+                    <select
+                        value={dateFilter}
+                        onChange={(e) => setDateFilter(e.target.value as any)}
+                        className="px-3 py-2 border border-Grey rounded-lg"
+                    >
+                        <option value="all">ทั้งหมด</option>
+                        <option value="last-month">เดือนล่าสุด</option>
+                        <option value="last-3-months">3 เดือนล่าสุด</option>
+                        <option value="last-6-months">6 เดือนล่าสุด</option>
+                        <option value="last-year">1 ปีล่าสุด</option>
+                        <option value="custom">กำหนดเอง</option>
+                    </select>
+                </div>
+
+                {dateFilter === "custom" && (
+                    <>
+                        <div className="flex items-center gap-2">
+                            <label className="text-sm font-medium text-NavyBlue">จากวันที่:</label>
+                            <input
+                                type="date"
+                                value={customStartDate}
+                                onChange={(e) => setCustomStartDate(e.target.value)}
+                                className="px-3 py-2 border border-Grey rounded-lg"
+                            />
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <label className="text-sm font-medium text-NavyBlue">ถึงวันที่:</label>
+                            <input
+                                type="date"
+                                value={customEndDate}
+                                onChange={(e) => setCustomEndDate(e.target.value)}
+                                className="px-3 py-2 border border-Grey rounded-lg"
+                            />
+                        </div>
+                    </>
+                )}
+                <div className="relative w-80 ml-auto">
+                    <input
+                        type="text"
+                        placeholder="ค้นหาครุภัณฑ์"
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
+                        className="w-full px-4 py-2 border border-Grey rounded-lg focus:outline-none focus:ring-2 focus:ring-Blue"
+                    />
+                    <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                        <Image src="/icons/search.png" alt="search" width={20} height={20} className="opacity-50" />
+                    </div>
+                </div>
+                <button
+                    onClick={() => setSort(s => s === "newest" ? "oldest" : "newest")}
+                    className={`p-2 border border-Grey rounded-lg hover:bg-gray-100 transition duration-150 flex items-center justify-center ${sort === "newest" ? "bg-blue-50" : "bg-pink-50"
+                        }`}
+                    title={sort === "newest" ? "เรียงจากใหม่ไปเก่า" : "เรียงจากเก่าไปใหม่"}
+                >
+                    <Image src="/icons/HamBmenu.png" alt="เรียงข้อมูล" width={20} height={20} />
+                    <span className="sr-only">เรียงข้อมูล</span>
+                </button>
+            </div>
+
+            {/* Table */}
+            <div className="overflow-x-auto">
+                <table className="w-full border-collapse">
+                    <thead>
+                        <tr className="bg-Pink text-White">
+                            <th className="border px-4 py-3 text-center font-medium w-16">ลำดับ</th>
+                            <th className="border px-4 py-3 text-center font-medium">ผู้ยืม</th>
+                            <th className="border px-4 py-3 text-center font-medium">บุคลากร</th>
+                            <th className="border px-4 py-3 text-center font-medium">เลขครุภัณฑ์</th>
+                            <th className="border px-4 py-3 text-center font-medium">ชื่อครุภัณฑ์</th>
+                            <th className="border px-4 py-3 text-center font-medium">วันที่ยืม</th>
+                            <th className="border px-4 py-3 text-center font-medium">เหตุผลการยืม</th>
+                            <th className="border px-4 py-3 text-center font-medium w-36">สถานะ</th>
+                            <th className="border px-4 py-3 text-center font-medium">วันที่คืน</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {(!loading && filtered.length === 0) && (
+                            <tr><td colSpan={9} className="border px-4 py-8 text-center text-gray-500">ไม่พบข้อมูล</td></tr>
+                        )}
+
+                        {filtered.map((r, i) => (
+                            <tr key={r.id} className="hover:bg-gray-50">
+                                <td className="border px-4 py-3 text-center">{i + 1}</td>
+                                <td className="border px-4 py-3 text-center">{r.borrowerName ?? "-"}</td>
+                                <td className="border px-4 py-3 text-center">{r.department ?? "-"}</td>
+                                <td className="border px-4 py-3 text-center">{r.equipmentCode ?? "-"}</td>
+                                <td className="border px-4 py-3 text-center">{r.equipmentName ?? "-"}</td>
+                                <td className="border px-4 py-3 text-center">{toDate(r.borrowDate)}</td>
+                                <td className="border px-4 py-3 text-center">{r.reason ?? "-"}</td>
+                                <td className="border px-4 py-3 text-center">
+                                    <span className={`px-2 py-1 rounded-full text-xs ${r.status === "RETURNED" ? "bg-Green text-White" :
+                                        r.status === "APPROVED" ? "bg-Yellow text-White" :
+                                            r.status === "PENDING" ? "bg-Grey text-White" : "bg-RedLight text-White"
+                                        }`}>
+                                        {statusTH(r.status)}
+                                    </span>
+                                </td>
+                                <td className="border px-4 py-3 text-center">
+                                    {toDate(r.actualReturnDate || r.returnDue)}
+                                </td>
+                            </tr>
+                        ))}
+
+                        {loading && <tr><td colSpan={9} className="border px-4 py-8 text-center">กำลังโหลด...</td></tr>}
+                    </tbody>
+                </table>
+            </div>
+
+            {/* Footer */}
+            <div className="flex items-center justify-between px-4 py-3 border-t">
+                <span className="text-sm text-gray-700">
+                    แสดง {filtered.length} รายการ จากทั้งหมด {rows.length} รายการ
+                </span>
+            </div>
+        </div>
+    );
+}

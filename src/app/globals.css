@@ -1,3 +1,29 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
+html,
+body,
+#root,
+.app {
+    height: 100%;
+    width: 100%;
+}
+
+@media (min-width: 768px) {
+    .custom-grid-rows {
+        grid-template-rows: repeat(8, 20vh);
+    }
+}
+
+@media (min-width: 1280px) {
+    .custom-grid-rows {
+        grid-template-rows: repeat(8, 7.5vh);
+    }
+}
