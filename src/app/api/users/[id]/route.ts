@@ -74,6 +74,7 @@ export async function PATCH(
       data.phone = body.phone ?? null;
     if (typeof body.role === "string")
       data.role = String(body.role).toUpperCase();
+    if (typeof body.isActive === "boolean") data.isActive = body.isActive;
     if (body.departmentId === null) data.department = { disconnect: true };
     else if (Number.isFinite(Number(body.departmentId)))
       data.department = { connect: { id: Number(body.departmentId) } };

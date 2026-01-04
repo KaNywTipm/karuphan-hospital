@@ -48,6 +48,7 @@ const MENU: { title: string; items: MenuItem[] }[] = [
         ],
       },
       { icon: "/icons/person.png", label: "จัดการบุคลากร", href: "/menu/manage-personnel", visible: ["ADMIN"] },
+      { icon: "/icons/person.png", label: "ยืนยันบัญชีบุคลากร", href: "/menu/verify-users", visible: ["ADMIN"] },
       { icon: "/icons/person.png", label: "แก้ไขโปรไฟล์", href: "/menu/user_edit-profile", visible: ["INTERNAL", "EXTERNAL"] },
       { icon: "/icons/out.png", label: "ออกจากระบบ", href: "/sign-in", visible: ["ADMIN", "INTERNAL", "EXTERNAL"] },
     ],
